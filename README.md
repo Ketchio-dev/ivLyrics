@@ -1,4 +1,4 @@
-<img width="2208" height="512" alt="ko" src="https://github.com/user-attachments/assets/e4723922-2b91-466f-9f5e-b0b1604f8ebe" />
+<img width="2208" height="512" alt="ko" src="https://github.com/ivLis-Studio/ivLyrics/blob/main/preview_readme_ko.png?raw=true" />
 
 ---
 
