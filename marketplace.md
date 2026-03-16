@@ -36,7 +36,7 @@ curl -fsSL https://ivlis.kr/ivLyrics/uninstall.sh | bash
 
 
 
-A lyrics extension for Spicetify. Supports pronunciation notation and translation for various languages using the Google Gemini API.
+A lyrics extension for Spicetify. Supports pronunciation notation and translation for various languages using the AI API.
 
 For bug reports and feature suggestions, please contact us via GitHub Issues or [Discord](https://discord.gg/2fu36fUzdE).
 
