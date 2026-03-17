@@ -695,6 +695,27 @@ window.LANG_FA = {
     "lyricsProvider": "ارائه‌دهنده متن",
     "syncContributor": "مشارکت‌کننده هماهنگ‌سازی"
   },
+  "creatorProfile": {
+    "title": "سازنده همگام‌سازی",
+    "anonymous": "ناشناس",
+    "openProfile": "باز کردن پروفایل سازنده",
+    "loading": "در حال بارگذاری پروفایل سازنده...",
+    "loadFailed": "بارگذاری پروفایل سازنده ناموفق بود.",
+    "back": "بازگشت",
+    "contributions": "همگام‌سازی‌های افزوده‌شده",
+    "tracks": "آهنگ‌های همگام‌شده",
+    "likes": "پسندها",
+    "like": "پسند",
+    "liked": "پسندیده‌شده",
+    "likeActionFailed": "به‌روزرسانی پسند سازنده ناموفق بود.",
+    "likeLoginRequired": "برای پسندیدن سازندگان باید با Discord وارد شوید.",
+    "ownProfile": "این پروفایل شماست.",
+    "loadMore": "بارگذاری بیشتر",
+    "loadingMore": "در حال بارگذاری بیشتر...",
+    "noContributions": "هنوز همگام‌سازی‌ای اضافه نشده است.",
+    "unknownTrack": "آهنگ نامشخص",
+    "updated": "به‌روزرسانی"
+  },
   "settingsAdvanced": {
     "patchNotes": {
       "empty": "یادداشت پچی وجود ندارد."

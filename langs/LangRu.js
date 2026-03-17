@@ -695,6 +695,27 @@ window.LANG_RU = {
     "lyricsProvider": "Поставщик текста",
     "syncContributor": "Автор синхронизации"
   },
+  "creatorProfile": {
+    "title": "Автор синхронизации",
+    "anonymous": "Аноним",
+    "openProfile": "Открыть профиль автора",
+    "loading": "Загрузка профиля автора...",
+    "loadFailed": "Не удалось загрузить профиль автора.",
+    "back": "Назад",
+    "contributions": "Добавленные синхронизации",
+    "tracks": "Синхронизированные треки",
+    "likes": "Лайки",
+    "like": "Лайк",
+    "liked": "Лайкнуто",
+    "likeActionFailed": "Не удалось обновить лайк автора.",
+    "likeLoginRequired": "Чтобы ставить лайки авторам, нужно войти через Discord.",
+    "ownProfile": "Это ваш профиль.",
+    "loadMore": "Загрузить еще",
+    "loadingMore": "Загрузка...",
+    "noContributions": "Пока нет добавленных синхронизаций.",
+    "unknownTrack": "Неизвестный трек",
+    "updated": "Обновлено"
+  },
   "settingsAdvanced": {
     "patchNotes": {
       "empty": "Список изменений пуст."

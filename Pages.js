@@ -1,47 +1,660 @@
-// CreditFooter implementing provider and contributor display
-const CreditFooter = react.memo(({ provider, contributors }) => {
-	if (!provider) return null;
+function getCreatorProfileCopy() {
+	return {
+		title: I18n.t("creatorProfile.title") || "Sync Creator",
+		anonymous: I18n.t("creatorProfile.anonymous") || "Anonymous",
+		openProfile: I18n.t("creatorProfile.openProfile") || "Open creator profile",
+		loading: I18n.t("creatorProfile.loading") || "Loading creator profile...",
+		loadFailed: I18n.t("creatorProfile.loadFailed") || "Failed to load creator profile.",
+		back: I18n.t("creatorProfile.back") || "Back",
+		contributions: I18n.t("creatorProfile.contributions") || "Sync Contributions",
+		tracks: I18n.t("creatorProfile.tracks") || "Synced tracks",
+		likes: I18n.t("creatorProfile.likes") || "Likes",
+		like: I18n.t("creatorProfile.like") || "Like",
+		liked: I18n.t("creatorProfile.liked") || "Liked",
+		likeActionFailed: I18n.t("creatorProfile.likeActionFailed") || "Failed to update creator like.",
+		likeLoginRequired: I18n.t("creatorProfile.likeLoginRequired") || "Discord login is required to like creators.",
+		ownProfile: I18n.t("creatorProfile.ownProfile") || "This is your profile.",
+		loadMore: I18n.t("creatorProfile.loadMore") || "Load more",
+		loadingMore: I18n.t("creatorProfile.loadingMore") || "Loading more...",
+		noContributions: I18n.t("creatorProfile.noContributions") || "No sync contributions yet.",
+		unknownTrack: I18n.t("creatorProfile.unknownTrack") || "Unknown Track",
+		updated: I18n.t("creatorProfile.updated") || "Updated"
+	};
+}
 
-	let text = `${I18n.t("misc.lyricsProvider") || "Lyrics Provider"} : ${provider}`;
-	if (contributors && contributors.length > 0) {
-		let uniqueContributors = contributors;
+function mergeCreatorProfileContributions(currentItems, nextItems) {
+	const merged = [];
+	const seen = new Set();
 
-		// Merge multiple 'Anonymous' (case-insensitive)
-		const isAnonymous = c => c && c.toLowerCase() === 'anonymous';
-		if (contributors.some(isAnonymous)) {
-			const others = contributors.filter(c => !isAnonymous(c));
-			// Deduplicate others as well
-			uniqueContributors = [...new Set(others), "Anonymous"];
-		} else {
-			uniqueContributors = [...new Set(contributors)];
+	for (const item of [...(Array.isArray(currentItems) ? currentItems : []), ...(Array.isArray(nextItems) ? nextItems : [])]) {
+		if (!item || typeof item !== "object") {
+			continue;
 		}
 
-		// Limit to max 3
-		if (uniqueContributors.length > 3) {
-			uniqueContributors = uniqueContributors.slice(0, 3);
+		const key = `${item.trackId || "unknown"}:${item.provider || "unknown"}`;
+		if (seen.has(key)) {
+			continue;
 		}
 
-		text += ` | ${I18n.t("misc.syncContributor") || "Sync Contributor"} : ${uniqueContributors.join(", ")}`;
+		seen.add(key);
+		merged.push(item);
 	}
 
+	return merged;
+}
+
+function normalizeContributorEntry(contributor) {
+	if (!contributor) {
+		return null;
+	}
+
+	if (typeof contributor === "string") {
+		const name = contributor.trim() || "Anonymous";
+		return {
+			key: `name:${name.toLowerCase()}`,
+			userHash: null,
+			name,
+			avatarUrl: null,
+			linked: false,
+			profileAvailable: false
+		};
+	}
+
+	if (typeof contributor !== "object") {
+		return null;
+	}
+
+	const name = String(contributor.name || contributor.nickname || contributor.displayName || "Anonymous").trim() || "Anonymous";
+	const userHash = typeof contributor.userHash === "string" && contributor.userHash.trim()
+		? contributor.userHash.trim()
+		: null;
+
+	return {
+		key: userHash || `name:${name.toLowerCase()}`,
+		userHash,
+		name,
+		avatarUrl: typeof contributor.avatarUrl === "string" ? contributor.avatarUrl : null,
+		linked: !!contributor.linked,
+		profileAvailable: contributor.profileAvailable ?? !!userHash
+	};
+}
+
+function getDisplayContributors(contributors, limit = 3) {
+	if (!Array.isArray(contributors) || contributors.length === 0) {
+		return [];
+	}
+
+	const result = [];
+	const seen = new Set();
+	let anonymousAdded = false;
+
+	for (const rawContributor of contributors) {
+		const contributor = normalizeContributorEntry(rawContributor);
+		if (!contributor) {
+			continue;
+		}
+
+		const isAnonymous = contributor.name.toLowerCase() === "anonymous" && !contributor.profileAvailable;
+		if (isAnonymous) {
+			if (anonymousAdded) {
+				continue;
+			}
+			anonymousAdded = true;
+			result.push(contributor);
+		} else {
+			const key = contributor.userHash || contributor.key;
+			if (seen.has(key)) {
+				continue;
+			}
+			seen.add(key);
+			result.push(contributor);
+		}
+
+		if (limit > 0 && result.length >= limit) {
+			break;
+		}
+	}
+
+	return result;
+}
+
+function formatContributorTimestamp(epochSeconds) {
+	if (!epochSeconds) {
+		return null;
+	}
+
+	try {
+		return new Date(epochSeconds * 1000).toLocaleDateString();
+	} catch (error) {
+		return null;
+	}
+}
+
+function getCreatorProfileUiTheme() {
+	try {
+		return localStorage.getItem("ivLyrics:settings-ui-theme") === "light"
+			? "light"
+			: "dark";
+	} catch (error) {
+		return "dark";
+	}
+}
+
+const CREATOR_PROFILE_PAGE_SIZE = 12;
+
+const SyncCreatorProfileModal = react.memo(({
+	contributor,
+	profile,
+	loading,
+	error,
+	likePending,
+	loadMorePending,
+	onClose,
+	onToggleLike,
+	onLoadMore,
+	onTrackClick
+}) => {
+	const copy = getCreatorProfileCopy();
+	const uiTheme = getCreatorProfileUiTheme();
+	const profileData = profile || {};
+	const displayName = profileData.displayName || contributor?.name || copy.anonymous;
+	const account = profileData.account || null;
+	const handle = account?.username ? `@${account.username}` : null;
+	const avatarUrl = account?.profileImage || contributor?.avatarUrl || null;
+	const initial = (displayName || copy.anonymous).charAt(0).toUpperCase();
+	const trackCount = Number(profileData.stats?.trackCount || 0);
+	const likeCount = Number(profileData.stats?.likeCount || 0);
+	const totalContributionCount = Number(profileData.pagination?.totalCount || trackCount || 0);
+	const loadedContributionCount = Array.isArray(profileData.contributions) ? profileData.contributions.length : 0;
+	const hasMoreContributions = !!profileData.pagination?.hasMore;
+	const canLike = !!profileData.viewer?.canLike;
+	const liked = !!profileData.viewer?.liked;
+	const isOwnProfile = !!profileData.viewer?.isOwnProfile;
+	const subtitle = handle || (account?.displayName && account.displayName !== displayName ? account.displayName : null);
+	const likeButtonLabel = likePending ? "..." : liked ? copy.liked : copy.like;
+	const likeButtonTitle = !profileData.viewer?.authenticated && !isOwnProfile
+		? copy.likeLoginRequired
+		: copy.like;
+	const closeIcon = react.createElement(
+		"svg",
+		{
+			width: 16,
+			height: 16,
+			viewBox: "0 0 16 16",
+			fill: "none",
+			stroke: "currentColor",
+			strokeWidth: 1.8,
+			strokeLinecap: "round"
+		},
+		react.createElement("path", { d: "M3 3l10 10" }),
+		react.createElement("path", { d: "M13 3L3 13" })
+	);
+	const likeIcon = react.createElement(
+		"svg",
+		{
+			width: 14,
+			height: 14,
+			viewBox: "0 0 16 16",
+			fill: liked ? "currentColor" : "none",
+			stroke: "currentColor",
+			strokeWidth: 1.5,
+			strokeLinecap: "round",
+			strokeLinejoin: "round",
+			"aria-hidden": "true"
+		},
+		react.createElement("path", { d: "M8 13.4 2.9 8.6a3.2 3.2 0 0 1 4.5-4.5L8 4.7l.6-.6a3.2 3.2 0 1 1 4.5 4.5L8 13.4Z" })
+	);
+
+	const content = loading
+		? react.createElement(
+			"div",
+			{ className: "lyrics-creator-profile-state" },
+			copy.loading
+		)
+		: error
+			? react.createElement(
+				"div",
+				{ className: "lyrics-creator-profile-state lyrics-creator-profile-error" },
+				error
+			)
+			: react.createElement(
+				react.Fragment,
+				null,
+				react.createElement(
+					"div",
+					{ className: "lyrics-creator-profile-hero" },
+					avatarUrl
+						? react.createElement("img", {
+							className: "lyrics-creator-profile-avatar",
+							src: avatarUrl,
+							alt: displayName,
+							onError: (event) => {
+								event.currentTarget.style.display = "none";
+							}
+						})
+						: react.createElement(
+							"div",
+							{ className: "lyrics-creator-profile-avatar lyrics-creator-profile-avatar-fallback" },
+							initial
+						),
+					react.createElement(
+						"div",
+						{ className: "lyrics-creator-profile-info" },
+						react.createElement(
+							"div",
+							{ className: "lyrics-creator-profile-name-row" },
+							react.createElement("h2", { className: "lyrics-creator-profile-name" }, displayName),
+							react.createElement(
+								"button",
+								{
+									type: "button",
+									className: `lyrics-creator-profile-like-inline ${liked ? "is-liked" : ""} ${likePending ? "is-loading" : ""}`.trim(),
+									onClick: onToggleLike,
+									disabled: likePending || !canLike,
+									title: likeButtonTitle,
+									"aria-label": likeButtonLabel
+								},
+								likeIcon,
+								react.createElement("span", null, likeButtonLabel)
+							)
+						),
+						subtitle && react.createElement("div", { className: "lyrics-creator-profile-handle" }, subtitle),
+						react.createElement(
+							"div",
+							{ className: "lyrics-creator-profile-stats" },
+							react.createElement(
+								"div",
+								{ className: "lyrics-creator-profile-stat" },
+								react.createElement("strong", null, trackCount),
+								react.createElement("span", null, copy.tracks)
+							),
+							react.createElement(
+								"div",
+								{ className: "lyrics-creator-profile-stat" },
+								react.createElement("strong", null, likeCount),
+								react.createElement("span", null, copy.likes)
+							)
+						)
+					)
+				),
+				react.createElement(
+					"div",
+					{ className: "lyrics-creator-profile-section-header" },
+					react.createElement("h3", { className: "lyrics-creator-profile-section-title" }, copy.contributions),
+					totalContributionCount > 0 && react.createElement(
+						"div",
+						{ className: "lyrics-creator-profile-section-meta" },
+						`${loadedContributionCount}/${totalContributionCount}`
+					)
+				),
+				profileData.contributions?.length
+					? react.createElement(
+						react.Fragment,
+						null,
+						react.createElement(
+							"div",
+							{ className: "lyrics-creator-profile-grid" },
+							...profileData.contributions.map((item) => {
+								const updatedLabel = formatContributorTimestamp(item.updatedAt || item.createdAt);
+								return react.createElement(
+									"button",
+									{
+										type: "button",
+										key: `${item.trackId}:${item.provider}`,
+										className: "lyrics-creator-profile-track",
+										onClick: () => onTrackClick(item.trackId)
+									},
+									react.createElement("div", { className: "lyrics-creator-profile-track-title" }, item.trackName || copy.unknownTrack),
+									react.createElement("div", { className: "lyrics-creator-profile-track-artist" }, item.artists || item.trackId),
+									react.createElement(
+										"div",
+										{ className: "lyrics-creator-profile-track-meta" },
+										react.createElement("span", { className: "lyrics-creator-profile-track-provider" }, item.provider),
+										updatedLabel && react.createElement("span", null, `${copy.updated} ${updatedLabel}`)
+									)
+								);
+							})
+						),
+						hasMoreContributions && react.createElement(
+							"div",
+							{ className: "lyrics-creator-profile-grid-footer" },
+							react.createElement(
+								"button",
+								{
+									type: "button",
+									className: "lyrics-creator-profile-load-more",
+									onClick: onLoadMore,
+									disabled: loadMorePending
+								},
+								loadMorePending ? copy.loadingMore : copy.loadMore
+							)
+						)
+					)
+					: react.createElement(
+						"div",
+						{ className: "lyrics-creator-profile-empty" },
+						copy.noContributions
+					)
+			);
+
 	return react.createElement(
+		"div",
+		{
+			className: "lyrics-creator-profile-overlay",
+			"data-ui-theme": uiTheme,
+			onClick: onClose
+		},
+		react.createElement(
+			"div",
+			{
+				className: "lyrics-creator-profile-modal",
+				"data-ui-theme": uiTheme,
+				onClick: (event) => event.stopPropagation()
+			},
+			react.createElement(
+				"div",
+				{ className: "lyrics-creator-profile-header" },
+				react.createElement(
+					"div",
+					{ className: "lyrics-creator-profile-title-wrap" },
+					react.createElement("h2", { className: "lyrics-creator-profile-header-title" }, copy.title)
+				),
+				react.createElement(
+					"button",
+					{
+						type: "button",
+						className: "lyrics-creator-profile-close",
+						onClick: onClose,
+						title: copy.back
+					},
+					closeIcon
+				)
+			),
+			react.createElement(
+				"div",
+				{ className: "lyrics-creator-profile-body" },
+				content
+			),
+			react.createElement(
+				"div",
+				{ className: "lyrics-creator-profile-footer" },
+				react.createElement(
+					"button",
+					{
+						type: "button",
+						className: "lyrics-creator-profile-footer-btn",
+						onClick: onClose
+					},
+					copy.back
+				)
+			)
+		)
+	);
+});
+
+// CreditFooter implementing provider and contributor display
+const CreditFooter = react.memo(({ provider, contributors }) => {
+	const copy = getCreatorProfileCopy();
+	const reactDom = window.Spicetify?.ReactDOM ?? window.ReactDOM ?? null;
+	const visibleContributors = useMemo(() => getDisplayContributors(contributors, 3), [contributors]);
+	const [activeContributor, setActiveContributor] = useState(null);
+	const [creatorProfile, setCreatorProfile] = useState(null);
+	const [profileLoading, setProfileLoading] = useState(false);
+	const [profileError, setProfileError] = useState(null);
+	const [likePending, setLikePending] = useState(false);
+	const [profileLoadingMore, setProfileLoadingMore] = useState(false);
+	const requestIdRef = useRef(0);
+
+	const closeProfile = useCallback(() => {
+		requestIdRef.current += 1;
+		setActiveContributor(null);
+		setCreatorProfile(null);
+		setProfileLoading(false);
+		setProfileError(null);
+		setLikePending(false);
+		setProfileLoadingMore(false);
+	}, []);
+
+	useEffect(() => {
+		if (!activeContributor) {
+			return undefined;
+		}
+
+		const onKeyDown = (event) => {
+			if (event.key === "Escape") {
+				closeProfile();
+			}
+		};
+
+		window.addEventListener("keydown", onKeyDown);
+		return () => window.removeEventListener("keydown", onKeyDown);
+	}, [activeContributor, closeProfile]);
+
+	const openCreatorProfile = useCallback(async (contributor) => {
+		if (!contributor?.profileAvailable || !contributor.userHash) {
+			return;
+		}
+
+		const requestId = requestIdRef.current + 1;
+		requestIdRef.current = requestId;
+		setActiveContributor(contributor);
+		setCreatorProfile(null);
+		setProfileError(null);
+		setLikePending(false);
+		setProfileLoadingMore(false);
+		setProfileLoading(true);
+
+		try {
+			const data = await Utils.fetchSyncCreatorProfile(contributor.userHash, {
+				limit: CREATOR_PROFILE_PAGE_SIZE,
+				offset: 0
+			});
+			if (requestIdRef.current !== requestId) {
+				return;
+			}
+			setCreatorProfile(data);
+		} catch (error) {
+			if (requestIdRef.current !== requestId) {
+				return;
+			}
+			setProfileError(error.message || copy.loadFailed);
+		} finally {
+			if (requestIdRef.current === requestId) {
+				setProfileLoading(false);
+			}
+		}
+	}, [copy.loadFailed]);
+
+	const handleLoadMore = useCallback(async () => {
+		if (!creatorProfile?.userHash || !creatorProfile?.pagination?.hasMore || profileLoadingMore) {
+			return;
+		}
+
+		const requestId = requestIdRef.current + 1;
+		requestIdRef.current = requestId;
+		setProfileLoadingMore(true);
+
+		try {
+			const nextPage = await Utils.fetchSyncCreatorProfile(creatorProfile.userHash, {
+				limit: CREATOR_PROFILE_PAGE_SIZE,
+				offset: Number(creatorProfile.pagination?.nextOffset || creatorProfile.contributions?.length || 0)
+			});
+
+			if (requestIdRef.current !== requestId) {
+				return;
+			}
+
+			setCreatorProfile((currentProfile) => {
+				if (!currentProfile || currentProfile.userHash !== nextPage.userHash) {
+					return currentProfile;
+				}
+
+				return {
+					...nextPage,
+					contributions: mergeCreatorProfileContributions(
+						currentProfile.contributions,
+						nextPage.contributions
+					),
+					stats: {
+						...currentProfile.stats,
+						...nextPage.stats
+					},
+					viewer: {
+						...currentProfile.viewer,
+						...nextPage.viewer
+					}
+				};
+			});
+		} catch (error) {
+			if (requestIdRef.current !== requestId) {
+				return;
+			}
+			Toast.error(error.message || copy.loadFailed);
+		} finally {
+			if (requestIdRef.current === requestId) {
+				setProfileLoadingMore(false);
+			}
+		}
+	}, [copy.loadFailed, creatorProfile, profileLoadingMore]);
+
+	const handleToggleLike = useCallback(async () => {
+		if (!creatorProfile?.userHash) {
+			return;
+		}
+
+		if (!creatorProfile.viewer?.authenticated) {
+			Toast.error(copy.likeLoginRequired);
+			return;
+		}
+
+		setLikePending(true);
+		try {
+			const result = await Utils.setSyncCreatorLike(creatorProfile.userHash, !creatorProfile.viewer?.liked);
+			setCreatorProfile((currentProfile) => currentProfile
+				? {
+					...currentProfile,
+					stats: {
+						...currentProfile.stats,
+						likeCount: result.likeCount
+					},
+					viewer: {
+						...currentProfile.viewer,
+						liked: result.liked
+					}
+				}
+				: currentProfile
+			);
+		} catch (error) {
+			Toast.error(error.message || copy.likeActionFailed);
+		} finally {
+			setLikePending(false);
+		}
+	}, [copy.likeActionFailed, copy.likeLoginRequired, creatorProfile]);
+
+	const handleTrackClick = useCallback((trackId) => {
+		if (!trackId) {
+			return;
+		}
+
+		closeProfile();
+		Spicetify?.Platform?.History?.push?.(`/track/${trackId}`);
+	}, [closeProfile]);
+
+	if (!provider) {
+		return null;
+	}
+
+	const footer = react.createElement(
 		"div",
 		{
 			className: "lyrics-credit-footer",
 			style: {
 				position: "absolute",
 				bottom: "40px",
-				width: "100%",
+				left: "50%",
+				transform: "translateX(-50%)",
+				width: "max-content",
+				maxWidth: "min(92%, 980px)",
 				fontSize: "12px",
 				color: "var(--lyrics-color-inactive)",
 				opacity: 0.7,
 				textAlign: "center",
 				zIndex: 200,
-				pointerEvents: "none",
-				textShadow: "0 0 10px rgba(0,0,0,0.5)"
+				textShadow: "0 0 10px rgba(0,0,0,0.5)",
+				pointerEvents: "auto"
 			}
 		},
-		text
+		react.createElement(
+			"div",
+			{
+				className: "lyrics-credit-footer-content",
+				onPointerDown: (event) => event.stopPropagation(),
+				onClick: (event) => event.stopPropagation(),
+				onMouseDown: (event) => event.stopPropagation()
+			},
+			react.createElement("span", null, `${I18n.t("misc.lyricsProvider") || "Lyrics Provider"} : ${provider}`),
+			visibleContributors.length > 0 && react.createElement(
+				react.Fragment,
+				null,
+				react.createElement("span", { className: "lyrics-credit-footer-divider" }, " | "),
+				react.createElement("span", null, `${I18n.t("misc.syncContributor") || "Sync Contributor"} : `),
+				...visibleContributors.flatMap((contributor, index) => {
+					const node = contributor.profileAvailable
+						? react.createElement(
+							"button",
+							{
+								type: "button",
+								key: contributor.key,
+								className: "lyrics-credit-footer-link",
+								onPointerDown: (event) => event.stopPropagation(),
+								onMouseDown: (event) => event.stopPropagation(),
+								onClick: (event) => {
+									event.stopPropagation();
+									openCreatorProfile(contributor);
+								},
+								title: copy.openProfile
+							},
+							contributor.name
+						)
+						: react.createElement(
+							"span",
+							{
+								key: contributor.key,
+								className: "lyrics-credit-footer-name"
+							},
+							contributor.name
+						);
+
+					return index < visibleContributors.length - 1
+						? [node, react.createElement("span", { key: `${contributor.key}:comma` }, ", ")]
+						: [node];
+				})
+			)
+		)
+	);
+
+	const modal = activeContributor
+		? react.createElement(SyncCreatorProfileModal, {
+			contributor: activeContributor,
+			profile: creatorProfile,
+			loading: profileLoading,
+			error: profileError,
+			likePending,
+			loadMorePending: profileLoadingMore,
+			onClose: closeProfile,
+			onToggleLike: handleToggleLike,
+			onLoadMore: handleLoadMore,
+			onTrackClick: handleTrackClick
+		})
+		: null;
+
+	return react.createElement(
+		react.Fragment,
+		null,
+		footer,
+		modal && reactDom?.createPortal && document.body
+			? reactDom.createPortal(modal, document.body)
+			: modal
 	);
 });
 window.CreditFooter = CreditFooter;

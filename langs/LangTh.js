@@ -695,6 +695,27 @@ window.LANG_TH = {
     "lyricsProvider": "ผู้ให้บริการเนื้อเพลง",
     "syncContributor": "ผู้มีส่วนร่วมในการซิงค์"
   },
+  "creatorProfile": {
+    "title": "ผู้สร้างซิงก์",
+    "anonymous": "ไม่ระบุชื่อ",
+    "openProfile": "เปิดโปรไฟล์ผู้สร้าง",
+    "loading": "กำลังโหลดโปรไฟล์ผู้สร้าง...",
+    "loadFailed": "ไม่สามารถโหลดโปรไฟล์ผู้สร้างได้",
+    "back": "ย้อนกลับ",
+    "contributions": "ซิงก์ที่เพิ่มไว้",
+    "tracks": "เพลงที่ซิงก์แล้ว",
+    "likes": "ถูกใจ",
+    "like": "ถูกใจ",
+    "liked": "ถูกใจแล้ว",
+    "likeActionFailed": "ไม่สามารถอัปเดตการถูกใจผู้สร้างได้",
+    "likeLoginRequired": "ต้องเข้าสู่ระบบ Discord เพื่อกดถูกใจผู้สร้าง",
+    "ownProfile": "นี่คือโปรไฟล์ของคุณ",
+    "loadMore": "โหลดเพิ่ม",
+    "loadingMore": "กำลังโหลดเพิ่ม...",
+    "noContributions": "ยังไม่มีการเพิ่มซิงก์ใดๆ",
+    "unknownTrack": "เพลงที่ไม่รู้จัก",
+    "updated": "อัปเดต"
+  },
   "settingsAdvanced": {
     "patchNotes": {
       "empty": "ไม่มีบันทึกแพตช์"

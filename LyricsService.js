@@ -30,6 +30,56 @@
     }
     moduleState.initialized = true;
 
+    const restoreRouteAfterReload = () => {
+        const FLAG_KEY = "ivLyrics:restore-route-after-reload";
+        let attempts = 0;
+
+        const tryRestore = () => {
+            attempts += 1;
+
+            let payload = null;
+            try {
+                const rawValue = localStorage.getItem(FLAG_KEY);
+                if (!rawValue) return;
+                payload = JSON.parse(rawValue);
+            } catch (error) {
+                localStorage.removeItem(FLAG_KEY);
+                return;
+            }
+
+            if (!payload?.path) {
+                localStorage.removeItem(FLAG_KEY);
+                return;
+            }
+
+            if (payload.expiresAt && Date.now() > payload.expiresAt) {
+                localStorage.removeItem(FLAG_KEY);
+                return;
+            }
+
+            const history = Spicetify.Platform?.History;
+            if (!history?.push || !history?.location) {
+                if (attempts < 40) {
+                    setTimeout(tryRestore, 150);
+                }
+                return;
+            }
+
+            const currentPath = history.location.pathname || "";
+            if (currentPath.startsWith(payload.path)) {
+                localStorage.removeItem(FLAG_KEY);
+                return;
+            }
+
+            history.push(payload.path);
+            localStorage.removeItem(FLAG_KEY);
+        };
+
+        tryRestore();
+    };
+
+    restoreRouteAfterReload();
+
     const LYRICS_SERVICE_DEBUG = false;
     const serviceDebug = (...args) => {
         if (LYRICS_SERVICE_DEBUG) {

@@ -1149,6 +1149,38 @@ const Utils = {
     }
   },
 
+  restoreAccountSettings(options = {}) {
+    const nextOptions = {
+      initialTab: options.initialTab || "about",
+      initialSettingKey: options.initialSettingKey || "about-account",
+    };
+
+    try {
+      this.queueReturnToSettings(nextOptions);
+      localStorage.setItem(
+        "ivLyrics:restore-route-after-reload",
+        JSON.stringify({
+          path: "/ivLyrics",
+          expiresAt: Date.now() + 15000,
+        })
+      );
+    } catch (error) {
+      console.error("[ivLyrics] Failed to queue ivLyrics route restore:", error);
+    }
+
+    try {
+      Spicetify?.Platform?.History?.push?.("/ivLyrics");
+    } catch (error) {
+      console.error("[ivLyrics] Failed to navigate to ivLyrics before reload:", error);
+    }
+
+    window.setTimeout(() => {
+      window.location.reload();
+    }, Number(options.reloadDelay) || 300);
+
+    return true;
+  },
+
   resetUserHash() {
     const nextUserHash = this.generateUserHash();
     this.setUserHash(nextUserHash);
@@ -1261,14 +1293,10 @@ const Utils = {
           "Discord account linked successfully."
       );
 
-      this.queueReturnToSettings({
+      this.restoreAccountSettings({
         initialTab: "about",
         initialSettingKey: "about-account",
       });
-      Spicetify?.Platform?.History?.push?.("/ivLyrics");
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
 
       return true;
     } catch (error) {
@@ -1302,6 +1330,79 @@ const Utils = {
     }
 
     return true;
+  },
+
+  async fetchSyncCreatorProfile(userHash, options = {}) {
+    if (!userHash || typeof userHash !== "string") {
+      throw new Error(
+        I18n.t("creatorProfile.loadFailed") || "Failed to load creator profile."
+      );
+    }
+
+    const params = new URLSearchParams({
+      userHash,
+    });
+
+    if (Number.isFinite(options.limit) && options.limit > 0) {
+      params.set("limit", String(Math.floor(options.limit)));
+    }
+
+    if (Number.isFinite(options.offset) && options.offset >= 0) {
+      params.set("offset", String(Math.floor(options.offset)));
+    }
+
+    const response = await fetch(
+      `${this.getAccountApiBase()}/creator-profile?${params.toString()}`,
+      {
+        cache: "no-store",
+        headers: this.getApiHeaders({
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+        }),
+      }
+    );
+    const data = await response.json();
+
+    if (!response.ok || !data.success || !data.data) {
+      throw new Error(
+        data.error ||
+          I18n.t("creatorProfile.loadFailed") ||
+          "Failed to load creator profile."
+      );
+    }
+
+    return data.data;
+  },
+
+  async setSyncCreatorLike(creatorUserHash, liked) {
+    if (!this.getAuthToken()) {
+      throw new Error(
+        I18n.t("creatorProfile.likeLoginRequired") ||
+          "Discord login is required to like creators."
+      );
+    }
+
+    const response = await fetch(`${this.getAccountApiBase()}/creator-like`, {
+      method: "POST",
+      headers: this.getApiHeaders({
+        "Content-Type": "application/json",
+      }),
+      body: JSON.stringify({
+        creatorUserHash,
+        liked: !!liked,
+      }),
+    });
+    const data = await response.json();
+
+    if (!response.ok || !data.success || !data.data) {
+      throw new Error(
+        data.error ||
+          I18n.t("creatorProfile.likeActionFailed") ||
+          "Failed to update creator like."
+      );
+    }
+
+    return data.data;
   },
 
   /**

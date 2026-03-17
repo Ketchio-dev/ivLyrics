@@ -695,6 +695,27 @@ window.LANG_VI = {
     "lyricsProvider": "Nhà cung cấp lời bài hát",
     "syncContributor": "Người đóng góp đồng bộ"
   },
+  "creatorProfile": {
+    "title": "Người tạo đồng bộ",
+    "anonymous": "Ẩn danh",
+    "openProfile": "Mở hồ sơ người tạo",
+    "loading": "Đang tải hồ sơ người tạo...",
+    "loadFailed": "Không thể tải hồ sơ người tạo.",
+    "back": "Quay lại",
+    "contributions": "Bản đồng bộ đã thêm",
+    "tracks": "Bài hát đã đồng bộ",
+    "likes": "Lượt thích",
+    "like": "Thích",
+    "liked": "Đã thích",
+    "likeActionFailed": "Không thể cập nhật lượt thích của người tạo.",
+    "likeLoginRequired": "Cần đăng nhập Discord để thích người tạo.",
+    "ownProfile": "Đây là hồ sơ của bạn.",
+    "loadMore": "Tải thêm",
+    "loadingMore": "Đang tải thêm...",
+    "noContributions": "Chưa có bản đồng bộ nào được thêm.",
+    "unknownTrack": "Bài hát không xác định",
+    "updated": "Cập nhật"
+  },
   "settingsAdvanced": {
     "patchNotes": {
       "empty": "Không có ghi chú bản vá."

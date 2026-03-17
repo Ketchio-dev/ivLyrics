@@ -695,6 +695,27 @@ window.LANG_HI = {
     "lyricsProvider": "गीत बोल प्रदाता",
     "syncContributor": "सिंक योगदानकर्ता"
   },
+  "creatorProfile": {
+    "title": "सिंक निर्माता",
+    "anonymous": "अनाम",
+    "openProfile": "निर्माता प्रोफ़ाइल खोलें",
+    "loading": "निर्माता प्रोफ़ाइल लोड हो रही है...",
+    "loadFailed": "निर्माता प्रोफ़ाइल लोड नहीं हो सकी।",
+    "back": "वापस",
+    "contributions": "जोड़ी गई सिंक लिरिक्स",
+    "tracks": "सिंक किए गए ट्रैक",
+    "likes": "पसंद",
+    "like": "पसंद",
+    "liked": "पसंद किया गया",
+    "likeActionFailed": "निर्माता की पसंद अपडेट नहीं की जा सकी।",
+    "likeLoginRequired": "निर्माताओं को पसंद करने के लिए Discord लॉगिन आवश्यक है।",
+    "ownProfile": "यह आपकी प्रोफ़ाइल है।",
+    "loadMore": "और लोड करें",
+    "loadingMore": "और लोड हो रहा है...",
+    "noContributions": "अभी तक कोई सिंक लिरिक्स नहीं जोड़ी गई हैं।",
+    "unknownTrack": "अज्ञात ट्रैक",
+    "updated": "अपडेट"
+  },
   "settingsAdvanced": {
     "patchNotes": {
       "empty": "कोई पैच नोट्स नहीं।"

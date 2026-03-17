@@ -695,6 +695,27 @@ window.LANG_ZH_CN = {
     "lyricsProvider": "歌词提供者",
     "syncContributor": "同步贡献者"
   },
+  "creatorProfile": {
+    "title": "同步制作者",
+    "anonymous": "匿名",
+    "openProfile": "打开制作者资料",
+    "loading": "正在加载制作者资料...",
+    "loadFailed": "无法加载制作者资料。",
+    "back": "返回",
+    "contributions": "已添加的同步歌词",
+    "tracks": "同步歌词数",
+    "likes": "点赞",
+    "like": "点赞",
+    "liked": "已点赞",
+    "likeActionFailed": "更新制作者点赞失败。",
+    "likeLoginRequired": "为制作者点赞需要先登录 Discord。",
+    "ownProfile": "这是你的个人资料。",
+    "loadMore": "加载更多",
+    "loadingMore": "正在加载更多...",
+    "noContributions": "还没有添加任何同步歌词。",
+    "unknownTrack": "未知歌曲",
+    "updated": "更新"
+  },
   "settingsAdvanced": {
     "patchNotes": {
       "empty": "没有更新日志。"

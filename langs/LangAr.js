@@ -695,6 +695,27 @@ window.LANG_AR = {
     "lyricsProvider": "مقدم الكلمات",
     "syncContributor": "مساهم المزامنة"
   },
+  "creatorProfile": {
+    "title": "صانع المزامنة",
+    "anonymous": "مجهول",
+    "openProfile": "فتح ملف الصانع",
+    "loading": "جار تحميل ملف الصانع...",
+    "loadFailed": "تعذر تحميل ملف الصانع.",
+    "back": "رجوع",
+    "contributions": "المزامنات المضافة",
+    "tracks": "المقاطع المتزامنة",
+    "likes": "الإعجابات",
+    "like": "إعجاب",
+    "liked": "مُعجب به",
+    "likeActionFailed": "تعذر تحديث إعجاب الصانع.",
+    "likeLoginRequired": "يلزم تسجيل الدخول عبر Discord للإعجاب بصانعي المزامنة.",
+    "ownProfile": "هذا ملفك الشخصي.",
+    "loadMore": "تحميل المزيد",
+    "loadingMore": "جارٍ تحميل المزيد...",
+    "noContributions": "لا توجد مزامنات مضافة بعد.",
+    "unknownTrack": "مقطع غير معروف",
+    "updated": "تم التحديث"
+  },
   "settingsAdvanced": {
     "patchNotes": {
       "empty": "لا توجد ملاحظات إصدار."

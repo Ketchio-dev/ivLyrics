@@ -695,6 +695,27 @@ window.LANG_IT = {
     "lyricsProvider": "Fornitore testo",
     "syncContributor": "Contributore sincr."
   },
+  "creatorProfile": {
+    "title": "Creatore sync",
+    "anonymous": "Anonimo",
+    "openProfile": "Apri il profilo del creatore",
+    "loading": "Caricamento del profilo del creatore...",
+    "loadFailed": "Impossibile caricare il profilo del creatore.",
+    "back": "Indietro",
+    "contributions": "Sync aggiunte",
+    "tracks": "Brani sincronizzati",
+    "likes": "Mi piace",
+    "like": "Mi piace",
+    "liked": "Piaciuto",
+    "likeActionFailed": "Impossibile aggiornare il Mi piace del creatore.",
+    "likeLoginRequired": "Per mettere Mi piace ai creatori è richiesto l'accesso con Discord.",
+    "ownProfile": "Questo è il tuo profilo.",
+    "loadMore": "Carica altro",
+    "loadingMore": "Caricamento...",
+    "noContributions": "Nessuna sync aggiunta al momento.",
+    "unknownTrack": "Brano sconosciuto",
+    "updated": "Aggiornato"
+  },
   "settingsAdvanced": {
     "patchNotes": {
       "empty": "Nessuna nota di patch."

@@ -695,6 +695,27 @@ window.LANG_ES = {
     "lyricsProvider": "Proveedor de letras",
     "syncContributor": "Colaborador de sincr."
   },
+  "creatorProfile": {
+    "title": "Creador de sincronización",
+    "anonymous": "Anónimo",
+    "openProfile": "Abrir perfil del creador",
+    "loading": "Cargando el perfil del creador...",
+    "loadFailed": "No se pudo cargar el perfil del creador.",
+    "back": "Volver",
+    "contributions": "Sincronizaciones aportadas",
+    "tracks": "Canciones sincronizadas",
+    "likes": "Me gusta",
+    "like": "Me gusta",
+    "liked": "Te gusta",
+    "likeActionFailed": "No se pudo actualizar el Me gusta del creador.",
+    "likeLoginRequired": "Debes iniciar sesión con Discord para dar Me gusta a creadores.",
+    "ownProfile": "Este es tu perfil.",
+    "loadMore": "Cargar más",
+    "loadingMore": "Cargando más...",
+    "noContributions": "Todavía no hay sincronizaciones aportadas.",
+    "unknownTrack": "Canción desconocida",
+    "updated": "Actualizado"
+  },
   "settingsAdvanced": {
     "patchNotes": {
       "empty": "No hay notas de parche."

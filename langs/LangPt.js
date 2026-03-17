@@ -695,6 +695,27 @@ window.LANG_PT = {
     "lyricsProvider": "Provedor de letras",
     "syncContributor": "Contribuidor de sincronia"
   },
+  "creatorProfile": {
+    "title": "Criador de sincronização",
+    "anonymous": "Anônimo",
+    "openProfile": "Abrir perfil do criador",
+    "loading": "Carregando perfil do criador...",
+    "loadFailed": "Falha ao carregar o perfil do criador.",
+    "back": "Voltar",
+    "contributions": "Sincronizações adicionadas",
+    "tracks": "Faixas sincronizadas",
+    "likes": "Curtidas",
+    "like": "Curtir",
+    "liked": "Curtido",
+    "likeActionFailed": "Falha ao atualizar a curtida do criador.",
+    "likeLoginRequired": "É necessário entrar com o Discord para curtir criadores.",
+    "ownProfile": "Este é o seu perfil.",
+    "loadMore": "Carregar mais",
+    "loadingMore": "A carregar mais...",
+    "noContributions": "Ainda não há sincronizações adicionadas.",
+    "unknownTrack": "Faixa desconhecida",
+    "updated": "Atualizado"
+  },
   "settingsAdvanced": {
     "patchNotes": {
       "empty": "Nenhuma nota de patch."

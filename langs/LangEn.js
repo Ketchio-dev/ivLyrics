@@ -695,6 +695,27 @@ window.LANG_EN = {
     "lyricsProvider": "Lyrics Provider",
     "syncContributor": "Sync Contributor"
   },
+  "creatorProfile": {
+    "title": "Sync Creator",
+    "anonymous": "Anonymous",
+    "openProfile": "Open creator profile",
+    "loading": "Loading creator profile...",
+    "loadFailed": "Failed to load creator profile.",
+    "back": "Back",
+    "contributions": "Sync Contributions",
+    "tracks": "Synced tracks",
+    "likes": "Likes",
+    "like": "Like",
+    "liked": "Liked",
+    "likeActionFailed": "Failed to update creator like.",
+    "likeLoginRequired": "Discord login is required to like creators.",
+    "ownProfile": "This is your profile.",
+    "loadMore": "Load more",
+    "loadingMore": "Loading more...",
+    "noContributions": "No sync contributions yet.",
+    "unknownTrack": "Unknown Track",
+    "updated": "Updated"
+  },
   "settingsAdvanced": {
     "patchNotes": {
       "empty": "No patch notes available."

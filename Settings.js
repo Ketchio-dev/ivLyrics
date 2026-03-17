@@ -535,10 +535,6 @@ const AccountSection = () => {
 
   const handleLogout = async () => {
     await Utils.logoutDiscordSession();
-    Utils.queueReturnToSettings({
-      initialTab: "about",
-      initialSettingKey: "about-account",
-    });
     const nextUserHash = Utils.resetUserHash();
     setAccountInfo(null);
     setError(null);
@@ -552,10 +548,10 @@ const AccountSection = () => {
       })
     );
     Toast.success(copy.logoutSuccess);
-    Spicetify?.Platform?.History?.push?.("/ivLyrics");
-    setTimeout(() => {
-      window.location.reload();
-    }, 300);
+    Utils.restoreAccountSettings({
+      initialTab: "about",
+      initialSettingKey: "about-account",
+    });
   };
 
   if (loading) {
@@ -9491,10 +9487,10 @@ const ConfigModal = ({
             if (window.I18n && window.I18n.setLanguage) {
               window.I18n.setLanguage(value);
             }
-            // 설정 페이지로 돌아오기 위해 플래그 저장
-            localStorage.setItem("ivLyrics:return-to-settings", "true");
-            // 자동 새로고침
-            location.reload();
+            queueReloadIntoIvLyrics({
+              reopenSettings: true,
+              initialTab: "general",
+            });
           },
         }),
         react.createElement(OptionList, {
@@ -9530,10 +9526,10 @@ const ConfigModal = ({
           onChange: (name, value) => {
             CONFIG.visual[name] = value;
             StorageManager.saveConfig(name, value);
-            // 설정 페이지로 돌아오기 위해 플래그 저장
-            localStorage.setItem("ivLyrics:return-to-settings", "true");
-            // 자동 새로고침
-            location.reload();
+            queueReloadIntoIvLyrics({
+              reopenSettings: true,
+              initialTab: "general",
+            });
           },
         }),
         // 데스크탑 오버레이 섹션
@@ -10922,9 +10918,11 @@ const ConfigModal = ({
 												</div>`;
 
                         // 1.5초 후 자동 새로고침
-                        setTimeout(() => {
-                          location.reload();
-                        }, 1500);
+                        queueReloadIntoIvLyrics({
+                          reopenSettings: true,
+                          initialTab: "general",
+                          delay: 1500,
+                        });
                       } catch (e) {
                         const settingRow = button.closest(".setting-row");
                         let resultContainer = settingRow?.nextElementSibling;
@@ -11211,9 +11209,11 @@ const ConfigModal = ({
                           </div>
                         </div>`;
 
-                        setTimeout(() => {
-                          location.reload();
-                        }, 1500);
+                        queueReloadIntoIvLyrics({
+                          reopenSettings: true,
+                          initialTab: "general",
+                          delay: 1500,
+                        });
                       } catch (e) {
                         const settingRow = button.closest(".setting-row");
                         let resultContainer = settingRow?.nextElementSibling;
@@ -11368,9 +11368,11 @@ const ConfigModal = ({
 												</div>`;
 
                   // 1.5초 후 자동 새로고침
-                  setTimeout(() => {
-                    window.location.reload();
-                  }, 1500);
+                  queueReloadIntoIvLyrics({
+                    reopenSettings: true,
+                    initialTab: "general",
+                    delay: 1500,
+                  });
                 } catch (e) {
                   resultContainer.innerHTML = `
 											<div style="
@@ -12792,6 +12794,51 @@ function openConfig(options = {}) {
     modalContainer
   );
 }
+
+function queueReloadIntoIvLyrics(options = {}) {
+  const {
+    reopenSettings = false,
+    initialTab = "general",
+    initialSettingKey = null,
+    delay = 0,
+  } = options;
+
+  try {
+    if (reopenSettings) {
+      const payload = { initialTab };
+      if (initialSettingKey) {
+        payload.initialSettingKey = initialSettingKey;
+      }
+      localStorage.setItem("ivLyrics:return-to-settings", JSON.stringify(payload));
+    }
+  } catch (error) {
+    console.error("[ivLyrics] Failed to queue settings reopen:", error);
+  }
+
+  try {
+    localStorage.setItem(
+      "ivLyrics:restore-route-after-reload",
+      JSON.stringify({
+        path: "/ivLyrics",
+        expiresAt: Date.now() + 15000,
+      })
+    );
+  } catch (error) {
+    console.error("[ivLyrics] Failed to queue ivLyrics route restore:", error);
+  }
+
+  try {
+    Spicetify?.Platform?.History?.push?.("/ivLyrics");
+  } catch (error) {
+    console.error("[ivLyrics] Failed to navigate to ivLyrics before reload:", error);
+  }
+
+  window.setTimeout(() => {
+    window.location.reload();
+  }, Math.max(0, Number(delay) || 0));
+}
+
+window.ivLyricsOpenConfig = openConfig;
 
 // 언어 변경 후 자동으로 설정 페이지 열기
 (function checkReturnToSettings() {

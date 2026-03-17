@@ -695,6 +695,27 @@ window.LANG_ID = {
     "lyricsProvider": "Penyedia Lirik",
     "syncContributor": "Kontributor Sinkronisasi"
   },
+  "creatorProfile": {
+    "title": "Pembuat Sinkronisasi",
+    "anonymous": "Anonim",
+    "openProfile": "Buka profil pembuat",
+    "loading": "Memuat profil pembuat...",
+    "loadFailed": "Gagal memuat profil pembuat.",
+    "back": "Kembali",
+    "contributions": "Sinkronisasi yang ditambahkan",
+    "tracks": "Track tersinkron",
+    "likes": "Suka",
+    "like": "Suka",
+    "liked": "Disukai",
+    "likeActionFailed": "Gagal memperbarui suka pembuat.",
+    "likeLoginRequired": "Login Discord diperlukan untuk menyukai pembuat.",
+    "ownProfile": "Ini profil Anda.",
+    "loadMore": "Muat lebih banyak",
+    "loadingMore": "Memuat lebih banyak...",
+    "noContributions": "Belum ada sinkronisasi yang ditambahkan.",
+    "unknownTrack": "Track tidak dikenal",
+    "updated": "Diperbarui"
+  },
   "settingsAdvanced": {
     "patchNotes": {
       "empty": "Tidak ada catatan patch."

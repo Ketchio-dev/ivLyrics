@@ -695,6 +695,27 @@ window.LANG_KO = {
     "lyricsProvider": "가사 제공자",
     "syncContributor": "싱크 제작자"
   },
+  "creatorProfile": {
+    "title": "싱크 제작자",
+    "anonymous": "익명",
+    "openProfile": "제작자 프로필 열기",
+    "loading": "제작자 프로필을 불러오는 중...",
+    "loadFailed": "제작자 프로필을 불러오지 못했습니다.",
+    "back": "뒤로",
+    "contributions": "추가한 싱크 가사",
+    "tracks": "싱크 가사 수",
+    "likes": "좋아요",
+    "like": "좋아요",
+    "liked": "좋아요함",
+    "likeActionFailed": "제작자 좋아요를 업데이트하지 못했습니다.",
+    "likeLoginRequired": "제작자에게 좋아요를 누르려면 디스코드 로그인이 필요합니다.",
+    "ownProfile": "내 프로필입니다.",
+    "loadMore": "더 보기",
+    "loadingMore": "더 불러오는 중...",
+    "noContributions": "아직 추가한 싱크 가사가 없습니다.",
+    "unknownTrack": "알 수 없는 곡",
+    "updated": "업데이트"
+  },
   "settingsAdvanced": {
     "patchNotes": {
       "empty": "패치 노트가 없습니다."

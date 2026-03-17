@@ -695,6 +695,27 @@ window.LANG_JA = {
     "lyricsProvider": "歌詞提供者",
     "syncContributor": "同期作成者"
   },
+  "creatorProfile": {
+    "title": "同期制作者",
+    "anonymous": "匿名",
+    "openProfile": "制作者プロフィールを開く",
+    "loading": "制作者プロフィールを読み込み中...",
+    "loadFailed": "制作者プロフィールを読み込めませんでした。",
+    "back": "戻る",
+    "contributions": "追加した同期歌詞",
+    "tracks": "同期歌詞数",
+    "likes": "いいね",
+    "like": "いいね",
+    "liked": "いいね済み",
+    "likeActionFailed": "制作者へのいいねを更新できませんでした。",
+    "likeLoginRequired": "制作者にいいねするにはDiscordログインが必要です。",
+    "ownProfile": "あなたのプロフィールです。",
+    "loadMore": "もっと見る",
+    "loadingMore": "さらに読み込み中...",
+    "noContributions": "まだ追加した同期歌詞はありません。",
+    "unknownTrack": "不明な楽曲",
+    "updated": "更新"
+  },
   "settingsAdvanced": {
     "patchNotes": {
       "empty": "パッチノートはありません。"

@@ -695,6 +695,27 @@ window.LANG_ZH_TW = {
     "lyricsProvider": "歌詞提供者",
     "syncContributor": "同步貢獻者"
   },
+  "creatorProfile": {
+    "title": "同步製作者",
+    "anonymous": "匿名",
+    "openProfile": "開啟製作者資料",
+    "loading": "正在載入製作者資料...",
+    "loadFailed": "無法載入製作者資料。",
+    "back": "返回",
+    "contributions": "已新增的同步歌詞",
+    "tracks": "同步歌詞數",
+    "likes": "喜歡",
+    "like": "喜歡",
+    "liked": "已喜歡",
+    "likeActionFailed": "更新製作者喜歡失敗。",
+    "likeLoginRequired": "要為製作者按喜歡需要先登入 Discord。",
+    "ownProfile": "這是你的個人資料。",
+    "loadMore": "載入更多",
+    "loadingMore": "正在載入更多...",
+    "noContributions": "還沒有新增任何同步歌詞。",
+    "unknownTrack": "未知歌曲",
+    "updated": "更新"
+  },
   "settingsAdvanced": {
     "patchNotes": {
       "empty": "沒有更新日誌。"

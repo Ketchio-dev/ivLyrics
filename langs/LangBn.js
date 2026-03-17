@@ -695,6 +695,27 @@ window.LANG_BN = {
     "lyricsProvider": "লিরিক্স প্রদানকারী",
     "syncContributor": "সিঙ্ক অবদানকারী"
   },
+  "creatorProfile": {
+    "title": "সিঙ্ক নির্মাতা",
+    "anonymous": "নামহীন",
+    "openProfile": "নির্মাতার প্রোফাইল খুলুন",
+    "loading": "নির্মাতার প্রোফাইল লোড হচ্ছে...",
+    "loadFailed": "নির্মাতার প্রোফাইল লোড করা যায়নি।",
+    "back": "ফিরে যান",
+    "contributions": "যোগ করা সিঙ্ক লিরিক্স",
+    "tracks": "সিঙ্ক করা ট্র্যাক",
+    "likes": "লাইক",
+    "like": "লাইক",
+    "liked": "লাইক করা",
+    "likeActionFailed": "নির্মাতার লাইক আপডেট করা যায়নি।",
+    "likeLoginRequired": "নির্মাতাকে লাইক দিতে Discord লগইন প্রয়োজন।",
+    "ownProfile": "এটি আপনার প্রোফাইল।",
+    "loadMore": "আরও লোড করুন",
+    "loadingMore": "আরও লোড হচ্ছে...",
+    "noContributions": "এখনও কোনো সিঙ্ক লিরিক্স যোগ করা হয়নি।",
+    "unknownTrack": "অজানা ট্র্যাক",
+    "updated": "আপডেট"
+  },
   "settingsAdvanced": {
     "patchNotes": {
       "empty": "কোনো প্যাচ নোট নেই।"

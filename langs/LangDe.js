@@ -695,6 +695,27 @@ window.LANG_DE = {
     "lyricsProvider": "Songtext-Anbieter",
     "syncContributor": "Sync-Mitwirkender"
   },
+  "creatorProfile": {
+    "title": "Sync-Ersteller",
+    "anonymous": "Anonym",
+    "openProfile": "Erstellerprofil öffnen",
+    "loading": "Erstellerprofil wird geladen...",
+    "loadFailed": "Erstellerprofil konnte nicht geladen werden.",
+    "back": "Zurück",
+    "contributions": "Sync-Beiträge",
+    "tracks": "Synchronisierte Titel",
+    "likes": "Likes",
+    "like": "Liken",
+    "liked": "Gelikt",
+    "likeActionFailed": "Ersteller-Like konnte nicht aktualisiert werden.",
+    "likeLoginRequired": "Für Likes bei Erstellern ist ein Discord-Login erforderlich.",
+    "ownProfile": "Das ist dein Profil.",
+    "loadMore": "Mehr laden",
+    "loadingMore": "Weitere werden geladen...",
+    "noContributions": "Noch keine Sync-Beiträge vorhanden.",
+    "unknownTrack": "Unbekannter Titel",
+    "updated": "Aktualisiert"
+  },
   "settingsAdvanced": {
     "patchNotes": {
       "empty": "Keine Patch-Notizen vorhanden."
