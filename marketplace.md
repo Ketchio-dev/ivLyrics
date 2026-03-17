@@ -1,5 +1,5 @@
 
-<img width="2208" height="512" alt="en" src="https://github.com/user-attachments/assets/5ecfbcab-8633-4862-a819-a22fe889a7ca" />
+<img width="2208" height="512" alt="en" src="https://raw.githubusercontent.com/ivLis-Studio/ivLyrics/refs/heads/main/preview_readme_en.png" />
 
 ### preview
 ![preview](https://github.com/user-attachments/assets/c8643d11-44aa-49e2-ab59-b056884e798a)
@@ -36,7 +36,7 @@ curl -fsSL https://ivlis.kr/ivLyrics/uninstall.sh | bash
 
 
 
-A lyrics extension for Spicetify. Supports pronunciation notation and translation for various languages using the Google Gemini API.
+A lyrics extension for Spicetify. Supports pronunciation notation and translation for various languages using the AI API.
 
 For bug reports and feature suggestions, please contact us via GitHub Issues or [Discord](https://discord.gg/2fu36fUzdE).
 
