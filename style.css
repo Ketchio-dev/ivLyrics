@@ -8115,10 +8115,137 @@ ruby rt {
   color: rgba(15, 23, 42, 0.58);
 }
 
+.lyrics-creator-profile-section-header-tight {
+  margin-top: 18px;
+  margin-bottom: 12px;
+}
+
+.lyrics-creator-profile-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.lyrics-creator-profile-toolbar-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.lyrics-creator-profile-toolbar-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.52);
+}
+
+.lyrics-creator-profile-modal[data-ui-theme="light"] .lyrics-creator-profile-toolbar-label {
+  color: rgba(15, 23, 42, 0.5);
+}
+
+.lyrics-creator-profile-sort-controls,
+.lyrics-creator-profile-artist-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.lyrics-creator-profile-artist-stats {
+  margin-bottom: 22px;
+}
+
+.lyrics-creator-profile-sort-btn,
+.lyrics-creator-profile-artist-chip,
+.lyrics-creator-profile-filter-badge {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f8fafc;
+  cursor: pointer;
+  border-radius: 0;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.lyrics-creator-profile-modal[data-ui-theme="light"] .lyrics-creator-profile-sort-btn,
+.lyrics-creator-profile-modal[data-ui-theme="light"] .lyrics-creator-profile-artist-chip,
+.lyrics-creator-profile-modal[data-ui-theme="light"] .lyrics-creator-profile-filter-badge {
+  border-color: rgba(15, 23, 42, 0.12);
+  background: rgba(15, 23, 42, 0.04);
+  color: #0f172a;
+}
+
+.lyrics-creator-profile-sort-btn:hover,
+.lyrics-creator-profile-artist-chip:hover,
+.lyrics-creator-profile-filter-badge:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.lyrics-creator-profile-modal[data-ui-theme="light"] .lyrics-creator-profile-sort-btn:hover,
+.lyrics-creator-profile-modal[data-ui-theme="light"] .lyrics-creator-profile-artist-chip:hover,
+.lyrics-creator-profile-modal[data-ui-theme="light"] .lyrics-creator-profile-filter-badge:hover {
+  background: rgba(15, 23, 42, 0.08);
+  border-color: rgba(15, 23, 42, 0.18);
+}
+
+.lyrics-creator-profile-sort-btn.is-active,
+.lyrics-creator-profile-artist-chip.is-active {
+  border-color: rgba(88, 101, 242, 0.34);
+  background: rgba(88, 101, 242, 0.12);
+  color: #8bb4ff;
+}
+
+.lyrics-creator-profile-modal[data-ui-theme="light"] .lyrics-creator-profile-sort-btn.is-active,
+.lyrics-creator-profile-modal[data-ui-theme="light"] .lyrics-creator-profile-artist-chip.is-active {
+  border-color: rgba(54, 91, 214, 0.26);
+  background: rgba(54, 91, 214, 0.1);
+  color: #365bd6;
+}
+
+.lyrics-creator-profile-artist-chip {
+  justify-content: space-between;
+}
+
+.lyrics-creator-profile-artist-chip-name {
+  max-width: 240px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lyrics-creator-profile-artist-chip-count {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.lyrics-creator-profile-modal[data-ui-theme="light"] .lyrics-creator-profile-artist-chip-count {
+  color: rgba(15, 23, 42, 0.58);
+}
+
+.lyrics-creator-profile-filter-badge {
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .lyrics-creator-profile-grid {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.lyrics-creator-profile-grid.is-refreshing {
+  opacity: 0.68;
 }
 
 .lyrics-creator-profile-grid-footer {
@@ -8138,6 +8265,26 @@ ruby rt {
 
 .lyrics-creator-profile-modal[data-ui-theme="light"] .lyrics-creator-profile-load-more {
   color: rgba(15, 23, 42, 0.5);
+}
+
+.lyrics-creator-profile-list-status,
+.lyrics-creator-profile-inline-state {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(248, 250, 252, 0.54);
+}
+
+.lyrics-creator-profile-modal[data-ui-theme="light"] .lyrics-creator-profile-list-status,
+.lyrics-creator-profile-modal[data-ui-theme="light"] .lyrics-creator-profile-inline-state {
+  color: rgba(15, 23, 42, 0.5);
+}
+
+.lyrics-creator-profile-list-status {
+  margin: 0 0 10px;
+}
+
+.lyrics-creator-profile-inline-state {
+  margin-top: 14px;
 }
 
 .lyrics-creator-profile-track {
@@ -8246,6 +8393,16 @@ ruby rt {
   color: rgba(15, 23, 42, 0.66);
 }
 
+.lyrics-creator-profile-state-compact {
+  min-height: 140px;
+}
+
+.lyrics-creator-profile-empty-compact {
+  min-height: 0;
+  justify-content: flex-start;
+  padding: 8px 0 2px;
+}
+
 .lyrics-creator-profile-error {
   color: #ff9b9b;
 }
@@ -8263,6 +8420,10 @@ ruby rt {
   .lyrics-creator-profile-track-side {
     align-items: flex-start;
     text-align: left;
+  }
+
+  .lyrics-creator-profile-toolbar {
+    align-items: flex-start;
   }
 
   .lyrics-creator-profile-overlay {

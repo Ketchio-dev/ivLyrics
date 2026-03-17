@@ -714,7 +714,16 @@ window.LANG_KO = {
     "loadingMore": "더 불러오는 중...",
     "noContributions": "아직 추가한 싱크 가사가 없습니다.",
     "unknownTrack": "알 수 없는 곡",
-    "updated": "업데이트"
+    "updated": "업데이트",
+    "topArtists": "자주 등록한 아티스트",
+    "artistGroups": "아티스트 수",
+    "noArtistStats": "아직 아티스트 통계가 없습니다.",
+    "sortLabel": "정렬",
+    "sortRecent": "최신순",
+    "sortTitle": "곡명순",
+    "sortArtist": "아티스트순",
+    "clearArtistFilter": "아티스트 필터 해제",
+    "filteredArtist": "필터 중인 아티스트"
   },
   "settingsAdvanced": {
     "patchNotes": {

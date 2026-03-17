@@ -714,7 +714,16 @@ window.LANG_HI = {
     "loadingMore": "और लोड हो रहा है...",
     "noContributions": "अभी तक कोई सिंक लिरिक्स नहीं जोड़ी गई हैं।",
     "unknownTrack": "अज्ञात ट्रैक",
-    "updated": "अपडेट"
+    "updated": "अपडेट",
+    "topArtists": "Top Artists",
+    "artistGroups": "Artist Groups",
+    "noArtistStats": "No artist stats yet.",
+    "sortLabel": "Sort",
+    "sortRecent": "Recent",
+    "sortTitle": "Title",
+    "sortArtist": "Artist",
+    "clearArtistFilter": "Clear artist filter",
+    "filteredArtist": "Filtered artist"
   },
   "settingsAdvanced": {
     "patchNotes": {

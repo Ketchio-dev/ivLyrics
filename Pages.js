@@ -18,7 +18,16 @@ function getCreatorProfileCopy() {
 		loadingMore: I18n.t("creatorProfile.loadingMore") || "Loading more...",
 		noContributions: I18n.t("creatorProfile.noContributions") || "No sync contributions yet.",
 		unknownTrack: I18n.t("creatorProfile.unknownTrack") || "Unknown Track",
-		updated: I18n.t("creatorProfile.updated") || "Updated"
+		updated: I18n.t("creatorProfile.updated") || "Updated",
+		topArtists: I18n.t("creatorProfile.topArtists") || "Top Artists",
+		artistGroups: I18n.t("creatorProfile.artistGroups") || "Artist Groups",
+		noArtistStats: I18n.t("creatorProfile.noArtistStats") || "No artist stats yet.",
+		sortLabel: I18n.t("creatorProfile.sortLabel") || "Sort",
+		sortRecent: I18n.t("creatorProfile.sortRecent") || "Recent",
+		sortTitle: I18n.t("creatorProfile.sortTitle") || "Title",
+		sortArtist: I18n.t("creatorProfile.sortArtist") || "Artist",
+		clearArtistFilter: I18n.t("creatorProfile.clearArtistFilter") || "Clear artist filter",
+		filteredArtist: I18n.t("creatorProfile.filteredArtist") || "Filtered artist"
 	};
 }
 
@@ -142,6 +151,46 @@ function getCreatorProfileUiTheme() {
 
 const CREATOR_PROFILE_PAGE_SIZE = 12;
 
+function createCreatorProfileShell(contributor, options = {}) {
+	const sort = typeof options.sort === "string" && options.sort.trim() ? options.sort.trim() : "recent";
+	const artist = typeof options.artist === "string" && options.artist.trim() ? options.artist.trim() : null;
+	const displayName = contributor?.name || "Anonymous";
+
+	return {
+		userHash: contributor?.userHash || null,
+		displayName,
+		account: contributor?.avatarUrl
+			? {
+				profileImage: contributor.avatarUrl,
+				displayName
+			}
+			: null,
+		stats: null,
+		viewer: {
+			authenticated: false,
+			isOwnProfile: false,
+			canLike: false,
+			liked: false
+		},
+		artistStats: {
+			items: []
+		},
+		filters: {
+			sort,
+			artist
+		},
+		contributions: [],
+		pagination: {
+			offset: 0,
+			limit: CREATOR_PROFILE_PAGE_SIZE,
+			returnedCount: 0,
+			totalCount: 0,
+			hasMore: false,
+			nextOffset: null
+		}
+	};
+}
+
 const SyncCreatorProfileModal = react.memo(({
 	contributor,
 	profile,
@@ -149,14 +198,20 @@ const SyncCreatorProfileModal = react.memo(({
 	error,
 	likePending,
 	loadMorePending,
+	listRefreshing,
 	onClose,
 	onToggleLike,
 	onLoadMore,
-	onTrackClick
+	onTrackClick,
+	activeSortMode,
+	activeArtistFilter,
+	onSortChange,
+	onArtistFilterChange
 }) => {
 	const copy = getCreatorProfileCopy();
 	const uiTheme = getCreatorProfileUiTheme();
 	const profileData = profile || {};
+	const contributions = Array.isArray(profileData.contributions) ? profileData.contributions : [];
 	const displayName = profileData.displayName || contributor?.name || copy.anonymous;
 	const account = profileData.account || null;
 	const handle = account?.username ? `@${account.username}` : null;
@@ -164,8 +219,9 @@ const SyncCreatorProfileModal = react.memo(({
 	const initial = (displayName || copy.anonymous).charAt(0).toUpperCase();
 	const trackCount = Number(profileData.stats?.trackCount || 0);
 	const likeCount = Number(profileData.stats?.likeCount || 0);
+	const artistGroupCount = Number(profileData.stats?.artistGroupCount || 0);
 	const totalContributionCount = Number(profileData.pagination?.totalCount || trackCount || 0);
-	const loadedContributionCount = Array.isArray(profileData.contributions) ? profileData.contributions.length : 0;
+	const loadedContributionCount = contributions.length;
 	const hasMoreContributions = !!profileData.pagination?.hasMore;
 	const bodyRef = react.useRef(null);
 	const loadMoreLockRef = react.useRef(false);
@@ -177,6 +233,16 @@ const SyncCreatorProfileModal = react.memo(({
 	const likeButtonTitle = !profileData.viewer?.authenticated && !isOwnProfile
 		? copy.likeLoginRequired
 		: copy.like;
+	const artistStats = Array.isArray(profileData.artistStats?.items) ? profileData.artistStats.items : [];
+	const sortMode = activeSortMode || profileData.filters?.sort || "recent";
+	const artistFilter = activeArtistFilter ?? profileData.filters?.artist ?? null;
+	const hasLoadedProfileData = !!profileData.stats;
+	const showSectionLoading = loading && !error && !hasLoadedProfileData;
+	const sortOptions = [
+		{ key: "recent", label: copy.sortRecent },
+		{ key: "title", label: copy.sortTitle },
+		{ key: "artist", label: copy.sortArtist }
+	];
 	const closeIcon = react.createElement(
 		"svg",
 		{
@@ -232,138 +298,224 @@ const SyncCreatorProfileModal = react.memo(({
 		maybeLoadMore();
 	}, [maybeLoadMore, loadedContributionCount]);
 
-	const content = loading
-		? react.createElement(
+	const content = react.createElement(
+		react.Fragment,
+		null,
+		react.createElement(
 			"div",
-			{ className: "lyrics-creator-profile-state" },
-			copy.loading
-		)
-		: error
+			{ className: "lyrics-creator-profile-hero" },
+			avatarUrl
+				? react.createElement("img", {
+					className: "lyrics-creator-profile-avatar",
+					src: avatarUrl,
+					alt: displayName,
+					onError: (event) => {
+						event.currentTarget.style.display = "none";
+					}
+				})
+				: react.createElement(
+					"div",
+					{ className: "lyrics-creator-profile-avatar lyrics-creator-profile-avatar-fallback" },
+					initial
+				),
+			react.createElement(
+				"div",
+				{ className: "lyrics-creator-profile-info" },
+				react.createElement(
+					"div",
+					{ className: "lyrics-creator-profile-name-row" },
+					react.createElement("h2", { className: "lyrics-creator-profile-name" }, displayName),
+					react.createElement(
+						"button",
+						{
+							type: "button",
+							className: `lyrics-creator-profile-like-inline ${liked ? "is-liked" : ""} ${likePending ? "is-loading" : ""}`.trim(),
+							onClick: onToggleLike,
+							disabled: likePending || !canLike,
+							title: likeButtonTitle,
+							"aria-label": likeButtonLabel
+						},
+						likeIcon,
+						react.createElement("span", null, likeButtonLabel)
+					)
+				),
+				subtitle && react.createElement("div", { className: "lyrics-creator-profile-handle" }, subtitle),
+				hasLoadedProfileData
+					? react.createElement(
+						"div",
+						{ className: "lyrics-creator-profile-stats" },
+						react.createElement(
+							"div",
+							{ className: "lyrics-creator-profile-stat" },
+							react.createElement("strong", null, trackCount),
+							react.createElement("span", null, copy.tracks)
+						),
+						react.createElement(
+							"div",
+							{ className: "lyrics-creator-profile-stat" },
+							react.createElement("strong", null, likeCount),
+							react.createElement("span", null, copy.likes)
+						),
+						react.createElement(
+							"div",
+							{ className: "lyrics-creator-profile-stat" },
+							react.createElement("strong", null, artistGroupCount),
+							react.createElement("span", null, copy.artistGroups)
+						)
+					)
+					: react.createElement(
+						"div",
+						{ className: "lyrics-creator-profile-inline-state" },
+						copy.loading
+					)
+			)
+		),
+		error
 			? react.createElement(
 				"div",
 				{ className: "lyrics-creator-profile-state lyrics-creator-profile-error" },
 				error
 			)
-			: react.createElement(
-				react.Fragment,
-				null,
-				react.createElement(
+			: showSectionLoading
+				? react.createElement(
 					"div",
-					{ className: "lyrics-creator-profile-hero" },
-					avatarUrl
-						? react.createElement("img", {
-							className: "lyrics-creator-profile-avatar",
-							src: avatarUrl,
-							alt: displayName,
-							onError: (event) => {
-								event.currentTarget.style.display = "none";
-							}
-						})
-						: react.createElement(
-							"div",
-							{ className: "lyrics-creator-profile-avatar lyrics-creator-profile-avatar-fallback" },
-							initial
-						),
+					{ className: "lyrics-creator-profile-state lyrics-creator-profile-state-compact" },
+					copy.loading
+				)
+				: react.createElement(
+					react.Fragment,
+					null,
 					react.createElement(
 						"div",
-						{ className: "lyrics-creator-profile-info" },
-						react.createElement(
+						{ className: "lyrics-creator-profile-section-header lyrics-creator-profile-section-header-tight" },
+						react.createElement("h3", { className: "lyrics-creator-profile-section-title" }, copy.topArtists),
+						profileData.stats?.artistGroupCount > 0 && react.createElement(
 							"div",
-							{ className: "lyrics-creator-profile-name-row" },
-							react.createElement("h2", { className: "lyrics-creator-profile-name" }, displayName),
-							react.createElement(
+							{ className: "lyrics-creator-profile-section-meta" },
+							String(profileData.stats.artistGroupCount)
+						)
+					),
+					artistStats.length
+						? react.createElement(
+							"div",
+							{ className: "lyrics-creator-profile-artist-stats" },
+							...artistStats.map((item) => react.createElement(
 								"button",
 								{
 									type: "button",
-									className: `lyrics-creator-profile-like-inline ${liked ? "is-liked" : ""} ${likePending ? "is-loading" : ""}`.trim(),
-									onClick: onToggleLike,
-									disabled: likePending || !canLike,
-									title: likeButtonTitle,
-									"aria-label": likeButtonLabel
+									key: item.name,
+									className: `lyrics-creator-profile-artist-chip ${artistFilter === item.name ? "is-active" : ""}`.trim(),
+									onClick: () => onArtistFilterChange?.(artistFilter === item.name ? null : item.name)
 								},
-								likeIcon,
-								react.createElement("span", null, likeButtonLabel)
-							)
-						),
-						subtitle && react.createElement("div", { className: "lyrics-creator-profile-handle" }, subtitle),
-						react.createElement(
-							"div",
-							{ className: "lyrics-creator-profile-stats" },
-							react.createElement(
-								"div",
-								{ className: "lyrics-creator-profile-stat" },
-								react.createElement("strong", null, trackCount),
-								react.createElement("span", null, copy.tracks)
-							),
-							react.createElement(
-								"div",
-								{ className: "lyrics-creator-profile-stat" },
-								react.createElement("strong", null, likeCount),
-								react.createElement("span", null, copy.likes)
-							)
+								react.createElement("span", { className: "lyrics-creator-profile-artist-chip-name" }, item.name),
+								react.createElement("span", { className: "lyrics-creator-profile-artist-chip-count" }, item.count)
+							))
 						)
-					)
-				),
-				react.createElement(
-					"div",
-					{ className: "lyrics-creator-profile-section-header" },
-					react.createElement("h3", { className: "lyrics-creator-profile-section-title" }, copy.contributions),
-					totalContributionCount > 0 && react.createElement(
+						: react.createElement(
+							"div",
+							{ className: "lyrics-creator-profile-empty lyrics-creator-profile-empty-compact" },
+							copy.noArtistStats
+						),
+					react.createElement(
 						"div",
-						{ className: "lyrics-creator-profile-section-meta" },
-						`${loadedContributionCount}/${totalContributionCount}`
-					)
-				),
-				profileData.contributions?.length
-					? react.createElement(
-						react.Fragment,
-						null,
+						{ className: "lyrics-creator-profile-toolbar" },
 						react.createElement(
 							"div",
-							{ className: "lyrics-creator-profile-grid" },
-							...profileData.contributions.map((item) => {
-								const updatedLabel = formatContributorTimestamp(item.updatedAt || item.createdAt);
-								return react.createElement(
+							{ className: "lyrics-creator-profile-toolbar-group" },
+							react.createElement("span", { className: "lyrics-creator-profile-toolbar-label" }, copy.sortLabel),
+							react.createElement(
+								"div",
+								{ className: "lyrics-creator-profile-sort-controls" },
+								...sortOptions.map((option) => react.createElement(
 									"button",
 									{
 										type: "button",
-										key: `${item.trackId}:${item.provider}`,
-										className: "lyrics-creator-profile-track",
-										onClick: () => onTrackClick(item.trackId)
+										key: option.key,
+										className: `lyrics-creator-profile-sort-btn ${sortMode === option.key ? "is-active" : ""}`.trim(),
+										onClick: () => onSortChange?.(option.key),
+										disabled: loadMorePending || listRefreshing
 									},
-									react.createElement(
-										"div",
-										{ className: "lyrics-creator-profile-track-main" },
-										react.createElement("div", { className: "lyrics-creator-profile-track-title" }, item.trackName || copy.unknownTrack),
-										react.createElement("div", { className: "lyrics-creator-profile-track-artist" }, item.artists || item.trackId)
-									),
-									react.createElement(
-										"div",
-										{ className: "lyrics-creator-profile-track-side" },
-										react.createElement("span", { className: "lyrics-creator-profile-track-provider" }, item.provider),
-										updatedLabel && react.createElement("span", { className: "lyrics-creator-profile-track-updated" }, `${copy.updated} ${updatedLabel}`)
-									)
-								);
-							})
+									option.label
+								))
+							)
 						),
-						hasMoreContributions && react.createElement(
-							"div",
-							{ className: "lyrics-creator-profile-grid-footer" },
-							loadMorePending
-								? react.createElement(
-									"div",
-									{ className: "lyrics-creator-profile-load-more is-loading" },
-									copy.loadingMore
-								)
-								: null
+						artistFilter && react.createElement(
+							"button",
+							{
+								type: "button",
+								className: "lyrics-creator-profile-filter-badge",
+								onClick: () => onArtistFilterChange?.(null),
+								disabled: loadMorePending || listRefreshing
+							},
+							`${copy.filteredArtist}: ${artistFilter} ×`
 						)
-					)
-					: react.createElement(
+					),
+					react.createElement(
 						"div",
-						{ className: "lyrics-creator-profile-empty" },
-						copy.noContributions
-					)
-			);
+						{ className: "lyrics-creator-profile-section-header" },
+						react.createElement("h3", { className: "lyrics-creator-profile-section-title" }, copy.contributions),
+						totalContributionCount > 0 && react.createElement(
+							"div",
+							{ className: "lyrics-creator-profile-section-meta" },
+							`${loadedContributionCount}/${totalContributionCount}`
+						)
+					),
+					listRefreshing && react.createElement(
+						"div",
+						{ className: "lyrics-creator-profile-list-status" },
+						copy.loadingMore
+					),
+					contributions.length
+						? react.createElement(
+							react.Fragment,
+							null,
+							react.createElement(
+								"div",
+								{ className: `lyrics-creator-profile-grid ${listRefreshing ? "is-refreshing" : ""}`.trim() },
+								...contributions.map((item) => {
+									const updatedLabel = formatContributorTimestamp(item.updatedAt || item.createdAt);
+									return react.createElement(
+										"button",
+										{
+											type: "button",
+											key: `${item.trackId}:${item.provider}`,
+											className: "lyrics-creator-profile-track",
+											onClick: () => onTrackClick(item.trackId)
+										},
+										react.createElement(
+											"div",
+											{ className: "lyrics-creator-profile-track-main" },
+											react.createElement("div", { className: "lyrics-creator-profile-track-title" }, item.trackName || copy.unknownTrack),
+											react.createElement("div", { className: "lyrics-creator-profile-track-artist" }, item.artists || item.trackId)
+										),
+										react.createElement(
+											"div",
+											{ className: "lyrics-creator-profile-track-side" },
+											react.createElement("span", { className: "lyrics-creator-profile-track-provider" }, item.provider),
+											updatedLabel && react.createElement("span", { className: "lyrics-creator-profile-track-updated" }, `${copy.updated} ${updatedLabel}`)
+										)
+									);
+								})
+							),
+							hasMoreContributions && react.createElement(
+								"div",
+								{ className: "lyrics-creator-profile-grid-footer" },
+								loadMorePending
+									? react.createElement(
+										"div",
+										{ className: "lyrics-creator-profile-load-more is-loading" },
+										copy.loadingMore
+									)
+									: null
+							)
+						)
+						: react.createElement(
+							"div",
+							{ className: "lyrics-creator-profile-empty" },
+							copy.noContributions
+						)
+				)
+	);
 
 	return react.createElement(
 		"div",
@@ -435,6 +587,9 @@ const CreditFooter = react.memo(({ provider, contributors }) => {
 	const [profileError, setProfileError] = useState(null);
 	const [likePending, setLikePending] = useState(false);
 	const [profileLoadingMore, setProfileLoadingMore] = useState(false);
+	const [profileListRefreshing, setProfileListRefreshing] = useState(false);
+	const [profileSort, setProfileSort] = useState("recent");
+	const [profileArtistFilter, setProfileArtistFilter] = useState(null);
 	const requestIdRef = useRef(0);
 
 	const closeProfile = useCallback(() => {
@@ -445,6 +600,9 @@ const CreditFooter = react.memo(({ provider, contributors }) => {
 		setProfileError(null);
 		setLikePending(false);
 		setProfileLoadingMore(false);
+		setProfileListRefreshing(false);
+		setProfileSort("recent");
+		setProfileArtistFilter(null);
 	}, []);
 
 	useEffect(() => {
@@ -462,92 +620,170 @@ const CreditFooter = react.memo(({ provider, contributors }) => {
 		return () => window.removeEventListener("keydown", onKeyDown);
 	}, [activeContributor, closeProfile]);
 
-	const openCreatorProfile = useCallback(async (contributor) => {
+	const loadCreatorProfile = useCallback(async (contributor, options = {}) => {
 		if (!contributor?.profileAvailable || !contributor.userHash) {
 			return;
 		}
 
+		const {
+			offset = 0,
+			sort = "recent",
+			artist = null,
+			append = false,
+			preserveProfile = false
+		} = options;
 		const requestId = requestIdRef.current + 1;
 		requestIdRef.current = requestId;
-		setActiveContributor(contributor);
-		setCreatorProfile(null);
-		setProfileError(null);
-		setLikePending(false);
-		setProfileLoadingMore(false);
-		setProfileLoading(true);
+		if (append) {
+			setProfileLoadingMore(true);
+		} else if (preserveProfile) {
+			setProfileListRefreshing(true);
+		} else {
+			setProfileLoading(true);
+			setProfileError(null);
+			setProfileLoadingMore(false);
+		}
 
 		try {
 			const data = await Utils.fetchSyncCreatorProfile(contributor.userHash, {
 				limit: CREATOR_PROFILE_PAGE_SIZE,
-				offset: 0
+				offset,
+				sort,
+				artist
 			});
-			if (requestIdRef.current !== requestId) {
-				return;
-			}
-			setCreatorProfile(data);
-		} catch (error) {
-			if (requestIdRef.current !== requestId) {
-				return;
-			}
-			setProfileError(error.message || copy.loadFailed);
-		} finally {
-			if (requestIdRef.current === requestId) {
-				setProfileLoading(false);
-			}
-		}
-	}, [copy.loadFailed]);
-
-	const handleLoadMore = useCallback(async () => {
-		if (!creatorProfile?.userHash || !creatorProfile?.pagination?.hasMore || profileLoadingMore) {
-			return;
-		}
-
-		const requestId = requestIdRef.current + 1;
-		requestIdRef.current = requestId;
-		setProfileLoadingMore(true);
-
-		try {
-			const nextPage = await Utils.fetchSyncCreatorProfile(creatorProfile.userHash, {
-				limit: CREATOR_PROFILE_PAGE_SIZE,
-				offset: Number(creatorProfile.pagination?.nextOffset || creatorProfile.contributions?.length || 0)
-			});
-
 			if (requestIdRef.current !== requestId) {
 				return;
 			}
 
 			setCreatorProfile((currentProfile) => {
-				if (!currentProfile || currentProfile.userHash !== nextPage.userHash) {
-					return currentProfile;
+				if (!append || !currentProfile || currentProfile.userHash !== data.userHash) {
+					if (preserveProfile && currentProfile && currentProfile.userHash === data.userHash) {
+						return {
+							...currentProfile,
+							...data,
+							account: data.account || currentProfile.account,
+							displayName: data.displayName || currentProfile.displayName
+						};
+					}
+
+					return data;
 				}
 
 				return {
-					...nextPage,
+					...data,
 					contributions: mergeCreatorProfileContributions(
 						currentProfile.contributions,
-						nextPage.contributions
+						data.contributions
 					),
 					stats: {
 						...currentProfile.stats,
-						...nextPage.stats
+						...data.stats
 					},
 					viewer: {
 						...currentProfile.viewer,
-						...nextPage.viewer
-					}
+						...data.viewer
+					},
+					artistStats: data.artistStats || currentProfile.artistStats,
+					filters: data.filters || currentProfile.filters
 				};
 			});
 		} catch (error) {
 			if (requestIdRef.current !== requestId) {
 				return;
 			}
-			Toast.error(error.message || copy.loadFailed);
+			if (append) {
+				Toast.error(error.message || copy.loadFailed);
+			} else if (preserveProfile) {
+				Toast.error(error.message || copy.loadFailed);
+			} else {
+				setProfileError(error.message || copy.loadFailed);
+			}
 		} finally {
 			if (requestIdRef.current === requestId) {
-				setProfileLoadingMore(false);
+				if (append) {
+					setProfileLoadingMore(false);
+				} else if (preserveProfile) {
+					setProfileListRefreshing(false);
+				} else {
+					setProfileLoading(false);
+				}
 			}
 		}
-	}, [copy.loadFailed, creatorProfile, profileLoadingMore]);
+	}, [copy.loadFailed]);
+
+	const openCreatorProfile = useCallback(async (contributor) => {
+		if (!contributor?.profileAvailable || !contributor.userHash) {
+			return;
+		}
+
+		setActiveContributor(contributor);
+		setProfileError(null);
+		setLikePending(false);
+		setProfileSort("recent");
+		setProfileArtistFilter(null);
+		setProfileListRefreshing(false);
+		setCreatorProfile(createCreatorProfileShell(contributor, {
+			sort: "recent",
+			artist: null
+		}));
+		void loadCreatorProfile(contributor, {
+			offset: 0,
+			sort: "recent",
+			artist: null,
+			append: false
+		});
+	}, [loadCreatorProfile]);
+
+	const handleLoadMore = useCallback(async () => {
+		if (!activeContributor?.userHash || !creatorProfile?.pagination?.hasMore || profileLoadingMore) {
+			return;
+		}
+
+		await loadCreatorProfile(activeContributor, {
+			offset: Number(creatorProfile.pagination?.nextOffset || creatorProfile.contributions?.length || 0),
+			sort: profileSort,
+			artist: profileArtistFilter,
+			append: true
+		});
+	}, [activeContributor, creatorProfile, loadCreatorProfile, profileArtistFilter, profileLoadingMore, profileSort]);
+
+	const handleSortChange = useCallback(async (nextSort) => {
+		if (!activeContributor?.userHash || !nextSort || nextSort === profileSort) {
+			return;
+		}
+
+		setProfileSort(nextSort);
+		void loadCreatorProfile(activeContributor, {
+			offset: 0,
+			sort: nextSort,
+			artist: profileArtistFilter,
+			append: false,
+			preserveProfile: true
+		});
+	}, [activeContributor, loadCreatorProfile, profileArtistFilter, profileSort]);
+
+	const handleArtistFilterChange = useCallback(async (nextArtist) => {
+		if (!activeContributor?.userHash) {
+			return;
+		}
+
+		const normalizedArtist = typeof nextArtist === "string" && nextArtist.trim()
+			? nextArtist.trim()
+			: null;
+
+		if (normalizedArtist === profileArtistFilter) {
+			return;
+		}
+
+		setProfileArtistFilter(normalizedArtist);
+		void loadCreatorProfile(activeContributor, {
+			offset: 0,
+			sort: profileSort,
+			artist: normalizedArtist,
+			append: false,
+			preserveProfile: true
+		});
+	}, [activeContributor, loadCreatorProfile, profileArtistFilter, profileSort]);
 
 	const handleToggleLike = useCallback(async () => {
 		if (!creatorProfile?.userHash) {
@@ -698,10 +934,15 @@ const CreditFooter = react.memo(({ provider, contributors }) => {
 			error: profileError,
 			likePending,
 			loadMorePending: profileLoadingMore,
+			listRefreshing: profileListRefreshing,
 			onClose: closeProfile,
 			onToggleLike: handleToggleLike,
 			onLoadMore: handleLoadMore,
-			onTrackClick: handleTrackClick
+			onTrackClick: handleTrackClick,
+			activeSortMode: profileSort,
+			activeArtistFilter: profileArtistFilter,
+			onSortChange: handleSortChange,
+			onArtistFilterChange: handleArtistFilterChange
 		})
 		: null;
 

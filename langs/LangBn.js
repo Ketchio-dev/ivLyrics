@@ -714,7 +714,16 @@ window.LANG_BN = {
     "loadingMore": "আরও লোড হচ্ছে...",
     "noContributions": "এখনও কোনো সিঙ্ক লিরিক্স যোগ করা হয়নি।",
     "unknownTrack": "অজানা ট্র্যাক",
-    "updated": "আপডেট"
+    "updated": "আপডেট",
+    "topArtists": "Top Artists",
+    "artistGroups": "Artist Groups",
+    "noArtistStats": "No artist stats yet.",
+    "sortLabel": "Sort",
+    "sortRecent": "Recent",
+    "sortTitle": "Title",
+    "sortArtist": "Artist",
+    "clearArtistFilter": "Clear artist filter",
+    "filteredArtist": "Filtered artist"
   },
   "settingsAdvanced": {
     "patchNotes": {

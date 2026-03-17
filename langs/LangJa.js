@@ -714,7 +714,16 @@ window.LANG_JA = {
     "loadingMore": "さらに読み込み中...",
     "noContributions": "まだ追加した同期歌詞はありません。",
     "unknownTrack": "不明な楽曲",
-    "updated": "更新"
+    "updated": "更新",
+    "topArtists": "Top Artists",
+    "artistGroups": "Artist Groups",
+    "noArtistStats": "No artist stats yet.",
+    "sortLabel": "Sort",
+    "sortRecent": "Recent",
+    "sortTitle": "Title",
+    "sortArtist": "Artist",
+    "clearArtistFilter": "Clear artist filter",
+    "filteredArtist": "Filtered artist"
   },
   "settingsAdvanced": {
     "patchNotes": {

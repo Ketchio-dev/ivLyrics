@@ -714,7 +714,16 @@ window.LANG_ES = {
     "loadingMore": "Cargando más...",
     "noContributions": "Todavía no hay sincronizaciones aportadas.",
     "unknownTrack": "Canción desconocida",
-    "updated": "Actualizado"
+    "updated": "Actualizado",
+    "topArtists": "Top Artists",
+    "artistGroups": "Artist Groups",
+    "noArtistStats": "No artist stats yet.",
+    "sortLabel": "Sort",
+    "sortRecent": "Recent",
+    "sortTitle": "Title",
+    "sortArtist": "Artist",
+    "clearArtistFilter": "Clear artist filter",
+    "filteredArtist": "Filtered artist"
   },
   "settingsAdvanced": {
     "patchNotes": {

@@ -714,7 +714,16 @@ window.LANG_ZH_TW = {
     "loadingMore": "正在載入更多...",
     "noContributions": "還沒有新增任何同步歌詞。",
     "unknownTrack": "未知歌曲",
-    "updated": "更新"
+    "updated": "更新",
+    "topArtists": "Top Artists",
+    "artistGroups": "Artist Groups",
+    "noArtistStats": "No artist stats yet.",
+    "sortLabel": "Sort",
+    "sortRecent": "Recent",
+    "sortTitle": "Title",
+    "sortArtist": "Artist",
+    "clearArtistFilter": "Clear artist filter",
+    "filteredArtist": "Filtered artist"
   },
   "settingsAdvanced": {
     "patchNotes": {

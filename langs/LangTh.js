@@ -714,7 +714,16 @@ window.LANG_TH = {
     "loadingMore": "กำลังโหลดเพิ่ม...",
     "noContributions": "ยังไม่มีการเพิ่มซิงก์ใดๆ",
     "unknownTrack": "เพลงที่ไม่รู้จัก",
-    "updated": "อัปเดต"
+    "updated": "อัปเดต",
+    "topArtists": "Top Artists",
+    "artistGroups": "Artist Groups",
+    "noArtistStats": "No artist stats yet.",
+    "sortLabel": "Sort",
+    "sortRecent": "Recent",
+    "sortTitle": "Title",
+    "sortArtist": "Artist",
+    "clearArtistFilter": "Clear artist filter",
+    "filteredArtist": "Filtered artist"
   },
   "settingsAdvanced": {
     "patchNotes": {

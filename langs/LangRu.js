@@ -714,7 +714,16 @@ window.LANG_RU = {
     "loadingMore": "Загрузка...",
     "noContributions": "Пока нет добавленных синхронизаций.",
     "unknownTrack": "Неизвестный трек",
-    "updated": "Обновлено"
+    "updated": "Обновлено",
+    "topArtists": "Top Artists",
+    "artistGroups": "Artist Groups",
+    "noArtistStats": "No artist stats yet.",
+    "sortLabel": "Sort",
+    "sortRecent": "Recent",
+    "sortTitle": "Title",
+    "sortArtist": "Artist",
+    "clearArtistFilter": "Clear artist filter",
+    "filteredArtist": "Filtered artist"
   },
   "settingsAdvanced": {
     "patchNotes": {

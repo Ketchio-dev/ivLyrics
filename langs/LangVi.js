@@ -714,7 +714,16 @@ window.LANG_VI = {
     "loadingMore": "Đang tải thêm...",
     "noContributions": "Chưa có bản đồng bộ nào được thêm.",
     "unknownTrack": "Bài hát không xác định",
-    "updated": "Cập nhật"
+    "updated": "Cập nhật",
+    "topArtists": "Top Artists",
+    "artistGroups": "Artist Groups",
+    "noArtistStats": "No artist stats yet.",
+    "sortLabel": "Sort",
+    "sortRecent": "Recent",
+    "sortTitle": "Title",
+    "sortArtist": "Artist",
+    "clearArtistFilter": "Clear artist filter",
+    "filteredArtist": "Filtered artist"
   },
   "settingsAdvanced": {
     "patchNotes": {

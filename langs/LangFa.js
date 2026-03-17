@@ -714,7 +714,16 @@ window.LANG_FA = {
     "loadingMore": "در حال بارگذاری بیشتر...",
     "noContributions": "هنوز همگام‌سازی‌ای اضافه نشده است.",
     "unknownTrack": "آهنگ نامشخص",
-    "updated": "به‌روزرسانی"
+    "updated": "به‌روزرسانی",
+    "topArtists": "Top Artists",
+    "artistGroups": "Artist Groups",
+    "noArtistStats": "No artist stats yet.",
+    "sortLabel": "Sort",
+    "sortRecent": "Recent",
+    "sortTitle": "Title",
+    "sortArtist": "Artist",
+    "clearArtistFilter": "Clear artist filter",
+    "filteredArtist": "Filtered artist"
   },
   "settingsAdvanced": {
     "patchNotes": {

@@ -714,7 +714,16 @@ window.LANG_AR = {
     "loadingMore": "جارٍ تحميل المزيد...",
     "noContributions": "لا توجد مزامنات مضافة بعد.",
     "unknownTrack": "مقطع غير معروف",
-    "updated": "تم التحديث"
+    "updated": "تم التحديث",
+    "topArtists": "Top Artists",
+    "artistGroups": "Artist Groups",
+    "noArtistStats": "No artist stats yet.",
+    "sortLabel": "Sort",
+    "sortRecent": "Recent",
+    "sortTitle": "Title",
+    "sortArtist": "Artist",
+    "clearArtistFilter": "Clear artist filter",
+    "filteredArtist": "Filtered artist"
   },
   "settingsAdvanced": {
     "patchNotes": {
