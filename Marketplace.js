@@ -42,6 +42,42 @@ const MarketplacePage = (() => {
         return String(lang || '').toLowerCase().replace(/[^a-z0-9_-]/g, '');
     }
 
+    function formatCodeLanguageLabel(lang) {
+        const safeLang = sanitizeCodeLanguage(lang);
+        if (!safeLang) return '';
+
+        const knownLabels = {
+            js: 'JavaScript',
+            jsx: 'JSX',
+            ts: 'TypeScript',
+            tsx: 'TSX',
+            sh: 'Shell',
+            bash: 'Bash',
+            zsh: 'Zsh',
+            pwsh: 'PowerShell',
+            powershell: 'PowerShell',
+            ps1: 'PowerShell',
+            json: 'JSON',
+            yaml: 'YAML',
+            yml: 'YAML',
+            md: 'Markdown',
+            csharp: 'C#',
+            cpp: 'C++',
+            plaintext: 'Plain Text',
+            text: 'Plain Text'
+        };
+
+        if (knownLabels[safeLang]) {
+            return knownLabels[safeLang];
+        }
+
+        return safeLang
+            .split(/[-_]/g)
+            .filter(Boolean)
+            .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+            .join(' ');
+    }
+
     function sanitizeUrl(url) {
         if (typeof url !== 'string') return null;
 
@@ -85,7 +121,11 @@ const MarketplacePage = (() => {
         html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
             const safeLang = sanitizeCodeLanguage(lang);
             const className = safeLang ? ` class="language-${safeLang}"` : '';
-            return `<pre><code${className}>${code.trim()}</code></pre>`;
+            const languageLabel = formatCodeLanguageLabel(lang);
+            const languageHtml = languageLabel
+                ? `<span class="ivlyrics-marketplace-code-language">${escapeHtml(languageLabel)}</span>`
+                : '<span class="ivlyrics-marketplace-code-language is-empty"></span>';
+            return `<div class="ivlyrics-marketplace-code-block"><div class="ivlyrics-marketplace-code-toolbar">${languageHtml}<button type="button" class="ivlyrics-marketplace-code-copy" data-copy-code="true">Copy</button></div><pre><code${className}>${code.trim()}</code></pre></div>`;
         });
 
         // Inline code
@@ -189,6 +229,71 @@ const MarketplacePage = (() => {
     const MarkdownDescription = react.memo(({ description }) => {
         const [content, setContent] = useState(null);
         const [loading, setLoading] = useState(false);
+        const containerRef = useRef(null);
+        const resetTimeoutRef = useRef(null);
+        const copiedButtonRef = useRef(null);
+
+        const copyLabel = tWithFallback('copyCommand', 'Copy');
+        const copiedLabel = tWithFallback('settingsAdvanced.debugTab.copied', 'Copied');
+        const copyFailedLabel = tWithFallback('notifications.copyFailed', 'Copy failed');
+
+        const resetCopiedButton = useCallback(() => {
+            if (copiedButtonRef.current) {
+                copiedButtonRef.current.textContent = copyLabel;
+                copiedButtonRef.current.removeAttribute('data-copied');
+                copiedButtonRef.current = null;
+            }
+            if (resetTimeoutRef.current) {
+                clearTimeout(resetTimeoutRef.current);
+                resetTimeoutRef.current = null;
+            }
+        }, [copyLabel]);
+
+        useEffect(() => () => {
+            if (resetTimeoutRef.current) {
+                clearTimeout(resetTimeoutRef.current);
+            }
+        }, []);
+
+        useEffect(() => {
+            if (!containerRef.current) return;
+            containerRef.current.querySelectorAll('[data-copy-code]').forEach((button) => {
+                if (!button.hasAttribute('data-copied')) {
+                    button.textContent = copyLabel;
+                }
+            });
+        }, [content, copyLabel]);
+
+        const handleDescriptionClick = useCallback(async (event) => {
+            const button = event.target.closest?.('[data-copy-code]');
+            if (!button) return;
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            const codeElement = button.closest('.ivlyrics-marketplace-code-block')?.querySelector('code');
+            const codeText = codeElement?.textContent || '';
+            if (!codeText) return;
+
+            const success = await Utils.copyToClipboard(codeText);
+            if (!success) {
+                Toast.error(copyFailedLabel);
+                return;
+            }
+
+            resetCopiedButton();
+            button.textContent = copiedLabel;
+            button.setAttribute('data-copied', 'true');
+            copiedButtonRef.current = button;
+            resetTimeoutRef.current = setTimeout(() => {
+                if (copiedButtonRef.current === button) {
+                    button.textContent = copyLabel;
+                    button.removeAttribute('data-copied');
+                    copiedButtonRef.current = null;
+                    resetTimeoutRef.current = null;
+                }
+            }, 1800);
+        }, [copiedLabel, copyFailedLabel, copyLabel, resetCopiedButton]);
 
         useEffect(() => {
             if (!description) {
@@ -240,7 +345,9 @@ const MarketplacePage = (() => {
         }
 
         return react.createElement('div', {
+            ref: containerRef,
             className: 'ivlyrics-marketplace-detail-description ivlyrics-marketplace-md',
+            onClick: handleDescriptionClick,
             dangerouslySetInnerHTML: { __html: content }
         });
     });

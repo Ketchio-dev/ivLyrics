@@ -7386,6 +7386,8 @@ ruby rt {
 /* Markdown rendered content */
 .ivlyrics-marketplace-md {
   white-space: normal;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .ivlyrics-marketplace-md h1 {
@@ -7447,6 +7449,8 @@ ruby rt {
   margin: 10px 0;
   font-size: 13px;
   line-height: 1.5;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .ivlyrics-marketplace-md code {
@@ -7455,12 +7459,78 @@ ruby rt {
   background: rgba(var(--spice-rgb-text), 0.08);
   padding: 2px 6px;
   border-radius: 4px;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .ivlyrics-marketplace-md pre code {
   background: none;
   padding: 0;
   border-radius: 0;
+}
+
+.ivlyrics-marketplace-code-block {
+  position: relative;
+}
+
+.ivlyrics-marketplace-code-toolbar {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.ivlyrics-marketplace-code-language {
+  min-width: 0;
+  color: rgba(var(--spice-rgb-text), 0.56);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ivlyrics-marketplace-code-language.is-empty {
+  visibility: hidden;
+}
+
+.ivlyrics-marketplace-code-block pre {
+  padding-top: 46px;
+}
+
+.ivlyrics-marketplace-code-copy {
+  border: 1px solid rgba(var(--spice-rgb-text), 0.12);
+  background: rgba(var(--spice-rgb-text), 0.08);
+  color: rgba(var(--spice-rgb-text), 0.9);
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+  pointer-events: auto;
+  flex-shrink: 0;
+}
+
+.ivlyrics-marketplace-code-copy:hover {
+  background: rgba(var(--spice-rgb-text), 0.14);
+  border-color: rgba(var(--spice-rgb-text), 0.2);
+}
+
+.ivlyrics-marketplace-code-copy[data-copied="true"] {
+  background: rgba(29, 185, 84, 0.16);
+  border-color: rgba(29, 185, 84, 0.34);
+  color: #b7f7cf;
 }
 
 .ivlyrics-marketplace-md blockquote {
