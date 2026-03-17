@@ -3235,7 +3235,7 @@ ruby rt {
   transform: translateY(18px);
 }
 
-.lyrics-fullscreen-left-panel.controls-hidden .lyrics-fullscreen-album-art {
+.lyrics-fullscreen-left-panel.controls-hidden .lyrics-fullscreen-album-container {
   transform: translateY(14px) scale(0.99);
 }
 
