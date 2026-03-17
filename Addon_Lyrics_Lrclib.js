@@ -47,7 +47,7 @@
         name: 'LRCLIB',         // 【표시 이름】 UI에 표시되는 애드온 이름
         author: 'ivLis STUDIO', // 【제작자】 애드온 개발자 정보
         version: '1.0.0',       // 【버전】 시맨틱 버저닝 (Major.Minor.Patch)
-        cacheVersion: '2026-03-17-duration-3s',
+        cacheVersion: '2026-03-18-primary-artist-fallback',
 
         // 【다국어 설명】 사용자 언어 설정에 따라 표시
         description: {
@@ -480,10 +480,10 @@
             try {
                 const title = info?.title?.trim?.();
                 const artist = info?.artist?.trim?.();
+                const primaryArtist = artist?.split(',')[0]?.trim?.() || artist;
                 const trackDurationMs = Number(info?.duration || 0);
                 const trackDurationSec = trackDurationMs > 0 ? trackDurationMs / 1000 : 0;
                 const normalizedTitle = normalize(title);
-                const normalizedArtist = normalize(artist);
 
                 if (!title || !artist || !trackDurationSec) {
                     result.error = 'Missing track metadata';
@@ -492,104 +492,139 @@
                 }
 
                 const headers = { 'x-user-agent': `spicetify v${Spicetify.Config?.version || 'unknown'}` };
-                const searchUrl = `${LRCLIB_API_BASE}/search?track_name=${encodeURIComponent(title)}&artist_name=${encodeURIComponent(artist)}&duration=${encodeURIComponent(Math.round(trackDurationSec))}`;
-                const response = await fetchWithTimeout(searchUrl, { headers }, 35000);
+                const runStructuredSearch = async (artistQuery) => {
+                    const normalizedArtistQuery = normalize(artistQuery);
+                    const searchUrl = `${LRCLIB_API_BASE}/search?track_name=${encodeURIComponent(title)}&artist_name=${encodeURIComponent(artistQuery)}&duration=${encodeURIComponent(Math.round(trackDurationSec))}`;
+                    const response = await fetchWithTimeout(searchUrl, { headers }, 35000);
 
-                if (!response) {
-                    result.error = 'Network request failed';
-                    logDebug('Failed', { error: result.error });
-                    return result;
-                }
-
-                if (!response.ok) {
-                    if (response.status === 429) {
-                        result.error = 'Rate limit exceeded (429)';
-                    } else if (response.status === 404) {
-                        result.error = 'No lyrics found';
-                    } else {
-                        result.error = `API error: ${response.status}`;
+                    if (!response) {
+                        return { fatal: true, error: 'Network request failed', searchedArtist: artistQuery };
                     }
-                    logDebug('Failed', { error: result.error });
-                    return result;
-                }
 
-                const data = await response.json();
-                if (!Array.isArray(data) || data.length === 0) {
-                    result.error = 'No lyrics found';
-                    logDebug('Failed', { error: result.error });
-                    return result;
-                }
+                    if (!response.ok) {
+                        if (response.status === 429) {
+                            return { fatal: true, error: 'Rate limit exceeded (429)', searchedArtist: artistQuery };
+                        }
+                        if (response.status === 404) {
+                            return { fatal: false, error: 'No lyrics found', searchedArtist: artistQuery };
+                        }
+                        return { fatal: true, error: `API error: ${response.status}`, searchedArtist: artistQuery };
+                    }
 
-                const candidates = data
-                    .filter(item => {
-                        const candidateDuration = Number(item?.duration);
-                        if (!Number.isFinite(candidateDuration)) return false;
-                        if (Math.abs(candidateDuration - trackDurationSec) > LRCLIB_DURATION_TOLERANCE_SEC) return false;
-                        if (!item?.syncedLyrics && !item?.plainLyrics && !item?.instrumental) return false;
-                        return true;
-                    })
-                    .map(item => {
-                        const durationDiff = Math.abs(Number(item.duration) - trackDurationSec);
-                        const titleScore = jaroWinkler(title, item.trackName || '');
-                        const artistScore = jaroWinkler(artist, item.artistName || '');
-                        const normalizedCandidateTitle = normalize(item.trackName || '');
-                        const normalizedCandidateArtist = normalize(item.artistName || '');
-                        const titleContains = normalizedCandidateTitle.includes(normalizedTitle) || normalizedTitle.includes(normalizedCandidateTitle);
-                        const artistContains = normalizedCandidateArtist.includes(normalizedArtist) || normalizedArtist.includes(normalizedCandidateArtist);
-                        const syncCoverage = getLyricCoverage(item.syncedLyrics, trackDurationMs);
-                        const score = (titleScore * 0.58) + (artistScore * 0.32) + ((LRCLIB_DURATION_TOLERANCE_SEC - durationDiff) / LRCLIB_DURATION_TOLERANCE_SEC * 0.08) + (item.syncedLyrics ? 0.02 : 0);
-
+                    const data = await response.json();
+                    if (!Array.isArray(data) || data.length === 0) {
                         return {
-                            ...item,
-                            durationDiff,
-                            titleScore,
-                            artistScore,
-                            titleContains,
-                            artistContains,
-                            syncCoverage,
-                            score
+                            fatal: false,
+                            error: 'No lyrics found',
+                            searchedArtist: artistQuery,
+                            totalResults: Array.isArray(data) ? data.length : 0,
+                            candidates: []
                         };
-                    })
-                    .sort((a, b) => {
-                        if (b.score !== a.score) return b.score - a.score;
-                        if (a.durationDiff !== b.durationDiff) return a.durationDiff - b.durationDiff;
-                        if (!!b.syncedLyrics !== !!a.syncedLyrics) return Number(!!b.syncedLyrics) - Number(!!a.syncedLyrics);
-                        return (b.syncCoverage || 0) - (a.syncCoverage || 0);
-                    });
+                    }
 
-                if (candidates.length === 0) {
-                    result.error = `No LRCLIB results within ±${LRCLIB_DURATION_TOLERANCE_SEC}s`;
+                    const candidates = data
+                        .filter(item => {
+                            const candidateDuration = Number(item?.duration);
+                            if (!Number.isFinite(candidateDuration)) return false;
+                            if (Math.abs(candidateDuration - trackDurationSec) > LRCLIB_DURATION_TOLERANCE_SEC) return false;
+                            if (!item?.syncedLyrics && !item?.plainLyrics && !item?.instrumental) return false;
+                            return true;
+                        })
+                        .map(item => {
+                            const durationDiff = Math.abs(Number(item.duration) - trackDurationSec);
+                            const titleScore = jaroWinkler(title, item.trackName || '');
+                            const artistScore = jaroWinkler(artistQuery, item.artistName || '');
+                            const normalizedCandidateTitle = normalize(item.trackName || '');
+                            const normalizedCandidateArtist = normalize(item.artistName || '');
+                            const titleContains = normalizedCandidateTitle.includes(normalizedTitle) || normalizedTitle.includes(normalizedCandidateTitle);
+                            const artistContains = normalizedCandidateArtist.includes(normalizedArtistQuery) || normalizedArtistQuery.includes(normalizedCandidateArtist);
+                            const syncCoverage = getLyricCoverage(item.syncedLyrics, trackDurationMs);
+                            const score = (titleScore * 0.58) + (artistScore * 0.32) + ((LRCLIB_DURATION_TOLERANCE_SEC - durationDiff) / LRCLIB_DURATION_TOLERANCE_SEC * 0.08) + (item.syncedLyrics ? 0.02 : 0);
+
+                            return {
+                                ...item,
+                                durationDiff,
+                                titleScore,
+                                artistScore,
+                                titleContains,
+                                artistContains,
+                                syncCoverage,
+                                score
+                            };
+                        })
+                        .sort((a, b) => {
+                            if (b.score !== a.score) return b.score - a.score;
+                            if (a.durationDiff !== b.durationDiff) return a.durationDiff - b.durationDiff;
+                            if (!!b.syncedLyrics !== !!a.syncedLyrics) return Number(!!b.syncedLyrics) - Number(!!a.syncedLyrics);
+                            return (b.syncCoverage || 0) - (a.syncCoverage || 0);
+                        });
+
+                    return {
+                        fatal: false,
+                        searchedArtist: artistQuery,
+                        totalResults: data.length,
+                        candidates
+                    };
+                };
+
+                const artistQueries = [...new Set([primaryArtist, artist].filter(Boolean))];
+                let resolvedSearch = null;
+                let lastSearchResult = null;
+
+                for (const artistQuery of artistQueries) {
+                    const searchResult = await runStructuredSearch(artistQuery);
+                    lastSearchResult = searchResult;
+
+                    if (searchResult.fatal) {
+                        result.error = searchResult.error;
+                        logDebug('Failed', {
+                            error: result.error,
+                            searchedArtist: searchResult.searchedArtist
+                        });
+                        return result;
+                    }
+
+                    if (!searchResult.candidates || searchResult.candidates.length === 0) {
+                        continue;
+                    }
+
+                    const candidate = searchResult.candidates[0];
+                    const titleAccepted = candidate.titleContains || candidate.titleScore >= LRCLIB_MIN_TITLE_SCORE;
+                    const artistAccepted = candidate.artistContains || candidate.artistScore >= LRCLIB_MIN_ARTIST_SCORE;
+
+                    if (!titleAccepted || !artistAccepted) {
+                        continue;
+                    }
+
+                    resolvedSearch = searchResult;
+                    break;
+                }
+
+                if (!resolvedSearch) {
+                    result.error = lastSearchResult?.candidates?.length
+                        ? 'Low confidence structured match'
+                        : (lastSearchResult?.error || `No LRCLIB results within ±${LRCLIB_DURATION_TOLERANCE_SEC}s`);
                     logDebug('Failed', {
                         error: result.error,
-                        totalResults: data.length,
+                        searchedArtists: artistQueries.join(' -> '),
+                        totalResults: lastSearchResult?.totalResults,
                         trackDurationSec: trackDurationSec.toFixed(2)
                     });
                     return result;
                 }
 
-                const body = candidates[0];
-                const titleAccepted = body.titleContains || body.titleScore >= LRCLIB_MIN_TITLE_SCORE;
-                const artistAccepted = body.artistContains || body.artistScore >= LRCLIB_MIN_ARTIST_SCORE;
-
-                if (!titleAccepted || !artistAccepted) {
-                    result.error = 'Low confidence structured match';
-                    logDebug('Failed', {
-                        error: result.error,
-                        titleScore: body.titleScore.toFixed(3),
-                        artistScore: body.artistScore.toFixed(3),
-                        durationDiff: body.durationDiff.toFixed(2),
-                        matchedCandidates: candidates.length
-                    });
-                    return result;
-                }
+                const body = resolvedSearch.candidates[0];
+                const usedFallbackArtist = resolvedSearch.searchedArtist !== primaryArtist;
 
                 if (body.instrumental) {
                     result.synced = [{ startTime: 0, text: '♪ Instrumental ♪' }];
                     result.unsynced = [{ text: '♪ Instrumental ♪' }];
                     logDebug('Success', {
                         instrumental: true,
-                        matchedCandidates: candidates.length,
-                        durationDiff: body.durationDiff.toFixed(2)
+                        matchedCandidates: resolvedSearch.candidates.length,
+                        durationDiff: body.durationDiff.toFixed(2),
+                        searchedArtist: resolvedSearch.searchedArtist,
+                        usedFallbackArtist
                     });
                     return result;
                 }
@@ -613,19 +648,23 @@
                     result.error = 'No lyrics';
                     logDebug('Failed', {
                         error: result.error,
-                        matchedCandidates: candidates.length
+                        matchedCandidates: resolvedSearch.candidates.length,
+                        searchedArtist: resolvedSearch.searchedArtist,
+                        usedFallbackArtist
                     });
                     return result;
                 }
 
                 logDebug('Success', {
-                    totalResults: data.length,
-                    matchedCandidates: candidates.length,
+                    totalResults: resolvedSearch.totalResults,
+                    matchedCandidates: resolvedSearch.candidates.length,
                     titleScore: body.titleScore.toFixed(3),
                     artistScore: body.artistScore.toFixed(3),
                     durationDiff: body.durationDiff.toFixed(2),
                     hasSynced: !!result.synced,
-                    hasUnsynced: !!result.unsynced
+                    hasUnsynced: !!result.unsynced,
+                    searchedArtist: resolvedSearch.searchedArtist,
+                    usedFallbackArtist
                 });
                 return result;
 
