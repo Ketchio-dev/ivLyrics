@@ -257,44 +257,6 @@ const OverlaySettings = () => {
   );
 };
 
-// 설정 백업/복원 컴포넌트
-const SETTINGS_BACKUP_PREFIX = "lpconfig-base64:";
-
-function uint8ArrayToBase64(bytes) {
-  let binary = "";
-  const chunkSize = 0x8000;
-
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
-  }
-
-  return btoa(binary);
-}
-
-function base64ToUint8Array(base64) {
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-
-  return bytes;
-}
-
-function decodeServerBackupContent(rawContent) {
-  if (typeof rawContent !== "string" || !rawContent.trim()) {
-    throw new Error("Empty backup content");
-  }
-
-  if (rawContent.startsWith(SETTINGS_BACKUP_PREFIX)) {
-    const encoded = rawContent.slice(SETTINGS_BACKUP_PREFIX.length);
-    return settingsObject.deserialize(base64ToUint8Array(encoded));
-  }
-
-  return JSON.parse(rawContent);
-}
-
 function getAboutAccountThemeTokens() {
   const isLightTheme = getSettingsUiTheme() === "light";
 
@@ -317,177 +279,50 @@ function getAboutAccountThemeTokens() {
   };
 }
 
-const SettingsBackup = ({ userHash }) => {
-  const [settingsList, setSettingsList] = useState([]);
-  const [backupName, setBackupName] = useState("");
-  const [loading, setLoading] = useState(false);
-  const themeTokens = getAboutAccountThemeTokens();
+const SettingsBackup = () => null;
 
-  const fetchSettings = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch(`https://sso.ivl.is/ivlyrics/api/settings.php?action=list&user_hash=${encodeURIComponent(userHash)}`);
-      const data = await res.json();
-      if (data.settings) {
-        setSettingsList(data.settings);
-      }
-    } catch (e) {
-      console.error("Failed to fetch settings:", e);
-    } finally {
-      setLoading(false);
-    }
+function getDiscordAccountCopy() {
+  const lang = I18n.getCurrentLanguage?.() || "en";
+
+  if (lang === "ko") {
+    return {
+      provider: "Discord",
+      description: "Discord 계정으로 ivLyrics 기여 내역과 닉네임을 연결합니다.",
+      info: "로그인하면 현재 userhash가 Discord ID로 바뀌고, 기존 기여 데이터도 함께 이동됩니다.",
+      loginButton: "Discord로 로그인",
+      loggingIn: "브라우저 열기...",
+      loading: "Discord 계정 정보를 불러오는 중...",
+      linked: "연동됨",
+      refresh: "새로고침",
+      linkedAt: "연동 시각",
+      lastLoginAt: "최근 로그인",
+      switchAccount: "다른 Discord 계정으로 로그인",
+      startHint: "브라우저에서 Discord 인증을 완료해 주세요.",
+      failed: "Discord 로그인 시작에 실패했습니다.",
+    };
+  }
+
+  return {
+    provider: "Discord",
+    description: "Connect your ivLyrics contributions and nickname with Discord.",
+    info: "When you log in, the current user hash is replaced with your Discord ID and existing contribution data is migrated.",
+    loginButton: "Sign In With Discord",
+    loggingIn: "Opening browser...",
+    loading: "Loading Discord account information...",
+    linked: "Connected",
+    refresh: "Refresh",
+    linkedAt: "Linked",
+    lastLoginAt: "Last login",
+    switchAccount: "Sign in with another Discord account",
+    startHint: "Complete the Discord sign-in flow in your browser.",
+    failed: "Failed to start Discord login.",
   };
+}
 
-  useEffect(() => {
-    fetchSettings();
-  }, [userHash]);
-
-  const handleUpload = async () => {
-    if (!backupName.trim()) {
-      Toast.error(I18n.t("settingsAdvanced.aboutTab.account.backup.enterName"));
-      return;
-    }
-
-    try {
-      const config = await StorageManager.exportConfig();
-      const content =
-        SETTINGS_BACKUP_PREFIX +
-        uint8ArrayToBase64(settingsObject.serialize(config));
-
-      const res = await fetch(`https://sso.ivl.is/ivlyrics/api/settings.php?action=upload&user_hash=${encodeURIComponent(userHash)}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          name: backupName,
-          content: content
-        })
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        Toast.success(I18n.t("settingsAdvanced.aboutTab.account.backup.success"));
-        setBackupName("");
-        fetchSettings();
-      } else {
-        Toast.error(I18n.t("settingsAdvanced.aboutTab.account.backup.fail") + ": " + (data.error || "Unknown error"));
-      }
-    } catch (e) {
-      Toast.error(I18n.t("settingsAdvanced.aboutTab.account.backup.error"));
-      console.error(e);
-    }
-  };
-
-  const handleDownload = async (id) => {
-    try {
-      const res = await fetch(`https://sso.ivl.is/ivlyrics/api/settings.php?action=download&id=${id}&user_hash=${encodeURIComponent(userHash)}`);
-      const data = await res.json();
-
-      if (data.data) {
-        try {
-          const config = decodeServerBackupContent(data.data);
-          await StorageManager.importConfig(config);
-          Toast.success(I18n.t("settingsAdvanced.aboutTab.account.backup.restoreSuccess"));
-          setTimeout(() => {
-            window.location.reload();
-          }, 1500);
-        } catch (e) {
-          Toast.error(I18n.t("settingsAdvanced.aboutTab.account.backup.invalidFormat"));
-        }
-      } else {
-        Toast.error(I18n.t("settingsAdvanced.aboutTab.account.backup.downloadFail"));
-      }
-    } catch (e) {
-      Toast.error(I18n.t("settingsAdvanced.aboutTab.account.backup.downloadError"));
-    }
-  };
-
-  const handleDelete = async (id) => {
-    if (!confirm(I18n.t("settingsAdvanced.aboutTab.account.backup.deleteConfirm"))) return;
-
-    try {
-      const res = await fetch(`https://sso.ivl.is/ivlyrics/api/settings.php?action=delete&id=${id}&user_hash=${encodeURIComponent(userHash)}`, {
-        method: 'DELETE'
-      });
-      const data = await res.json();
-      if (data.success) {
-        Toast.success(I18n.t("settingsAdvanced.aboutTab.account.backup.deleted"));
-        fetchSettings();
-      } else {
-        Toast.error(I18n.t("settingsAdvanced.aboutTab.account.backup.deleteFail"));
-      }
-    } catch (e) {
-      Toast.error(I18n.t("settingsAdvanced.aboutTab.account.backup.deleteError"));
-    }
-  };
-
-  return react.createElement("div", { className: "settings-backup-section", style: { marginTop: "20px", borderTop: `1px solid ${themeTokens.sectionDivider}`, paddingTop: "20px" } },
-    react.createElement("h3", { style: { fontSize: "14px", marginBottom: "12px", color: themeTokens.textPrimary } }, I18n.t("settingsAdvanced.aboutTab.account.backup.title")),
-
-    // 업로드 폼
-    react.createElement("div", { style: { display: "flex", gap: "8px", marginBottom: "16px" } },
-      react.createElement("input", {
-        type: "text",
-        value: backupName,
-        onChange: (e) => setBackupName(e.target.value),
-        placeholder: I18n.t("settingsAdvanced.aboutTab.account.backup.placeholder"),
-        style: {
-          flex: 1,
-          padding: "8px 12px",
-          borderRadius: "6px",
-          border: `1px solid ${themeTokens.inputBorder}`,
-          background: themeTokens.inputBackground,
-          color: themeTokens.textPrimary,
-          fontSize: "13px"
-        }
-      }),
-      react.createElement("button", {
-        onClick: handleUpload,
-        className: "btn-backup",
-        style: {
-          padding: "8px 16px",
-          borderRadius: "6px",
-          background: "#6366f1",
-          color: "#fff",
-          border: "none",
-          cursor: "pointer",
-          fontSize: "13px",
-          fontWeight: "600"
-        }
-      }, I18n.t("settingsAdvanced.aboutTab.account.backup.backupBtn"))
-    ),
-
-    // 목록
-    react.createElement("div", { className: "backup-list", style: { display: "flex", flexDirection: "column", gap: "8px" } },
-      settingsList.length === 0 ?
-        react.createElement("div", { style: { color: themeTokens.emptyText, fontSize: "12px", textAlign: "center", padding: "10px" } }, I18n.t("settingsAdvanced.aboutTab.account.backup.noBackups")) :
-        settingsList.map(item =>
-          react.createElement("div", {
-            key: item.id, style: {
-              display: "flex", justifyContent: "space-between", alignItems: "center",
-              padding: "10px 12px", background: themeTokens.panelBackground, border: `1px solid ${themeTokens.panelBorder}`, borderRadius: "8px"
-            }
-          },
-            react.createElement("div", { style: { display: "flex", flexDirection: "column" } },
-              react.createElement("span", { style: { color: themeTokens.textPrimary, fontSize: "13px", fontWeight: "500" } }, item.settings_name),
-              react.createElement("span", { style: { color: themeTokens.emptyText, fontSize: "11px" } }, new Date(item.updated_at).toLocaleString())
-            ),
-            react.createElement("div", { style: { display: "flex", gap: "8px" } },
-              react.createElement("button", {
-                onClick: () => handleDownload(item.id),
-                style: { padding: "4px 8px", fontSize: "11px", background: "rgba(34, 197, 94, 0.2)", color: "#4ade80", border: "1px solid rgba(34, 197, 94, 0.3)", borderRadius: "4px", cursor: "pointer" }
-              }, I18n.t("settingsAdvanced.aboutTab.account.backup.restoreBtn")),
-              react.createElement("button", {
-                onClick: () => handleDelete(item.id),
-                style: { padding: "4px 8px", fontSize: "11px", background: "rgba(239, 68, 68, 0.2)", color: "#f87171", border: "1px solid rgba(239, 68, 68, 0.3)", borderRadius: "4px", cursor: "pointer" }
-              }, I18n.t("settingsAdvanced.aboutTab.account.backup.deleteBtn"))
-            )
-          )
-        )
-      )
-  );
-};
+function formatEpochLabel(epochSeconds) {
+  if (!epochSeconds) return null;
+  return new Date(epochSeconds * 1000).toLocaleString();
+}
 
 // 닉네임 설정 컴포넌트
 const NicknameSection = ({ userHash }) => {
@@ -499,11 +334,23 @@ const NicknameSection = ({ userHash }) => {
 
   const fetchNickname = async () => {
     try {
-      const res = await fetch(`https://sso.ivl.is/ivlyrics/api/nickname.php?user_hash=${encodeURIComponent(userHash)}`);
+      const res = await fetch(
+        `${Utils.getAccountApiBase()}/nickname?userHash=${encodeURIComponent(userHash)}`,
+        {
+          cache: "no-store",
+          headers: {
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            Pragma: "no-cache",
+          },
+        }
+      );
       const data = await res.json();
       if (data.nickname) {
         setNickname(data.nickname);
         setInputNickname(data.nickname);
+      } else {
+        setNickname("");
+        setInputNickname("");
       }
     } catch (e) {
       console.error("Failed to fetch nickname:", e);
@@ -522,20 +369,20 @@ const NicknameSection = ({ userHash }) => {
 
     try {
       setLoading(true);
-      const res = await fetch(`https://sso.ivl.is/ivlyrics/api/nickname.php?user_hash=${encodeURIComponent(userHash)}`, {
-        method: 'POST',
+      const res = await fetch(`${Utils.getAccountApiBase()}/nickname`, {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json'
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ nickname: inputNickname })
+        body: JSON.stringify({ userHash, nickname: inputNickname }),
       });
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.success) {
         setNickname(data.nickname);
+        setInputNickname(data.nickname);
         setEditing(false);
         Toast.success(I18n.t("settingsAdvanced.aboutTab.account.nickname.changed"));
-        // 닉네임 변경 후 싱크 데이터 캐시 무효화 (기여자 닉네임 갱신)
-        window.SyncDataService?.clearCache();
+        window.SyncDataService?.clearCache?.();
       } else {
         Toast.error(data.error || I18n.t("settingsAdvanced.aboutTab.account.nickname.failed"));
       }
@@ -546,84 +393,108 @@ const NicknameSection = ({ userHash }) => {
     }
   };
 
-  return react.createElement("div", {
-    style: {
-      padding: "16px",
-      background: themeTokens.panelBackground,
-      borderRadius: "12px",
-      border: `1px solid ${themeTokens.panelBorder}`,
-      marginTop: "16px",
-      marginBottom: "16px"
-    }
-  },
-    react.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } },
-      react.createElement("div", null,
-        react.createElement("div", { style: { fontSize: "12px", color: themeTokens.textTertiary, marginBottom: "4px" } }, I18n.t("settingsAdvanced.aboutTab.account.nickname.label")),
-        editing ?
-          react.createElement("input", {
-            type: "text",
-            value: inputNickname,
-            onChange: (e) => setInputNickname(e.target.value),
-            placeholder: I18n.t("settingsAdvanced.aboutTab.account.nickname.placeholder"),
-            autoFocus: true,
-            style: {
-              background: themeTokens.inputBackground,
-              border: "1px solid #6366f1",
-              borderRadius: "4px",
-              color: themeTokens.textPrimary,
-              padding: "4px 8px",
-              fontSize: "14px",
-              width: "150px"
-            }
-          }) :
-          react.createElement("div", { style: { fontSize: "16px", fontWeight: "600", color: themeTokens.textPrimary } }, nickname || I18n.t("settingsAdvanced.aboutTab.account.nickname.none"))
-      ),
-      react.createElement("button", {
-        onClick: editing ? handleSave : () => setEditing(true),
-        disabled: loading,
+  return react.createElement(
+    "div",
+    {
+      style: {
+        padding: "16px",
+        background: themeTokens.panelBackground,
+        borderRadius: "12px",
+        border: `1px solid ${themeTokens.panelBorder}`,
+        marginTop: "16px",
+        marginBottom: "16px",
+      },
+    },
+    react.createElement(
+      "div",
+      {
         style: {
-          padding: "6px 12px",
-          borderRadius: "6px",
-          background: editing ? "#6366f1" : themeTokens.subtleButtonBackground,
-          color: editing ? "#fff" : themeTokens.subtleButtonText,
-          border: "none",
-          fontSize: "12px",
-          cursor: "pointer",
-          transition: "all 0.2s"
-        }
-      }, loading ? I18n.t("settingsAdvanced.aboutTab.account.nickname.saving") : (editing ? I18n.t("settingsAdvanced.aboutTab.account.nickname.save") : I18n.t("settingsAdvanced.aboutTab.account.nickname.change")))
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: "12px",
+        },
+      },
+      react.createElement(
+        "div",
+        { style: { minWidth: 0 } },
+        react.createElement(
+          "div",
+          { style: { fontSize: "12px", color: themeTokens.textTertiary, marginBottom: "4px" } },
+          I18n.t("settingsAdvanced.aboutTab.account.nickname.label")
+        ),
+        editing
+          ? react.createElement("input", {
+              type: "text",
+              value: inputNickname,
+              onChange: (e) => setInputNickname(e.target.value),
+              placeholder: I18n.t("settingsAdvanced.aboutTab.account.nickname.placeholder"),
+              autoFocus: true,
+              maxLength: 20,
+              style: {
+                background: themeTokens.inputBackground,
+                border: "1px solid #5865f2",
+                borderRadius: "6px",
+                color: themeTokens.textPrimary,
+                padding: "8px 10px",
+                fontSize: "14px",
+                width: "180px",
+                maxWidth: "100%",
+              },
+            })
+          : react.createElement(
+              "div",
+              { style: { fontSize: "16px", fontWeight: "600", color: themeTokens.textPrimary } },
+              nickname || I18n.t("settingsAdvanced.aboutTab.account.nickname.none")
+            )
+      ),
+      react.createElement(
+        "button",
+        {
+          onClick: editing ? handleSave : () => setEditing(true),
+          disabled: loading,
+          style: {
+            padding: "8px 12px",
+            borderRadius: "8px",
+            background: editing ? "#5865f2" : themeTokens.subtleButtonBackground,
+            color: editing ? "#fff" : themeTokens.subtleButtonText,
+            border: "none",
+            fontSize: "12px",
+            cursor: "pointer",
+            transition: "all 0.2s",
+            whiteSpace: "nowrap",
+          },
+        },
+        loading
+          ? I18n.t("settingsAdvanced.aboutTab.account.nickname.saving")
+          : editing
+            ? I18n.t("settingsAdvanced.aboutTab.account.nickname.save")
+            : I18n.t("settingsAdvanced.aboutTab.account.nickname.change")
+      )
     )
   );
 };
 
-// ivLogin 계정 연동 섹션 컴포넌트
 const AccountSection = () => {
   const [accountInfo, setAccountInfo] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loginLoading, setLoginLoading] = useState(false);
   const [error, setError] = useState(null);
   const themeTokens = getAboutAccountThemeTokens();
+  const copy = getDiscordAccountCopy();
 
-  /* polling state added */
-  const [isPolling, setIsPolling] = useState(false);
-
-  // 계정 정보 로드
   const loadAccountInfo = async () => {
     try {
-      // 폴링 중일 때는 로딩 표시 안 함 (깜빡임 방지)
-      if (!isPolling) setLoading(true);
+      setLoading(true);
       setError(null);
-      const userHash = Utils.getUserHash();
-      const response = await fetch(`https://sso.ivl.is/ivlyrics/api/account.php?user_hash=${encodeURIComponent(userHash)}`);
-      const data = await response.json();
-
+      const data = await Utils.fetchAccountProfile();
       if (data.linked && data.account) {
         setAccountInfo(data.account);
-        setIsPolling(false); // 연동 성공 시 폴링 중단
       } else {
         setAccountInfo(null);
       }
     } catch (err) {
-      console.error("Failed to load account info:", err);
+      console.error("Failed to load Discord account info:", err);
       setError(err.message);
       setAccountInfo(null);
     } finally {
@@ -633,44 +504,67 @@ const AccountSection = () => {
 
   useEffect(() => {
     loadAccountInfo();
+
+    const handleAccountChanged = () => {
+      loadAccountInfo();
+    };
+    window.addEventListener("ivLyrics:account-changed", handleAccountChanged);
+
+    return () => {
+      window.removeEventListener("ivLyrics:account-changed", handleAccountChanged);
+    };
   }, []);
 
-  // 폴링 로직
-  useEffect(() => {
-    let intervalId;
-    if (isPolling && !accountInfo) {
-      intervalId = setInterval(() => {
-        loadAccountInfo();
-      }, 5000);
+  const openLoginPage = async () => {
+    try {
+      setLoginLoading(true);
+      await Utils.startDiscordLogin();
+      Toast.success(copy.startHint);
+    } catch (err) {
+      Toast.error(err.message || copy.failed);
+    } finally {
+      setLoginLoading(false);
     }
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [isPolling, accountInfo]);
-
-  // 로그인 페이지 열기
-  const openLoginPage = () => {
-    const userHash = Utils.getUserHash();
-    const loginUrl = `https://sso.ivl.is/ivlyrics/index.php?user_hash=${encodeURIComponent(userHash)}`;
-    window.open(loginUrl, "_blank", "noopener,noreferrer");
-    setIsPolling(true); // 폴링 시작
   };
 
-  // 새로고침
   const handleRefresh = () => {
     loadAccountInfo();
   };
 
-  // 연동되지 않은 상태
-  if (!loading && !accountInfo) {
+  if (loading) {
     return react.createElement(
       "div",
       {
         className: "info-card",
         style: {
           padding: "20px",
-          background: "linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%)",
-          border: "1px solid rgba(99, 102, 241, 0.2)",
+          background: "linear-gradient(145deg, rgba(88, 101, 242, 0.1) 0%, rgba(46, 51, 122, 0.16) 100%)",
+          border: "1px solid rgba(88, 101, 242, 0.22)",
+          borderRadius: "0 0 12px 12px",
+          marginBottom: "24px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: "110px",
+        },
+      },
+      react.createElement(
+        "span",
+        { style: { color: themeTokens.textSecondary, fontSize: "14px" } },
+        copy.loading
+      )
+    );
+  }
+
+  if (!accountInfo) {
+    return react.createElement(
+      "div",
+      {
+        className: "info-card",
+        style: {
+          padding: "20px",
+          background: "linear-gradient(145deg, rgba(88, 101, 242, 0.1) 0%, rgba(46, 51, 122, 0.16) 100%)",
+          border: "1px solid rgba(88, 101, 242, 0.22)",
           borderRadius: "0 0 12px 12px",
           backdropFilter: "blur(30px) saturate(150%)",
           WebkitBackdropFilter: "blur(30px) saturate(150%)",
@@ -691,20 +585,29 @@ const AccountSection = () => {
           "div",
           {
             style: {
-              width: "48px",
-              height: "48px",
-              borderRadius: "12px",
-              background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+              width: "52px",
+              height: "52px",
+              borderRadius: "16px",
+              background: "linear-gradient(135deg, #5865f2 0%, #7983f5 100%)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: "20px",
-              fontWeight: "700",
-              color: "#ffffff",
+              color: "#fff",
               flexShrink: 0,
             },
           },
-          "iv"
+          react.createElement(
+            "svg",
+            {
+              width: "24",
+              height: "24",
+              viewBox: "0 0 24 24",
+              fill: "currentColor",
+            },
+            react.createElement("path", {
+              d: "M20.317 4.369A19.791 19.791 0 0 0 15.126 3c-.23.408-.499.957-.682 1.384a18.27 18.27 0 0 0-4.888 0A13.67 13.67 0 0 0 8.874 3a19.736 19.736 0 0 0-5.19 1.368C.533 9.067-.321 13.65.106 18.168a19.9 19.9 0 0 0 6.357 3.208c.513-.693.97-1.425 1.36-2.197-.748-.284-1.462-.634-2.134-1.04.178-.13.353-.267.522-.408 4.118 1.88 8.59 1.88 12.66 0 .17.141.344.278.523.408-.673.407-1.388.757-2.136 1.041.39.771.847 1.503 1.36 2.196a19.873 19.873 0 0 0 6.36-3.209c.5-5.238-.854-9.78-3.16-13.799ZM8.02 15.331c-1.24 0-2.26-1.131-2.26-2.525 0-1.394 1-2.525 2.26-2.525 1.26 0 2.279 1.15 2.26 2.525 0 1.394-1 2.525-2.26 2.525Zm7.96 0c-1.24 0-2.26-1.131-2.26-2.525 0-1.394 1-2.525 2.26-2.525 1.26 0 2.279 1.15 2.26 2.525 0 1.394-1 2.525-2.26 2.525Z",
+            })
+          )
         ),
         react.createElement(
           "div",
@@ -714,12 +617,12 @@ const AccountSection = () => {
             {
               style: {
                 margin: "0 0 4px",
-                fontSize: "16px",
+                fontSize: "17px",
                 color: themeTokens.textPrimary,
-                fontWeight: "600",
+                fontWeight: "700",
               },
             },
-            "ivLogin"
+            copy.provider
           ),
           react.createElement(
             "p",
@@ -730,7 +633,7 @@ const AccountSection = () => {
                 color: themeTokens.textSecondary,
               },
             },
-            I18n.t("settingsAdvanced.aboutTab.account.description")
+            copy.description
           )
         )
       ),
@@ -741,103 +644,63 @@ const AccountSection = () => {
             margin: "0 0 16px",
             fontSize: "13px",
             color: themeTokens.textSecondary,
-            lineHeight: "1.6",
+            lineHeight: "1.7",
           },
         },
-        I18n.t("settingsAdvanced.aboutTab.account.info")
+        copy.info
       ),
+      error &&
+        react.createElement(
+          "p",
+          {
+            style: {
+              margin: "0 0 12px",
+              fontSize: "12px",
+              color: "#f87171",
+            },
+          },
+          error
+        ),
       react.createElement(
         "button",
         {
           onClick: openLoginPage,
+          disabled: loginLoading,
           style: {
             width: "100%",
             padding: "12px 20px",
-            background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+            background: "linear-gradient(135deg, #5865f2 0%, #7983f5 100%)",
             border: "none",
-            borderRadius: "8px",
+            borderRadius: "10px",
             color: "#ffffff",
             fontSize: "14px",
-            fontWeight: "600",
+            fontWeight: "700",
             cursor: "pointer",
-            transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             gap: "8px",
           },
-          onMouseEnter: (e) => {
-            e.target.style.transform = "translateY(-1px)";
-            e.target.style.boxShadow = "0 4px 12px rgba(99, 102, 241, 0.4)";
-          },
-          onMouseLeave: (e) => {
-            e.target.style.transform = "translateY(0)";
-            e.target.style.boxShadow = "none";
-          },
         },
-        react.createElement(
-          "svg",
-          {
-            width: "16",
-            height: "16",
-            viewBox: "0 0 24 24",
-            fill: "none",
-            stroke: "currentColor",
-            strokeWidth: "2",
-            strokeLinecap: "round",
-            strokeLinejoin: "round",
-          },
-          react.createElement("path", { d: "M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" }),
-          react.createElement("polyline", { points: "10 17 15 12 10 7" }),
-          react.createElement("line", { x1: "15", y1: "12", x2: "3", y2: "12" })
-        ),
-        I18n.t("settingsAdvanced.aboutTab.account.loginButton")
+        loginLoading ? copy.loggingIn : copy.loginButton
       )
     );
   }
 
-  // 로딩 중
-  if (loading) {
-    return react.createElement(
-      "div",
-      {
-        className: "info-card",
-        style: {
-          padding: "20px",
-          background: "linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%)",
-          border: "1px solid rgba(99, 102, 241, 0.2)",
-          borderRadius: "0 0 12px 12px",
-          marginBottom: "24px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          minHeight: "100px",
-        },
-      },
-      react.createElement(
-        "span",
-        { style: { color: themeTokens.textSecondary, fontSize: "14px" } },
-        I18n.t("settingsAdvanced.aboutTab.account.loading") || "Loading..."
-      )
-    );
-  }
-
-  // 연동된 상태 - 계정 정보 표시
   return react.createElement(
     "div",
     {
       className: "info-card",
       style: {
         padding: "20px",
-        background: "linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, rgba(16, 185, 129, 0.08) 100%)",
-        border: "1px solid rgba(34, 197, 94, 0.25)",
+        background: "linear-gradient(145deg, rgba(88, 101, 242, 0.1) 0%, rgba(34, 197, 94, 0.08) 100%)",
+        border: "1px solid rgba(88, 101, 242, 0.22)",
         borderRadius: "0 0 12px 12px",
         backdropFilter: "blur(30px) saturate(150%)",
         WebkitBackdropFilter: "blur(30px) saturate(150%)",
         marginBottom: "24px",
       },
     },
-    // 상단: 프로필 정보
     react.createElement(
       "div",
       {
@@ -848,37 +711,27 @@ const AccountSection = () => {
           marginBottom: "16px",
         },
       },
-      // 프로필 이미지 또는 기본 아이콘
       react.createElement(
         "div",
         {
           style: {
-            width: "48px",
-            height: "48px",
+            width: "52px",
+            height: "52px",
             borderRadius: "50%",
             background: accountInfo.profileImage
               ? `url(${accountInfo.profileImage}) center/cover no-repeat`
-              : "linear-gradient(135deg, #22c55e 0%, #10b981 100%)",
+              : "linear-gradient(135deg, #5865f2 0%, #7983f5 100%)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             flexShrink: 0,
-            border: "2px solid rgba(34, 197, 94, 0.3)",
+            border: "2px solid rgba(88, 101, 242, 0.25)",
+            color: "#fff",
+            fontSize: "18px",
+            fontWeight: "700",
           },
         },
-        !accountInfo.profileImage && react.createElement(
-          "svg",
-          {
-            width: "24",
-            height: "24",
-            viewBox: "0 0 24 24",
-            fill: "none",
-            stroke: "#ffffff",
-            strokeWidth: "2",
-          },
-          react.createElement("path", { d: "M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" }),
-          react.createElement("circle", { cx: "12", cy: "7", r: "4" })
-        )
+        !accountInfo.profileImage && (accountInfo.displayName || "D").slice(0, 1).toUpperCase()
       ),
       react.createElement(
         "div",
@@ -891,6 +744,7 @@ const AccountSection = () => {
               alignItems: "center",
               gap: "8px",
               marginBottom: "4px",
+              flexWrap: "wrap",
             },
           },
           react.createElement(
@@ -898,46 +752,46 @@ const AccountSection = () => {
             {
               style: {
                 margin: 0,
-                fontSize: "16px",
+                fontSize: "17px",
                 color: themeTokens.textPrimary,
-                fontWeight: "600",
+                fontWeight: "700",
               },
             },
-            accountInfo.name || "User"
+            accountInfo.displayName || accountInfo.username || "Discord User"
           ),
           react.createElement(
             "span",
             {
               style: {
                 fontSize: "10px",
-                padding: "2px 8px",
-                borderRadius: "12px",
-                backgroundColor: "rgba(34, 197, 94, 0.2)",
+                padding: "3px 8px",
+                borderRadius: "999px",
+                backgroundColor: "rgba(34, 197, 94, 0.14)",
                 color: "#4ade80",
-                border: "1px solid rgba(34, 197, 94, 0.3)",
-                fontWeight: "600",
+                border: "1px solid rgba(34, 197, 94, 0.24)",
+                fontWeight: "700",
               },
             },
-            I18n.t("settingsAdvanced.aboutTab.account.linked") || "Linked"
+            copy.linked
           )
         ),
         react.createElement(
           "p",
           {
-              style: {
-                margin: 0,
-                fontSize: "13px",
-                color: themeTokens.textSecondary,
-              },
+            style: {
+              margin: 0,
+              fontSize: "13px",
+              color: themeTokens.textSecondary,
             },
-            accountInfo.email
+          },
+          `@${accountInfo.username || "discord"}`
         )
       ),
-      // 새로고침 버튼
       react.createElement(
         "button",
         {
           onClick: handleRefresh,
+          title: copy.refresh,
           style: {
             padding: "8px",
             background: themeTokens.subtleButtonBackground,
@@ -950,17 +804,6 @@ const AccountSection = () => {
             alignItems: "center",
             justifyContent: "center",
           },
-          onMouseEnter: (e) => {
-            e.currentTarget.style.background = themeTokens.subtleButtonBackgroundHover;
-            e.currentTarget.style.borderColor = themeTokens.subtleButtonBorderHover;
-            e.currentTarget.style.color = themeTokens.subtleButtonTextHover;
-          },
-          onMouseLeave: (e) => {
-            e.currentTarget.style.background = themeTokens.subtleButtonBackground;
-            e.currentTarget.style.borderColor = themeTokens.subtleButtonBorder;
-            e.currentTarget.style.color = themeTokens.subtleButtonText;
-          },
-          title: I18n.t("settingsAdvanced.aboutTab.account.refresh") || "Refresh",
         },
         react.createElement(
           "svg",
@@ -977,7 +820,6 @@ const AccountSection = () => {
         )
       )
     ),
-    // 연동 정보
     react.createElement(
       "div",
       {
@@ -987,26 +829,27 @@ const AccountSection = () => {
           fontSize: "12px",
           color: themeTokens.textTertiary,
           marginBottom: "16px",
+          flexWrap: "wrap",
         },
       },
-      react.createElement(
-        "span",
-        null,
-        (I18n.t("settingsAdvanced.aboutTab.account.linkedAt") || "Linked") + ": " +
-        new Date(accountInfo.linkedAt).toLocaleDateString()
-      ),
-      accountInfo.lastSyncAt && react.createElement(
-        "span",
-        null,
-        (I18n.t("settingsAdvanced.aboutTab.account.lastSync") || "Last sync") + ": " +
-        new Date(accountInfo.lastSyncAt).toLocaleString()
-      )
+      accountInfo.linkedAt &&
+        react.createElement(
+          "span",
+          null,
+          `${copy.linkedAt}: ${formatEpochLabel(accountInfo.linkedAt)}`
+        ),
+      accountInfo.lastLoginAt &&
+        react.createElement(
+          "span",
+          null,
+          `${copy.lastLoginAt}: ${formatEpochLabel(accountInfo.lastLoginAt)}`
+        )
     ),
-    // 계정 관리 버튼
     react.createElement(
       "button",
       {
         onClick: openLoginPage,
+        disabled: loginLoading,
         style: {
           width: "100%",
           padding: "10px 16px",
@@ -1015,44 +858,14 @@ const AccountSection = () => {
           borderRadius: "8px",
           color: themeTokens.subtleButtonText,
           fontSize: "13px",
-          fontWeight: "500",
+          fontWeight: "600",
           cursor: "pointer",
-          transition: "all 0.2s",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: "8px",
-        },
-        onMouseEnter: (e) => {
-          e.currentTarget.style.background = themeTokens.subtleButtonBackgroundHover;
-          e.currentTarget.style.borderColor = themeTokens.subtleButtonBorderHover;
-          e.currentTarget.style.color = themeTokens.subtleButtonTextHover;
-        },
-        onMouseLeave: (e) => {
-          e.currentTarget.style.background = themeTokens.subtleButtonBackground;
-          e.currentTarget.style.borderColor = themeTokens.subtleButtonBorder;
-          e.currentTarget.style.color = themeTokens.subtleButtonText;
         },
       },
-      react.createElement(
-        "svg",
-        {
-          width: "14",
-          height: "14",
-          viewBox: "0 0 24 24",
-          fill: "none",
-          stroke: "currentColor",
-          strokeWidth: "2",
-        },
-        react.createElement("circle", { cx: "12", cy: "12", r: "3" }),
-        react.createElement("path", { d: "M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" })
-      ),
-      I18n.t("settingsAdvanced.aboutTab.account.manageAccount") || "Manage Account"
+      loginLoading ? copy.loggingIn : copy.switchAccount
     ),
-    // 닉네임 설정 UI (로그인 시에만 표시)
-    accountInfo && react.createElement(NicknameSection, { userHash: Utils.getUserHash() }),
-    // 설정 백업/복원 UI (로그인 시에만 표시)
-    accountInfo && react.createElement(SettingsBackup, { userHash: Utils.getUserHash() })
+    react.createElement(NicknameSection, { userHash: Utils.getUserHash() }),
+    react.createElement(SettingsBackup, { userHash: Utils.getUserHash() })
   );
 };
 
@@ -12328,7 +12141,7 @@ const ConfigModal = ({ onRequestClose = () => {}, initialTab = "general" }) => {
           className: `tab-content ${activeTab === "about" ? "active" : ""}`,
           "data-tab-id": "about",
         },
-        // ivLogin 계정 연동 섹션 (최상단)
+        // Discord 계정 연동 섹션 (최상단)
         react.createElement(SectionTitle, {
           title: I18n.t("settingsAdvanced.aboutTab.account.title"),
           subtitle: I18n.t("settingsAdvanced.aboutTab.account.subtitle"),

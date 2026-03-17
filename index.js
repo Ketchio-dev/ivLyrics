@@ -6776,6 +6776,7 @@ class LyricsContainer extends react.Component {
       initialized: false,
       unlisten: null,
       lastRouteKey: null,
+      lastLoginToken: null,
     });
 
   // 현재 URL의 파라미터를 확인
@@ -6801,8 +6802,14 @@ class LyricsContainer extends react.Component {
         // 다른 파라미터들도 처리 가능
         // 예: action, data 등
         const action = searchParams.get('action');
-        if (action) {
-          // 향후 action 처리 로직 추가 가능
+        if (action === 'discord-auth') {
+          const loginToken = searchParams.get('loginToken');
+          if (loginToken && moduleState.lastLoginToken !== loginToken) {
+            moduleState.lastLoginToken = loginToken;
+            if (typeof Utils !== 'undefined' && Utils.handleDiscordAuthCallback) {
+              Utils.handleDiscordAuthCallback(loginToken);
+            }
+          }
         }
       }
     } catch (error) {
@@ -6848,4 +6855,3 @@ if (!window.__ivLyricsToastCleanupInitTimer) {
     }
   }, 100);
 }
-

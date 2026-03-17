@@ -1286,15 +1286,15 @@ window.LANG_EN = {
     "aboutTab": {
       "account": {
         "title": "Account Linking",
-        "subtitle": "Link with your ivLogin account",
-        "description": "ivLis STUDIO unified account service",
-        "info": "Link with ivLogin to access features like settings sync. Enter your User Hash on the login page to link your account.",
-        "loginButton": "Link with ivLogin",
+        "subtitle": "Link with your Discord account",
+        "description": "Discord-based ivLyrics contribution account",
+        "info": "When you sign in with Discord, your current user hash is replaced with your Discord ID and existing contribution data is migrated.",
+        "loginButton": "Sign In With Discord",
         "loading": "Loading account info...",
         "linked": "Linked",
         "linkedAt": "Linked on",
-        "lastSync": "Last sync",
-        "manageAccount": "Manage Account",
+        "lastSync": "Last login",
+        "manageAccount": "Change Account",
         "refresh": "Refresh",
         "nickname": {
           "label": "Nickname",

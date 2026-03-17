@@ -1286,15 +1286,15 @@ window.LANG_KO = {
     "aboutTab": {
       "account": {
         "title": "계정 연동",
-        "subtitle": "ivLogin 계정과 연동하세요",
-        "description": "ivLis STUDIO 통합 계정 서비스",
-        "info": "ivLogin 계정과 연동하면 설정 동기화 등 다양한 기능을 사용할 수 있습니다. 로그인 페이지에서 아래 User Hash를 입력하여 연동하세요.",
-        "loginButton": "ivLogin으로 연동하기",
+        "subtitle": "Discord 계정으로 연동하세요",
+        "description": "Discord 계정 기반 ivLyrics 기여 연동",
+        "info": "Discord로 로그인하면 현재 userhash가 Discord ID로 바뀌고, 기존 기여 데이터도 함께 이동됩니다.",
+        "loginButton": "Discord로 로그인",
         "loading": "계정 정보를 불러오는 중...",
         "linked": "연동됨",
         "linkedAt": "연동일",
-        "lastSync": "마지막 동기화",
-        "manageAccount": "계정 관리",
+        "lastSync": "최근 로그인",
+        "manageAccount": "계정 변경",
         "refresh": "새로고침",
         "nickname": {
           "label": "닉네임",

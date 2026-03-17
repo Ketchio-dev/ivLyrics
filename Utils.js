@@ -1053,6 +1053,122 @@ const Utils = {
     return hash;
   },
 
+  setUserHash(userHash) {
+    if (!userHash || typeof userHash !== "string") return;
+
+    try {
+      Spicetify?.LocalStorage?.set?.("ivLyrics:user-hash", userHash);
+    } catch (error) {
+      console.error("[ivLyrics] Failed to update Spicetify user hash:", error);
+    }
+
+    try {
+      if (window.StorageManager?.setPersisted) {
+        window.StorageManager.setPersisted("ivLyrics:user-hash", userHash);
+      }
+    } catch (error) {
+      console.error("[ivLyrics] Failed to update persisted user hash:", error);
+    }
+  },
+
+  getAccountApiBase() {
+    return "https://lyrics.api.ivl.is/user";
+  },
+
+  async fetchAccountProfile() {
+    const userHash = this.getUserHash();
+    const response = await fetch(
+      `${this.getAccountApiBase()}/profile?userHash=${encodeURIComponent(userHash)}`,
+      {
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+        },
+      }
+    );
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to fetch account profile");
+    }
+
+    return data;
+  },
+
+  async startDiscordLogin() {
+    const currentUserHash = this.getUserHash();
+    const response = await fetch(`${this.getAccountApiBase()}/discord/start`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ currentUserHash }),
+    });
+    const data = await response.json();
+
+    if (!response.ok || !data.success || !data.authorizeUrl) {
+      throw new Error(data.error || "Failed to start Discord login");
+    }
+
+    window.open(data.authorizeUrl, "_blank", "noopener,noreferrer");
+    return data;
+  },
+
+  async handleDiscordAuthCallback(loginToken) {
+    if (!loginToken) return false;
+
+    if (window.__ivLyricsDiscordLoginToken === loginToken) {
+      return false;
+    }
+    window.__ivLyricsDiscordLoginToken = loginToken;
+
+    try {
+      const response = await fetch(
+        `${this.getAccountApiBase()}/discord/session?loginToken=${encodeURIComponent(loginToken)}`,
+        {
+          cache: "no-store",
+          headers: {
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            Pragma: "no-cache",
+          },
+        }
+      );
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to finalize Discord login");
+      }
+
+      const newUserHash = data.data?.userHash || data.data?.discordId;
+      if (!newUserHash) {
+        throw new Error("Discord login completed without a user id");
+      }
+
+      this.setUserHash(newUserHash);
+      window.SyncDataService?.clearCache?.();
+      window.dispatchEvent(
+        new CustomEvent("ivLyrics:account-changed", { detail: data.data })
+      );
+
+      Toast?.success?.(
+        I18n.t("settingsAdvanced.aboutTab.account.discordLoginSuccess") ||
+          "Discord account linked successfully."
+      );
+
+      Spicetify?.Platform?.History?.push?.("/ivLyrics");
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+
+      return true;
+    } catch (error) {
+      Toast?.error?.(error.message || "Discord login failed");
+      window.__ivLyricsDiscordLoginToken = null;
+      return false;
+    }
+  },
+
   /**
    * Track ID 추출 (spotify:track:xxx -> xxx)
    */
