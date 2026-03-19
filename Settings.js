@@ -950,9 +950,13 @@ const AddonSettingsCard = ({ addon, isEnabled, onToggle, isExpanded, onExpandTog
 
   const getLocalizedDescription = (desc) => {
     if (typeof desc === 'string') return desc;
-    const storedLang = Spicetify.LocalStorage.get("ivLyrics:visual:language");
-    const lang = storedLang?.replace(/"/g, '')?.split('-')[0] || 'en'; // StorageManager 대신 Spicetify.LocalStorage 사용 (안전하게)
-    return desc[lang] || desc['en'] || Object.values(desc)[0] || '';
+    const storedLang = (Spicetify.LocalStorage.get("ivLyrics:visual:language") || window.I18n?.getCurrentLanguage?.() || 'en')
+      .replace(/"/g, '');
+    const baseLang = storedLang.split('-')[0] || 'en';
+    const normalizedZh = baseLang === 'zh'
+      ? ((/tw|hant/i.test(storedLang) || storedLang === 'zh-TW') ? 'zh-TW' : 'zh-CN')
+      : null;
+    return desc[storedLang] || (normalizedZh && desc[normalizedZh]) || desc[baseLang] || desc['en'] || Object.values(desc)[0] || '';
   };
 
   // 아코디언 헤더 클릭 핸들러
@@ -1058,9 +1062,13 @@ const LyricsProviderCard = ({ provider, isEnabled, onToggle, isExpanded, onExpan
 
   const getLocalizedDescription = (desc) => {
     if (typeof desc === 'string') return desc;
-    const storedLang = StorageManager.getItem("ivLyrics:visual:language");
-    const lang = storedLang?.split('-')[0] || 'en';
-    return desc[lang] || desc['en'] || Object.values(desc)[0] || '';
+    const storedLang = (StorageManager.getItem("ivLyrics:visual:language") || window.I18n?.getCurrentLanguage?.() || 'en')
+      .replace(/"/g, '');
+    const baseLang = storedLang.split('-')[0] || 'en';
+    const normalizedZh = baseLang === 'zh'
+      ? ((/tw|hant/i.test(storedLang) || storedLang === 'zh-TW') ? 'zh-TW' : 'zh-CN')
+      : null;
+    return desc[storedLang] || (normalizedZh && desc[normalizedZh]) || desc[baseLang] || desc['en'] || Object.values(desc)[0] || '';
   };
 
   const handleHeaderClick = (e) => {
