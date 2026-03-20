@@ -750,6 +750,66 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		}
 	}, [mode, isDragging, dragStartTime, recordingCharIndex, autoScroll]);
 
+	// Commit-time normalization keeps the client aligned with backend validation:
+	// chars must be non-decreasing and a line must not start before the previous line ends.
+	const normalizeCommittedLineChars = useCallback((rawChars, previousLineEndTime = -1) => {
+		const normalizedChars = [];
+		let minimumAllowedTime = previousLineEndTime >= 0 ? previousLineEndTime : 0;
+
+		for (let i = 0; i < rawChars.length; i++) {
+			const rawTime = typeof rawChars[i] === 'number' ? rawChars[i] : minimumAllowedTime;
+			const normalizedTime = roundSyncTime(Math.max(minimumAllowedTime, rawTime));
+			normalizedChars.push(normalizedTime);
+			minimumAllowedTime = normalizedTime;
+		}
+
+		return normalizedChars;
+	}, []);
+
+	const commitCurrentLineSync = useCallback((rawChars) => {
+		const lineStart = lineCharOffsets[currentLineIndex];
+		const lineEnd = lineStart + currentLineChars.length - 1;
+		const nextLines = syncData?.lines
+			? syncData.lines.map((line) => ({
+				...line,
+				chars: Array.isArray(line.chars) ? [...line.chars] : []
+			}))
+			: [];
+		const existingIndex = nextLines.findIndex((line) => line.start === lineStart);
+		const lineData = {
+			start: lineStart,
+			end: lineEnd,
+			chars: rawChars.map((time) => roundSyncTime(time))
+		};
+
+		if (existingIndex >= 0) {
+			nextLines[existingIndex] = lineData;
+		} else {
+			nextLines.push(lineData);
+		}
+
+		nextLines.sort((a, b) => a.start - b.start);
+
+		const committedLineIndex = nextLines.findIndex((line) => line.start === lineStart);
+		const previousLine = committedLineIndex > 0 ? nextLines[committedLineIndex - 1] : null;
+		const previousLineEndTime = previousLine?.chars?.[previousLine.chars.length - 1] ?? -1;
+		const normalizedLineData = {
+			...lineData,
+			chars: normalizeCommittedLineChars(lineData.chars, previousLineEndTime)
+		};
+		const normalizedLastCharTime = normalizedLineData.chars[normalizedLineData.chars.length - 1];
+
+		nextLines[committedLineIndex] = normalizedLineData;
+
+		const validLines = nextLines.filter((line, index) => {
+			if (index <= committedLineIndex) return true;
+			return !(line.chars && line.chars[0] < normalizedLastCharTime);
+		});
+
+		setSyncData(validLines.length > 0 ? { lines: validLines } : null);
+		return normalizedLineData;
+	}, [syncData, lineCharOffsets, currentLineIndex, currentLineChars.length, normalizeCommittedLineChars]);
+
 	const handleDragEnd = useCallback((e) => {
 		if (mode !== 'record' || !isDragging || dragStartTime === null || recordingCharIndex === -1) {
 			setIsDragging(false);
@@ -763,8 +823,6 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 
 		const endTime = Spicetify.Player.getProgress() / 1000;
 		const endCharIndex = recordingCharIndex;
-		const lineStart = lineCharOffsets[currentLineIndex];
-		const lineEnd = lineStart + currentLineChars.length - 1;
 		const charCount = currentLineChars.length;
 
 		// 유효성 체크: 만약 드래그 시작하자마자 바로 끝나거나 이상한 경우
@@ -794,30 +852,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			chars.push(Math.round(time * 1000) / 1000);
 		}
 
-		const lastCharTime = chars[chars.length - 1];
-
-		setSyncData(prev => {
-			let newLines = prev?.lines ? [...prev.lines] : [];
-			const existingIndex = newLines.findIndex(l => l.start === lineStart);
-			const lineData = { start: lineStart, end: lineEnd, chars: chars };
-
-			if (existingIndex >= 0) {
-				newLines[existingIndex] = lineData;
-			} else {
-				newLines.push(lineData);
-				newLines.sort((a, b) => a.start - b.start);
-			}
-
-			// 유효성 검사
-			const validLines = newLines.filter(line => {
-				if (line.start > lineStart && line.chars && line.chars[0] < lastCharTime) {
-					return false;
-				}
-				return true;
-			});
-
-			return { lines: validLines };
-		});
+		commitCurrentLineSync(chars);
 
 		const isComplete = endCharIndex >= charCount - 1;
 		if (isComplete && currentLineIndex < lyricsLines.length - 1) {
@@ -830,7 +865,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		setRecordingCharIndex(-1);
 		setIsDragging(false);
 		charTimesRef.current = [];
-	}, [mode, isDragging, dragStartTime, recordingCharIndex, currentLineIndex, currentLineChars, lineCharOffsets, lyricsLines.length, dragStartCharIndex]);
+	}, [mode, isDragging, dragStartTime, recordingCharIndex, currentLineIndex, currentLineChars, lyricsLines.length, dragStartCharIndex, commitCurrentLineSync]);
 
 	// 키보드 싱크 상태 ref (isDragging과 별개로 키보드용)
 	const isKeyboardSyncingRef = useRef(false);
@@ -888,8 +923,6 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 
 			const endTime = Spicetify.Player.getProgress() / 1000;
 			const endCharIndex = keyboardCharIndexRef.current;
-			const lineStart = lineCharOffsets[currentLineIndex];
-			const lineEnd = lineStart + currentLineChars.length - 1;
 			const charCount = currentLineChars.length;
 
 			const chars = [];
@@ -909,29 +942,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				chars.push(Math.round(time * 1000) / 1000);
 			}
 
-			const lastCharTime = chars[chars.length - 1];
-
-			setSyncData(prev => {
-				let newLines = prev?.lines ? [...prev.lines] : [];
-				const existingIndex = newLines.findIndex(l => l.start === lineStart);
-				const lineData = { start: lineStart, end: lineEnd, chars: chars };
-
-				if (existingIndex >= 0) {
-					newLines[existingIndex] = lineData;
-				} else {
-					newLines.push(lineData);
-					newLines.sort((a, b) => a.start - b.start);
-				}
-
-				const validLines = newLines.filter(line => {
-					if (line.start > lineStart && line.chars && line.chars[0] < lastCharTime) {
-						return false;
-					}
-					return true;
-				});
-
-				return { lines: validLines };
-			});
+			commitCurrentLineSync(chars);
 
 			// 다음 라인으로 이동
 			if (currentLineIndex < lyricsLines.length - 1) {
@@ -1504,7 +1515,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			}
 			isKeyboardDraggingRef.current = false;
 		};
-	}, [mode, currentLineIndex, lyricsLines.length, currentLineChars, currentLineSyllableSegments, lineCharOffsets, autoScroll]);
+	}, [mode, currentLineIndex, lyricsLines.length, currentLineChars, currentLineSyllableSegments, lineCharOffsets, autoScroll, commitCurrentLineSync]);
 
 	const handleContainerMouseDown = useCallback((e) => {
 		if (mode !== 'record' || currentLineIndex >= lyricsLines.length) return;
