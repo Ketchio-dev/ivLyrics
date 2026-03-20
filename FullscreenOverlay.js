@@ -49,9 +49,28 @@ const FullscreenOverlay = (() => {
 
         useEffect(() => {
             if (!show) return;
-            const interval = showSeconds ? 1000 : 1000;
-            const timer = setInterval(() => setTime(new Date()), interval);
-            return () => clearInterval(timer);
+
+            if (showSeconds) {
+                const timer = setInterval(() => setTime(new Date()), 1000);
+                return () => clearInterval(timer);
+            }
+
+            let intervalId = null;
+            const syncToMinute = () => {
+                setTime(new Date());
+                intervalId = setInterval(() => setTime(new Date()), 60000);
+            };
+            const now = new Date();
+            const msUntilNextMinute =
+                (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+            const timeoutId = setTimeout(syncToMinute, Math.max(msUntilNextMinute, 0));
+
+            return () => {
+                clearTimeout(timeoutId);
+                if (intervalId) {
+                    clearInterval(intervalId);
+                }
+            };
         }, [show, showSeconds]);
 
         if (!show) return null;
@@ -252,26 +271,20 @@ const FullscreenOverlay = (() => {
 
         useEffect(() => {
             if (!show) return;
-
-            let rafId = null;
-            let lastUpdate = 0;
             const updateInterval = 200; // ms
 
-            const updateProgress = (timestamp) => {
-                if (timestamp - lastUpdate >= updateInterval) {
-                    if (!isDragging.current) {
-                        setProgress(Spicetify.Player.getProgress() || 0);
-                    }
-                    setDuration(Spicetify.Player.getDuration() || 0);
-                    lastUpdate = timestamp;
+            const updateProgress = () => {
+                if (!isDragging.current) {
+                    setProgress(Spicetify.Player.getProgress() || 0);
                 }
-                rafId = requestAnimationFrame(updateProgress);
+                setDuration(Spicetify.Player.getDuration() || 0);
             };
 
-            rafId = requestAnimationFrame(updateProgress);
+            updateProgress();
+            const intervalId = setInterval(updateProgress, updateInterval);
 
             return () => {
-                if (rafId) cancelAnimationFrame(rafId);
+                clearInterval(intervalId);
             };
         }, [show]);
 
@@ -385,24 +398,15 @@ const FullscreenOverlay = (() => {
             checkLiked();
             updateVolume();
 
-            // 볼륨 변경 감지를 위한 RAF 기반 폴링 (500ms 간격)
-            let rafId = null;
-            let lastVolumeCheck = 0;
+            // 볼륨 변경 감지를 위한 저빈도 폴링
             const volumeCheckInterval = 500;
-            const volumeLoop = (timestamp) => {
-                if (timestamp - lastVolumeCheck >= volumeCheckInterval) {
-                    updateVolume();
-                    lastVolumeCheck = timestamp;
-                }
-                rafId = requestAnimationFrame(volumeLoop);
-            };
-            rafId = requestAnimationFrame(volumeLoop);
+            const volumeIntervalId = setInterval(updateVolume, volumeCheckInterval);
 
             Spicetify.Player.addEventListener("onplaypause", updatePlayState);
             Spicetify.Player.addEventListener("songchange", checkLiked);
 
             return () => {
-                if (rafId) cancelAnimationFrame(rafId);
+                clearInterval(volumeIntervalId);
                 Spicetify.Player.removeEventListener("onplaypause", updatePlayState);
                 Spicetify.Player.removeEventListener("songchange", checkLiked);
             };
@@ -432,18 +436,18 @@ const FullscreenOverlay = (() => {
 
         if (!show) return null;
 
-        const buttonStyle = {
+        const buttonStyle = useMemo(() => ({
             width: `${buttonSize}px`,
             height: `${buttonSize}px`
-        };
-        const mainButtonStyle = {
+        }), [buttonSize]);
+        const mainButtonStyle = useMemo(() => ({
             width: `${buttonSize + 12}px`,
             height: `${buttonSize + 12}px`
-        };
-        const smallButtonStyle = {
+        }), [buttonSize]);
+        const smallButtonStyle = useMemo(() => ({
             width: `${buttonSize - 4}px`,
             height: `${buttonSize - 4}px`
-        };
+        }), [buttonSize]);
 
         const handleVolumeChange = (e) => {
             const newVolume = parseFloat(e.target.value);
@@ -960,6 +964,7 @@ const FullscreenOverlay = (() => {
             return window.matchMedia("(orientation: portrait)").matches;
         });
         const hideTimerRef = useRef(null);
+        const uiVisibleRef = useRef(true);
 
         // Track playback state for TV mode controls
         useEffect(() => {
@@ -972,28 +977,22 @@ const FullscreenOverlay = (() => {
 
             updatePlaybackState();
 
-            // RAF 기반 폴링 (500ms 간격)
-            let rafId = null;
-            let lastUpdate = 0;
             const updateInterval = 500;
-            const loop = (timestamp) => {
-                if (timestamp - lastUpdate >= updateInterval) {
-                    updatePlaybackState();
-                    lastUpdate = timestamp;
-                }
-                rafId = requestAnimationFrame(loop);
-            };
-            rafId = requestAnimationFrame(loop);
+            const intervalId = setInterval(updatePlaybackState, updateInterval);
 
             Spicetify.Player?.addEventListener?.("songchange", updatePlaybackState);
             Spicetify.Player?.addEventListener?.("onplaypause", updatePlaybackState);
 
             return () => {
-                if (rafId) cancelAnimationFrame(rafId);
+                clearInterval(intervalId);
                 Spicetify.Player?.removeEventListener?.("songchange", updatePlaybackState);
                 Spicetify.Player?.removeEventListener?.("onplaypause", updatePlaybackState);
             };
         }, []);
+
+        useEffect(() => {
+            uiVisibleRef.current = uiVisible;
+        }, [uiVisible]);
 
         // Get settings from CONFIG
         const showAlbum = CONFIG?.visual?.["fullscreen-show-album"] !== false;
@@ -1070,25 +1069,31 @@ const FullscreenOverlay = (() => {
         // Auto-hide UI on mouse inactivity
         useEffect(() => {
             if (!isFullscreen || !autoHideUI) {
+                uiVisibleRef.current = true;
                 setUiVisible(true);
                 return;
             }
 
             const handleMouseMove = () => {
-                setUiVisible(true);
+                if (!uiVisibleRef.current) {
+                    uiVisibleRef.current = true;
+                    setUiVisible(true);
+                }
                 if (hideTimerRef.current) {
                     clearTimeout(hideTimerRef.current);
                 }
                 hideTimerRef.current = setTimeout(() => {
+                    uiVisibleRef.current = false;
                     setUiVisible(false);
                 }, autoHideDelay);
             };
 
             hideTimerRef.current = setTimeout(() => {
+                uiVisibleRef.current = false;
                 setUiVisible(false);
             }, autoHideDelay);
 
-            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mousemove', handleMouseMove, { passive: true });
 
             return () => {
                 document.removeEventListener('mousemove', handleMouseMove);

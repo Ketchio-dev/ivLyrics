@@ -571,6 +571,16 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
         }
     };
 
+    const scheduleInsertPanelLyrics = (delay = 100) => {
+        clearInsertTimer();
+        insertTimer = setTimeout(() => {
+            insertTimer = null;
+            moduleState.insertTimer = null;
+            insertPanelLyrics();
+        }, delay);
+        moduleState.insertTimer = insertTimer;
+    };
+
     // ============================================
     // 유틸리티 함수
     // ============================================
@@ -1727,7 +1737,7 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
 
             if (panel && !container) {
                 // 패널이 있지만 가사가 없으면 삽입
-                setTimeout(insertPanelLyrics, 100);
+                scheduleInsertPanelLyrics(100);
             } else if (!panel && container) {
                 // 패널이 없지만 컨테이너가 있으면 제거
                 removePanelLyrics();
@@ -1915,13 +1925,7 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
         updateCSSVariables();
         insertPanelLyrics();
 
-        clearInsertTimer();
-        insertTimer = setTimeout(() => {
-            insertTimer = null;
-            moduleState.insertTimer = null;
-            insertPanelLyrics();
-        }, 1000);
-        moduleState.insertTimer = insertTimer;
+        scheduleInsertPanelLyrics(1000);
     };
 
     const stopRuntime = () => {
