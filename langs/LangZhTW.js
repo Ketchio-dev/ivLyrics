@@ -376,6 +376,14 @@ window.LANG_ZH_TW = {
     },
     "solidBackgroundInUse": "ℹ️ 正在使用純色背景",
     "fontPlaceholder": "輸入字型名稱 (例: Arial, 微軟正黑體)",
+    "shortcuts": {
+      "primary": "主鍵",
+      "secondary": "副鍵"
+    },
+    "syncCreatorShortcuts": {
+      "title": "Sync Creator 快捷鍵",
+      "subtitle": "設定 Sync Creator 錄製用的主鍵與副鍵。"
+    },
     "aiProviders": {
       "title": "AI 提供者",
       "description": "選擇並劃分 AI 提供者的優先級。排在頂部的提供者將被優先嘗試。失敗時，將自動使用下一個提供者。",

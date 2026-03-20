@@ -4070,6 +4070,15 @@ const ConfigModal = ({
     {
       section: I18n.t("tabs.behavior"),
       sectionKey: "lyrics",
+      settingKey: "sync-creator-shortcuts",
+      name: getSettingsText("settings.syncCreatorShortcuts.title", "Sync Creator Shortcuts"),
+      desc: getSettingsText("settings.syncCreatorShortcuts.subtitle", "Configure primary and secondary recording keys for Sync Creator."),
+      i18nKeys: ["tabs.behavior", "settings.syncCreatorShortcuts.title", "settings.syncCreatorShortcuts.subtitle"],
+      keywords: ["sync creator shortcuts hotkeys keybinds karaoke recording syllable word character"]
+    },
+    {
+      section: I18n.t("tabs.behavior"),
+      sectionKey: "lyrics",
       settingKey: "karaoke-mode",
       name: I18n.t("settingsAdvanced.karaokeMode.title"),
       desc: I18n.t("settingsAdvanced.karaokeMode.subtitle"),
@@ -10494,6 +10503,85 @@ const ConfigModal = ({
               key: "fullscreen-button",
               info: I18n.t("settingsAdvanced.playback.replaceFullscreenButton.info") || "Replaces Spotify's default fullscreen button with ivLyrics fullscreen",
               type: ConfigSlider,
+            },
+          ],
+          onChange: (name, value) => {
+            CONFIG.visual[name] = value;
+            StorageManager.saveConfig(name, value);
+            lyricContainerUpdate?.();
+            window.dispatchEvent(
+              new CustomEvent("ivLyrics", {
+                detail: { type: "config", name, value },
+              })
+            );
+          },
+        }),
+        react.createElement(SectionTitle, {
+          title: getSettingsText("settings.syncCreatorShortcuts.title", "Sync Creator Shortcuts"),
+          subtitle: getSettingsText("settings.syncCreatorShortcuts.subtitle", "Configure primary and secondary recording keys for Sync Creator."),
+          sectionKey: "sync-creator-shortcuts",
+        }),
+        react.createElement(OptionList, {
+          items: [
+            {
+              desc: `${getSettingsText("syncCreator.shortcuts.charForward", "Advance one character")} (${getSettingsText("settings.shortcuts.primary", "Primary")})`,
+              key: "sync-creator-char-forward-key",
+              type: ConfigHotkey,
+              defaultValue: CONFIG.visual["sync-creator-char-forward-key"] ?? "right",
+            },
+            {
+              desc: `${getSettingsText("syncCreator.shortcuts.charForward", "Advance one character")} (${getSettingsText("settings.shortcuts.secondary", "Secondary")})`,
+              key: "sync-creator-char-forward-alt-key",
+              type: ConfigHotkey,
+              defaultValue: CONFIG.visual["sync-creator-char-forward-alt-key"] ?? "",
+            },
+            {
+              desc: `${getSettingsText("syncCreator.shortcuts.charBack", "Revert one character")} (${getSettingsText("settings.shortcuts.primary", "Primary")})`,
+              key: "sync-creator-char-back-key",
+              type: ConfigHotkey,
+              defaultValue: CONFIG.visual["sync-creator-char-back-key"] ?? "left",
+            },
+            {
+              desc: `${getSettingsText("syncCreator.shortcuts.charBack", "Revert one character")} (${getSettingsText("settings.shortcuts.secondary", "Secondary")})`,
+              key: "sync-creator-char-back-alt-key",
+              type: ConfigHotkey,
+              defaultValue: CONFIG.visual["sync-creator-char-back-alt-key"] ?? "",
+            },
+            {
+              desc: `${getSettingsText("syncCreator.shortcuts.wordForward", "Advance one word")} (${getSettingsText("settings.shortcuts.primary", "Primary")})`,
+              key: "sync-creator-word-forward-key",
+              type: ConfigHotkey,
+              defaultValue: CONFIG.visual["sync-creator-word-forward-key"] ?? ".",
+            },
+            {
+              desc: `${getSettingsText("syncCreator.shortcuts.wordForward", "Advance one word")} (${getSettingsText("settings.shortcuts.secondary", "Secondary")})`,
+              key: "sync-creator-word-forward-alt-key",
+              type: ConfigHotkey,
+              defaultValue: CONFIG.visual["sync-creator-word-forward-alt-key"] ?? "",
+            },
+            {
+              desc: `${getSettingsText("syncCreator.shortcuts.wordBack", "Revert one word")} (${getSettingsText("settings.shortcuts.primary", "Primary")})`,
+              key: "sync-creator-word-back-key",
+              type: ConfigHotkey,
+              defaultValue: CONFIG.visual["sync-creator-word-back-key"] ?? ",",
+            },
+            {
+              desc: `${getSettingsText("syncCreator.shortcuts.wordBack", "Revert one word")} (${getSettingsText("settings.shortcuts.secondary", "Secondary")})`,
+              key: "sync-creator-word-back-alt-key",
+              type: ConfigHotkey,
+              defaultValue: CONFIG.visual["sync-creator-word-back-alt-key"] ?? "",
+            },
+            {
+              desc: `${getSettingsText("syncCreator.shortcuts.syllable", "Advance one syllable")} (${getSettingsText("settings.shortcuts.primary", "Primary")})`,
+              key: "sync-creator-syllable-key",
+              type: ConfigHotkey,
+              defaultValue: CONFIG.visual["sync-creator-syllable-key"] ?? ";",
+            },
+            {
+              desc: `${getSettingsText("syncCreator.shortcuts.syllable", "Advance one syllable")} (${getSettingsText("settings.shortcuts.secondary", "Secondary")})`,
+              key: "sync-creator-syllable-alt-key",
+              type: ConfigHotkey,
+              defaultValue: CONFIG.visual["sync-creator-syllable-alt-key"] ?? "",
             },
           ],
           onChange: (name, value) => {

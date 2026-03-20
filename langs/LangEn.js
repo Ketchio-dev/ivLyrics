@@ -376,6 +376,14 @@ window.LANG_EN = {
     },
     "solidBackgroundInUse": "ℹ️ Solid Background in use",
     "fontPlaceholder": "Enter font name (e.g., Arial, Roboto)",
+    "shortcuts": {
+      "primary": "Primary",
+      "secondary": "Secondary"
+    },
+    "syncCreatorShortcuts": {
+      "title": "Sync Creator Shortcuts",
+      "subtitle": "Configure primary and secondary recording keys for Sync Creator."
+    },
     "aiProviders": {
       "title": "AI Providers",
       "description": "Select and prioritize AI providers. Providers at the top are tried first. On failure, the next provider is automatically used.",

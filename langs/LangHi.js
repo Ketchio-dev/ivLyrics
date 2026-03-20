@@ -376,6 +376,14 @@ window.LANG_HI = {
     },
     "solidBackgroundInUse": "ℹ️ ठोस बैकग्राउंड उपयोग में है",
     "fontPlaceholder": "फ़ॉन्ट का नाम दर्ज करें (उदा: Arial, Mangal)",
+    "shortcuts": {
+      "primary": "प्राथमिक",
+      "secondary": "द्वितीयक"
+    },
+    "syncCreatorShortcuts": {
+      "title": "Sync Creator शॉर्टकट",
+      "subtitle": "Sync Creator रिकॉर्डिंग के लिए प्राथमिक और द्वितीयक कुंजियाँ कॉन्फ़िगर करें।"
+    },
     "aiProviders": {
       "title": "AI प्रदाता",
       "description": "AI प्रदाता चुनें और प्राथमिकता दें। शीर्ष पर स्थित प्रदाताओं को पहले आज़माया जाता है। विफलता पर, अगला प्रदाता स्वचालित रूप से उपयोग किया जाता है।",

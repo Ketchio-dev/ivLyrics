@@ -376,6 +376,14 @@ window.LANG_KO = {
     },
     "solidBackgroundInUse": "ℹ️ 단색 배경 사용 중",
     "fontPlaceholder": "폰트명 입력 (예: Arial, 맑은 고딕)",
+    "shortcuts": {
+      "primary": "기본",
+      "secondary": "보조"
+    },
+    "syncCreatorShortcuts": {
+      "title": "Sync Creator 단축키",
+      "subtitle": "Sync Creator 녹음용 기본 및 보조 키를 설정합니다."
+    },
     "aiProviders": {
       "title": "AI 제공자",
       "description": "AI 제공자를 선택하고 우선순위를 설정합니다. 위에 있는 제공자부터 먼저 시도하며, 실패 시 다음 제공자로 자동 전환됩니다.",

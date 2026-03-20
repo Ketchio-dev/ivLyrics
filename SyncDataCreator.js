@@ -7,6 +7,92 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 
 	const roundSyncTime = (time) => Math.round(time * 1000) / 1000;
 	const EDGE_INTERPOLATION_GAP_SEC = 0.045;
+	const SYNC_CREATOR_SHORTCUTS = {
+		charForward: { primary: 'sync-creator-char-forward-key', secondary: 'sync-creator-char-forward-alt-key', defaultPrimary: 'right' },
+		charBack: { primary: 'sync-creator-char-back-key', secondary: 'sync-creator-char-back-alt-key', defaultPrimary: 'left' },
+		wordForward: { primary: 'sync-creator-word-forward-key', secondary: 'sync-creator-word-forward-alt-key', defaultPrimary: '.' },
+		wordBack: { primary: 'sync-creator-word-back-key', secondary: 'sync-creator-word-back-alt-key', defaultPrimary: ',' },
+		syllable: { primary: 'sync-creator-syllable-key', secondary: 'sync-creator-syllable-alt-key', defaultPrimary: ';' },
+	};
+	const normalizeHotkeyToken = (value) => {
+		if (value === null || value === undefined) return '';
+		const normalized = String(value).trim().toLowerCase();
+		if (!normalized) return '';
+
+		const aliases = {
+			arrowright: 'right',
+			arrowleft: 'left',
+			arrowup: 'up',
+			arrowdown: 'down',
+			' ': 'space',
+			spacebar: 'space',
+			escape: 'esc',
+			return: 'enter',
+			del: 'delete',
+			control: 'ctrl',
+			command: 'meta',
+			cmd: 'meta',
+		};
+
+		return aliases[normalized] || normalized;
+	};
+	const readSyncCreatorShortcutSetting = (settingKey, fallback = '') => {
+		try {
+			const fullKey = `ivLyrics:visual:${settingKey}`;
+			const stored = localStorage.getItem(fullKey) ?? Spicetify.LocalStorage?.get(fullKey);
+			const effectiveValue = stored !== null && stored !== undefined ? stored : fallback;
+			return normalizeHotkeyToken(effectiveValue);
+		} catch (e) {
+			return normalizeHotkeyToken(fallback);
+		}
+	};
+	const getSyncCreatorShortcutBindings = () => Object.entries(SYNC_CREATOR_SHORTCUTS).reduce((acc, [action, config]) => {
+		const primary = readSyncCreatorShortcutSetting(config.primary, config.defaultPrimary);
+		const secondary = readSyncCreatorShortcutSetting(config.secondary, '');
+		acc[action] = [primary, secondary].filter(Boolean);
+		return acc;
+	}, {});
+	const getNormalizedHotkeyFromEvent = (event) => {
+		const parts = [];
+		if (event.ctrlKey) parts.push('ctrl');
+		if (event.altKey) parts.push('alt');
+		if (event.shiftKey && normalizeHotkeyToken(event.key) !== 'shift') parts.push('shift');
+		if (event.metaKey) parts.push('meta');
+
+		const baseKey = normalizeHotkeyToken(event.key);
+		if (!['ctrl', 'alt', 'shift', 'meta'].includes(baseKey)) {
+			parts.push(baseKey);
+		}
+		return parts.join('+');
+	};
+	const formatHotkeyToken = (value) => {
+		const token = normalizeHotkeyToken(value);
+		const displayMap = {
+			right: '→',
+			left: '←',
+			up: '↑',
+			down: '↓',
+			enter: 'Enter',
+			backspace: '⌫',
+			space: 'Space',
+			esc: 'Esc',
+			ctrl: 'Ctrl',
+			alt: 'Alt',
+			shift: 'Shift',
+			meta: 'Meta',
+		};
+		if (displayMap[token]) return displayMap[token];
+		return token.length === 1 ? token.toUpperCase() : token;
+	};
+	const formatHotkeyBinding = (binding) => binding
+		.split('+')
+		.filter(Boolean)
+		.map(formatHotkeyToken)
+		.join('+');
+	const getSyncCreatorShortcutDisplay = (action) => {
+		const bindings = getSyncCreatorShortcutBindings()[action] || [];
+		return bindings.length ? bindings.map(formatHotkeyBinding).join(' / ') : '';
+	};
 
 	const isWordChar = (ch) => !!ch && /[\p{L}\p{N}]/u.test(ch);
 	const isLatinChar = (ch) => !!ch && /[A-Za-zÀ-ÖØ-öø-ÿ]/.test(ch);
@@ -961,14 +1047,17 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		};
 
 		const handleKeyDown = (e) => {
-			// 방향키, Enter, Backspace, 단어 싱크(,.), 음절 싱크(;), 드래그(/), Seek(z,x)
-			const targetKeys = ['ArrowRight', 'ArrowLeft', 'Enter', 'Backspace', ',', '.', ';', '/', 'z', 'x'];
-			if (!targetKeys.includes(e.key)) return;
+			const normalizedHotkey = getNormalizedHotkeyFromEvent(e);
+			const shortcutBindings = getSyncCreatorShortcutBindings();
+			const shortcutAction = Object.entries(shortcutBindings)
+				.find(([, bindings]) => bindings.includes(normalizedHotkey))?.[0] || null;
+			const staticHotkeys = new Set(['enter', 'backspace', '/', 'z', 'x']);
+			if (!shortcutAction && !staticHotkeys.has(normalizedHotkey)) return;
 
 			// record 모드가 아니면 처리하지 않음
 			if (mode !== 'record') return;
 
-			window.__ivLyricsDebugLog?.('[SyncDataCreator] KeyDown:', e.key, 'mode:', mode, 'lineIndex:', currentLineIndex);
+			window.__ivLyricsDebugLog?.('[SyncDataCreator] KeyDown:', e.key, 'normalized:', normalizedHotkey, 'mode:', mode, 'lineIndex:', currentLineIndex);
 
 			if (currentLineIndex >= lyricsLines.length) return;
 
@@ -1262,7 +1351,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			};
 
 			// 오른쪽 방향키: 한 글자 싱크
-			if (e.key === 'ArrowRight') {
+			if (shortcutAction === 'charForward') {
 				e.preventDefault();
 				e.stopPropagation();
 				e.stopImmediatePropagation();
@@ -1271,7 +1360,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			}
 
 			// 왼쪽 방향키: 한 글자 취소 (첫 글자도 취소 가능)
-			if (e.key === 'ArrowLeft') {
+			if (shortcutAction === 'charBack') {
 				e.preventDefault();
 				e.stopPropagation();
 				e.stopImmediatePropagation();
@@ -1292,7 +1381,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			}
 
 			// . (> 키): 한 단어 싱크
-			if (e.key === '.') {
+			if (shortcutAction === 'wordForward') {
 				e.preventDefault();
 				e.stopPropagation();
 				e.stopImmediatePropagation();
@@ -1301,7 +1390,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			}
 
 			// , (< 키): 한 단어 취소
-			if (e.key === ',') {
+			if (shortcutAction === 'wordBack') {
 				e.preventDefault();
 				e.stopPropagation();
 				e.stopImmediatePropagation();
@@ -1310,7 +1399,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			}
 
 			// ; 키: 음절 단위 싱크 (다음 모음까지 진행)
-			if (e.key === ';') {
+			if (shortcutAction === 'syllable') {
 				e.preventDefault();
 				e.stopPropagation();
 				e.stopImmediatePropagation();
@@ -2239,25 +2328,25 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				mode === 'record' && react.createElement('div', { style: s.shortcutsContainer },
 					// 한 글자
 					react.createElement('div', { style: s.shortcutItem },
-						react.createElement('span', { style: s.shortcutKey }, '→'),
+						react.createElement('span', { style: s.shortcutKey }, getSyncCreatorShortcutDisplay('charForward')),
 						react.createElement('span', { style: s.shortcutDesc }, I18n.t('syncCreator.shortcuts.charForward') || '한 글자')
 					),
 					react.createElement('div', { style: s.shortcutItem },
-						react.createElement('span', { style: s.shortcutKey }, '←'),
+						react.createElement('span', { style: s.shortcutKey }, getSyncCreatorShortcutDisplay('charBack')),
 						react.createElement('span', { style: s.shortcutDesc }, I18n.t('syncCreator.shortcuts.charBack') || '한 글자 취소')
 					),
 					// 한 단어
 					react.createElement('div', { style: s.shortcutItem },
-						react.createElement('span', { style: s.shortcutKey }, '.'),
+						react.createElement('span', { style: s.shortcutKey }, getSyncCreatorShortcutDisplay('wordForward')),
 						react.createElement('span', { style: s.shortcutDesc }, I18n.t('syncCreator.shortcuts.wordForward') || '한 단어')
 					),
 					react.createElement('div', { style: s.shortcutItem },
-						react.createElement('span', { style: s.shortcutKey }, ','),
+						react.createElement('span', { style: s.shortcutKey }, getSyncCreatorShortcutDisplay('wordBack')),
 						react.createElement('span', { style: s.shortcutDesc }, I18n.t('syncCreator.shortcuts.wordBack') || '한 단어 취소')
 					),
 					// 음절
 					react.createElement('div', { style: s.shortcutItem },
-						react.createElement('span', { style: s.shortcutKey }, ';'),
+						react.createElement('span', { style: s.shortcutKey }, getSyncCreatorShortcutDisplay('syllable')),
 						react.createElement('span', { style: s.shortcutDesc }, I18n.t('syncCreator.shortcuts.syllable') || '음절')
 					),
 					// 드래그

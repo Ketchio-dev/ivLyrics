@@ -376,6 +376,14 @@ window.LANG_VI = {
     },
     "solidBackgroundInUse": "ℹ️ Đang sử dụng nền màu đơn sắc",
     "fontPlaceholder": "Nhập tên phông chữ (VD: Arial, Roboto)",
+    "shortcuts": {
+      "primary": "Chính",
+      "secondary": "Phụ"
+    },
+    "syncCreatorShortcuts": {
+      "title": "Phím tắt Sync Creator",
+      "subtitle": "Cấu hình phím chính và phím phụ để ghi trong Sync Creator."
+    },
     "aiProviders": {
       "title": "Nhà cung cấp AI",
       "description": "Lựa chọn và ưu tiên các nhà cung cấp AI. Các nhà cung cấp ở đầu danh sách sẽ được thử trước. Nếu thất bại, nhà cung cấp tiếp theo sẽ tự động được sử dụng.",

@@ -376,6 +376,14 @@ window.LANG_IT = {
     },
     "solidBackgroundInUse": "ℹ️ Sfondo a tinta unita in uso",
     "fontPlaceholder": "Nome font (es: Arial, Roboto)",
+    "shortcuts": {
+      "primary": "Primario",
+      "secondary": "Secondario"
+    },
+    "syncCreatorShortcuts": {
+      "title": "Scorciatoie Sync Creator",
+      "subtitle": "Configura i tasti primari e secondari per la registrazione in Sync Creator."
+    },
     "aiProviders": {
       "title": "Fornitori IA",
       "description": "Seleziona e dai priorità ai fornitori IA. I fornitori in alto vengono provati per primi. In caso di errore, verrà utilizzato automaticamente il fornitore successivo.",

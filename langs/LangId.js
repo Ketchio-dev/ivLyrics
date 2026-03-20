@@ -376,6 +376,14 @@ window.LANG_ID = {
     },
     "solidBackgroundInUse": "ℹ️ Latar belakang warna solid sedang digunakan",
     "fontPlaceholder": "Nama font (contoh: Arial, Roboto)",
+    "shortcuts": {
+      "primary": "Utama",
+      "secondary": "Sekunder"
+    },
+    "syncCreatorShortcuts": {
+      "title": "Pintasan Sync Creator",
+      "subtitle": "Atur tombol utama dan sekunder untuk perekaman Sync Creator."
+    },
     "aiProviders": {
       "title": "Penyedia AI",
       "description": "Pilih dan prioritaskan penyedia AI. Penyedia di urutan teratas akan dicoba terlebih dahulu. Jika gagal, penyedia berikutnya akan digunakan secara otomatis.",

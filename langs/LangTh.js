@@ -376,6 +376,14 @@ window.LANG_TH = {
     },
     "solidBackgroundInUse": "ℹ️ กำลังใช้งานพื้นหลังสีทึบ",
     "fontPlaceholder": "ชื่อฟอนต์ (เช่น Arial, Cordia New)",
+    "shortcuts": {
+      "primary": "หลัก",
+      "secondary": "รอง"
+    },
+    "syncCreatorShortcuts": {
+      "title": "ปุ่มลัด Sync Creator",
+      "subtitle": "กำหนดปุ่มหลักและปุ่มรองสำหรับการบันทึกใน Sync Creator"
+    },
     "aiProviders": {
       "title": "ผู้ให้บริการ AI",
       "description": "เลือกและลำดับความสำคัญของผู้ให้บริการ AI ผู้ให้บริการที่อยู่ด้านบนสุดจะถูกลองก่อน หากล้มเหลว จะใช้ผู้ให้บริการถัดไปโดยอัตโนมัติ",

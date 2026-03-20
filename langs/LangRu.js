@@ -376,6 +376,14 @@ window.LANG_RU = {
     },
     "solidBackgroundInUse": "ℹ️ Используется сплошной фон",
     "fontPlaceholder": "Название шрифта (напр. Arial, Roboto)",
+    "shortcuts": {
+      "primary": "Основная",
+      "secondary": "Дополнительная"
+    },
+    "syncCreatorShortcuts": {
+      "title": "Горячие клавиши Sync Creator",
+      "subtitle": "Настройте основную и дополнительную клавиши записи для Sync Creator."
+    },
     "aiProviders": {
       "title": "AI-провайдеры",
       "description": "Выберите AI-провайдеров и расставьте их приоритеты. Провайдеры наверху будут опрашиваться первыми. При сбое будет автоматически использован следующий провайдер.",

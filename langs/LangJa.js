@@ -376,6 +376,14 @@ window.LANG_JA = {
     },
     "solidBackgroundInUse": "ℹ️ 単色背景を使用中",
     "fontPlaceholder": "フォント名を入力 (例: Arial, Meiryo)",
+    "shortcuts": {
+      "primary": "メイン",
+      "secondary": "サブ"
+    },
+    "syncCreatorShortcuts": {
+      "title": "Sync Creator ショートカット",
+      "subtitle": "Sync Creator 録音用のメインキーとサブキーを設定します。"
+    },
     "aiProviders": {
       "title": "AIプロバイダー",
       "description": "AIプロバイダーを選択し、優先順位を設定します。上にあるプロバイダーから先に試行され、失敗した場合は次のプロバイダーが自動的に使用されます。",

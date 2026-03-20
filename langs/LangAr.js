@@ -376,6 +376,14 @@ window.LANG_AR = {
     },
     "solidBackgroundInUse": "ℹ️ خلفية اللون الواحد قيد الاستخدام",
     "fontPlaceholder": "أدخل اسم الخط (مثل: Arial, Cairo)",
+    "shortcuts": {
+      "primary": "أساسي",
+      "secondary": "ثانوي"
+    },
+    "syncCreatorShortcuts": {
+      "title": "اختصارات Sync Creator",
+      "subtitle": "قم بتكوين مفاتيح التسجيل الأساسية والثانوية في Sync Creator."
+    },
     "aiProviders": {
       "title": "موفرو الذكاء الاصطناعي",
       "description": "اختر موفري الذكاء الاصطناعي وقم بترتيب أولوياتهم. يتم تجربة الموفرين في الأعلى أولاً. في حالة الفشل، سيتم استخدام الموفر التالي تلقائيًا.",

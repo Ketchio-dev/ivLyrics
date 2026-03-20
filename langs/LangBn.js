@@ -376,6 +376,14 @@ window.LANG_BN = {
     },
     "solidBackgroundInUse": "ℹ️ সলিড কালার ব্যাকগ্রাউন্ড ব্যবহৃত হচ্ছে",
     "fontPlaceholder": "ফন্টের নাম লিখুন (যেমন: Arial, Kalpurush)",
+    "shortcuts": {
+      "primary": "প্রধান",
+      "secondary": "সহায়ক"
+    },
+    "syncCreatorShortcuts": {
+      "title": "Sync Creator শর্টকাট",
+      "subtitle": "Sync Creator রেকর্ডিংয়ের জন্য প্রধান ও সহায়ক কী কনফিগার করুন।"
+    },
     "aiProviders": {
       "title": "এআই প্রদানকারী",
       "description": "এআই প্রদানকারী নির্বাচন করুন এবং অগ্রাধিকার সেট করুন। তালিকার উপরের প্রদানকারীগুলো আগে ব্যবহার করা হবে। ব্যর্থ হলে, পরবর্তী প্রদানকারী স্বয়ংক্রিয়ভাবে ব্যবহৃত হবে।",

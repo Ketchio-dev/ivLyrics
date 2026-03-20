@@ -376,6 +376,14 @@ window.LANG_FA = {
     },
     "solidBackgroundInUse": "ℹ️ پس‌زمینه تک‌رنگ فعال است",
     "fontPlaceholder": "نام فونت (مثال: Vazir, Arial)",
+    "shortcuts": {
+      "primary": "اصلی",
+      "secondary": "ثانویه"
+    },
+    "syncCreatorShortcuts": {
+      "title": "میانبرهای Sync Creator",
+      "subtitle": "کلیدهای اصلی و ثانویه ضبط در Sync Creator را تنظیم کنید."
+    },
     "aiProviders": {
       "title": "ارائه‌دهندگان هوش مصنوعی",
       "description": "ارائه‌دهندگان هوش مصنوعی را انتخاب کرده و اولویت‌بندی کنید. ارائه‌دهندگان بالای لیست اول امتحان می‌شوند. در صورت شکست، ارائه‌دهنده بعدی به طور خودکار استفاده می‌شود.",

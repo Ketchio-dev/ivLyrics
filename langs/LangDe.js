@@ -376,6 +376,14 @@ window.LANG_DE = {
     },
     "solidBackgroundInUse": "ℹ️ Einfarbiger Hintergrund aktiv",
     "fontPlaceholder": "Schriftartname (z.B. Arial, Roboto)",
+    "shortcuts": {
+      "primary": "Primär",
+      "secondary": "Sekundär"
+    },
+    "syncCreatorShortcuts": {
+      "title": "Sync Creator-Tastenkürzel",
+      "subtitle": "Konfiguriere primäre und sekundäre Aufnahmetasten für Sync Creator."
+    },
     "aiProviders": {
       "title": "KI-Anbieter",
       "description": "Wählen Sie KI-Anbieter aus und priorisieren Sie diese. Anbieter oben werden zuerst versucht. Bei Fehlern wird automatisch der nächste Anbieter verwendet.",
