@@ -30,3 +30,5 @@ If applicable, add screenshots to help explain your problem.
 
 **Additional context**
 Add any other context about the problem here.
+
+**Please see discord FAQ and Bug report and Feature request channel before write issue.**
