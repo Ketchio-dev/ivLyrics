@@ -285,7 +285,7 @@
     const LRCLIB_ARTIST_MATCH_THRESHOLD = 0.9;
     const LRCLIB_FALLBACK_TITLE_MATCH_THRESHOLD = 0.98;
     const LRCLIB_ENABLE_INEXACT_SEARCH = true;
-    const LRCLIB_CACHE_VERSION_BASE = '2026-03-28-interleaved-translation-filter-1';
+    const LRCLIB_CACHE_VERSION_BASE = '2026-03-28-sync-line-match-priority-1';
     const LRCLIB_ENGLISH_ACCEPT_LANGUAGE = 'en-US,en;q=0.9';
     const LRCLIB_ORIGINAL_SCRIPT_REGEX = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\u1100-\u11ff\u3130-\u318f\uac00-\ud7af]/;
     const LRCLIB_MEANINGFUL_TEXT_REGEX = /\p{L}|\p{N}/u;
@@ -794,10 +794,76 @@
         };
     }
 
-    function getCandidateLyricsText(candidate) {
+    function getCandidateLyricsText(candidate, preferredSource = null) {
+        if (preferredSource === 'synced' && candidate?.syncedLyrics) {
+            return stripLrcTimestamps(candidate.syncedLyrics);
+        }
+        if (preferredSource === 'plain' && candidate?.plainLyrics) {
+            return candidate.plainLyrics;
+        }
         if (candidate?.plainLyrics) return candidate.plainLyrics;
         if (candidate?.syncedLyrics) return stripLrcTimestamps(candidate.syncedLyrics);
         return '';
+    }
+
+    function getComparableLyricsLines(text, { stripTimestamps = false } = {}) {
+        if (!text || typeof text !== 'string') return [];
+
+        return text
+            .split('\n')
+            .map(line => stripTimestamps ? stripLeadingLrcTimestamp(line) : line.trim())
+            .filter(line => line.length > 0)
+            .map(line => line.normalize('NFC'));
+    }
+
+    function getLineCharCounts(lines) {
+        return lines.map(line => Array.from(line).length);
+    }
+
+    function getSyncDataLineCharCounts(syncData) {
+        if (!Array.isArray(syncData?.syncData?.lines) || syncData.syncData.lines.length === 0) {
+            return null;
+        }
+
+        return syncData.syncData.lines.map(line => Array.isArray(line?.chars) ? line.chars.length : -1);
+    }
+
+    function hasExactLineCharCountMatch(expectedCounts, actualCounts) {
+        if (!Array.isArray(expectedCounts) || !Array.isArray(actualCounts)) return false;
+        if (expectedCounts.length === 0 || expectedCounts.length !== actualCounts.length) return false;
+        return expectedCounts.every((count, index) => count === actualCounts[index]);
+    }
+
+    function getCandidateSyncLineMatch(candidate, expectedCounts) {
+        if (!Array.isArray(expectedCounts) || expectedCounts.length === 0) {
+            return {
+                syncLineExactMatch: false,
+                exactSyncedLineMatch: false,
+                exactPlainLineMatch: false,
+                preferredLyricsSource: candidate?.plainLyrics ? 'plain' : (candidate?.syncedLyrics ? 'synced' : null)
+            };
+        }
+
+        const syncedLineCounts = candidate?.syncedLyrics
+            ? getLineCharCounts(getComparableLyricsLines(candidate.syncedLyrics, { stripTimestamps: true }))
+            : null;
+        const plainLineCounts = candidate?.plainLyrics
+            ? getLineCharCounts(getComparableLyricsLines(candidate.plainLyrics))
+            : null;
+        const exactSyncedLineMatch = hasExactLineCharCountMatch(expectedCounts, syncedLineCounts);
+        const exactPlainLineMatch = hasExactLineCharCountMatch(expectedCounts, plainLineCounts);
+        const preferredLyricsSource = exactSyncedLineMatch
+            ? 'synced'
+            : (exactPlainLineMatch
+                ? 'plain'
+                : (candidate?.plainLyrics ? 'plain' : (candidate?.syncedLyrics ? 'synced' : null)));
+
+        return {
+            syncLineExactMatch: exactSyncedLineMatch || exactPlainLineMatch,
+            exactSyncedLineMatch,
+            exactPlainLineMatch,
+            preferredLyricsSource
+        };
     }
 
     /**
@@ -1031,6 +1097,17 @@
                 }
 
                 const headers = { 'x-user-agent': `spicetify v${Spicetify.Config?.version || 'unknown'}` };
+                const trackId = info?.uri?.split?.(':')?.[2] || '';
+                let syncDataLineCharCounts = null;
+
+                if (trackId && window.SyncDataService?.getSyncData) {
+                    try {
+                        const existingSyncData = await window.SyncDataService.getSyncData(trackId, ADDON_INFO.id);
+                        syncDataLineCharCounts = getSyncDataLineCharCounts(existingSyncData);
+                    } catch (e) {
+                        window.__ivLyricsDebugLog?.('[LR-DEBUG] Failed to fetch sync-data for exact line matching:', e?.message || e);
+                    }
+                }
 
                 const runSearch = async (params, label) => {
                     const query = new URLSearchParams();
@@ -1108,7 +1185,8 @@
                         .map(item => {
                             const candidateArtists = splitArtists(item?.artistName || '');
                             const candidateTitle = item?.trackName || item?.name || '';
-                            const lyricsText = getCandidateLyricsText(item);
+                            const syncLineMatch = getCandidateSyncLineMatch(item, syncDataLineCharCounts);
+                            const lyricsText = getCandidateLyricsText(item, syncLineMatch.preferredLyricsSource);
                             const lyricsMix = analyzeLyricsLanguageMix(lyricsText);
                             const titleScore = getTitleScore(metadataTitle, candidateTitle);
                             const artistScore = getBestArtistScore(metadataArtists, candidateArtists);
@@ -1127,6 +1205,10 @@
                                 exactDurationMatch,
                                 artistMatched,
                                 titleDrivenMatch,
+                                syncLineExactMatch: syncLineMatch.syncLineExactMatch,
+                                exactSyncedLineMatch: syncLineMatch.exactSyncedLineMatch,
+                                exactPlainLineMatch: syncLineMatch.exactPlainLineMatch,
+                                preferredLyricsSource: syncLineMatch.preferredLyricsSource,
                                 lyricsMix,
                                 hasInterleavedTranslations: lyricsMix.hasInterleavedTranslations,
                                 matchReason: artistMatched ? 'artist' : (titleDrivenMatch ? 'title' : 'rejected')
@@ -1139,6 +1221,12 @@
                             return false;
                         })
                         .sort((a, b) => {
+                            if (a.syncLineExactMatch !== b.syncLineExactMatch) {
+                                return Number(b.syncLineExactMatch) - Number(a.syncLineExactMatch);
+                            }
+                            if (a.exactSyncedLineMatch !== b.exactSyncedLineMatch) {
+                                return Number(b.exactSyncedLineMatch) - Number(a.exactSyncedLineMatch);
+                            }
                             if (a.artistMatched !== b.artistMatched) {
                                 return Number(b.artistMatched) - Number(a.artistMatched);
                             }
@@ -1213,8 +1301,11 @@
                     }
 
                     const withinTolerance = item => item?.durationDiff <= LRCLIB_DURATION_TOLERANCE_SEC;
-                    const nativeScriptCandidates = rankedCandidates.filter(item => hasOriginalLyricsScript(getCandidateLyricsText(item)));
-                    const fallbackScriptCandidates = rankedCandidates.filter(item => !hasOriginalLyricsScript(getCandidateLyricsText(item)));
+                    const exactMatchCandidates = rankedCandidates.filter(item => item.syncLineExactMatch);
+                    const nativeScriptCandidates = rankedCandidates.filter(item => hasOriginalLyricsScript(getCandidateLyricsText(item, item.preferredLyricsSource)));
+                    const fallbackScriptCandidates = rankedCandidates.filter(item => !hasOriginalLyricsScript(getCandidateLyricsText(item, item.preferredLyricsSource)));
+                    const exactNativeScriptCandidates = nativeScriptCandidates.filter(item => item.syncLineExactMatch);
+                    const exactFallbackScriptCandidates = fallbackScriptCandidates.filter(item => item.syncLineExactMatch);
                     const preferredNativeScriptCandidates = nativeScriptCandidates.filter(item => !item.hasInterleavedTranslations);
                     const interleavedNativeScriptCandidates = nativeScriptCandidates.filter(item => item.hasInterleavedTranslations);
                     const orderedNativeScriptCandidates = preferredNativeScriptCandidates.concat(interleavedNativeScriptCandidates);
@@ -1224,7 +1315,20 @@
                         error: null,
                         resolvedSearch,
                         rankedCandidates,
+                        hasExactSyncLineMatch: exactMatchCandidates.length > 0,
                         usedFallbackQuery,
+                        bestExactNativeSyncedCandidate: exactNativeScriptCandidates.find(item => withinTolerance(item) && item.preferredLyricsSource === 'synced')
+                            || exactNativeScriptCandidates.find(item => item.preferredLyricsSource === 'synced')
+                            || null,
+                        bestExactNativePlainCandidate: exactNativeScriptCandidates.find(item => withinTolerance(item) && item.preferredLyricsSource === 'plain')
+                            || exactNativeScriptCandidates.find(item => item.preferredLyricsSource === 'plain')
+                            || null,
+                        bestExactFallbackSyncedCandidate: exactFallbackScriptCandidates.find(item => withinTolerance(item) && item.preferredLyricsSource === 'synced')
+                            || exactFallbackScriptCandidates.find(item => item.preferredLyricsSource === 'synced')
+                            || null,
+                        bestExactFallbackPlainCandidate: exactFallbackScriptCandidates.find(item => withinTolerance(item) && item.preferredLyricsSource === 'plain')
+                            || exactFallbackScriptCandidates.find(item => item.preferredLyricsSource === 'plain')
+                            || null,
                         bestNativeSyncedCandidate: orderedNativeScriptCandidates.find(item => withinTolerance(item) && item.syncedLyrics)
                             || orderedNativeScriptCandidates.find(item => item.syncedLyrics)
                             || null,
@@ -1261,14 +1365,18 @@
                     return result;
                 }
 
-                let body = primarySearchFlow.bestNativeSyncedCandidate;
+                let body = null;
                 let selectedFlow = primarySearchFlow;
-                let selectedSource = body ? 'primary-native-synced' : 'primary-none';
+                let selectedSource = 'primary-none';
                 let englishSearchFlow = null;
                 let englishMetadata = null;
                 let englishSearchError = null;
+                let englishSearchAttempted = false;
+                const shouldPreferExactSyncLineMatch = Array.isArray(syncDataLineCharCounts) && syncDataLineCharCounts.length > 0;
 
-                if (!body) {
+                const ensureEnglishSearchFlow = async () => {
+                    if (englishSearchAttempted) return englishSearchFlow;
+                    englishSearchAttempted = true;
                     englishMetadata = await getTrackMetadataForAcceptLanguage(info?.uri, LRCLIB_ENGLISH_ACCEPT_LANGUAGE);
 
                     if (englishMetadata?.title && englishMetadata?.artist) {
@@ -1283,12 +1391,80 @@
 
                         if (englishSearchFlow.fatal) {
                             englishSearchError = englishSearchFlow.error;
+                            englishSearchFlow = null;
                         }
-                        else if (englishSearchFlow.bestNativeSyncedCandidate) {
-                            body = englishSearchFlow.bestNativeSyncedCandidate;
+                    }
+
+                    return englishSearchFlow;
+                };
+
+                if (shouldPreferExactSyncLineMatch) {
+                    if (primarySearchFlow.bestExactNativeSyncedCandidate) {
+                        body = primarySearchFlow.bestExactNativeSyncedCandidate;
+                        selectedFlow = primarySearchFlow;
+                        selectedSource = 'primary-exact-native-synced';
+                    }
+
+                    if (!body) {
+                        await ensureEnglishSearchFlow();
+                        if (englishSearchFlow?.bestExactNativeSyncedCandidate) {
+                            body = englishSearchFlow.bestExactNativeSyncedCandidate;
                             selectedFlow = englishSearchFlow;
-                            selectedSource = 'english-native-synced';
+                            selectedSource = 'english-exact-native-synced';
                         }
+                    }
+
+                    if (!body && primarySearchFlow.bestExactNativePlainCandidate) {
+                        body = primarySearchFlow.bestExactNativePlainCandidate;
+                        selectedFlow = primarySearchFlow;
+                        selectedSource = 'primary-exact-native-plain';
+                    }
+
+                    if (!body && englishSearchFlow?.bestExactNativePlainCandidate) {
+                        body = englishSearchFlow.bestExactNativePlainCandidate;
+                        selectedFlow = englishSearchFlow;
+                        selectedSource = 'english-exact-native-plain';
+                    }
+
+                    if (!body && primarySearchFlow.bestExactFallbackSyncedCandidate) {
+                        body = primarySearchFlow.bestExactFallbackSyncedCandidate;
+                        selectedFlow = primarySearchFlow;
+                        selectedSource = 'primary-exact-fallback-synced';
+                    }
+
+                    if (!body && englishSearchFlow?.bestExactFallbackSyncedCandidate) {
+                        body = englishSearchFlow.bestExactFallbackSyncedCandidate;
+                        selectedFlow = englishSearchFlow;
+                        selectedSource = 'english-exact-fallback-synced';
+                    }
+
+                    if (!body && primarySearchFlow.bestExactFallbackPlainCandidate) {
+                        body = primarySearchFlow.bestExactFallbackPlainCandidate;
+                        selectedFlow = primarySearchFlow;
+                        selectedSource = 'primary-exact-fallback-plain';
+                    }
+
+                    if (!body && englishSearchFlow?.bestExactFallbackPlainCandidate) {
+                        body = englishSearchFlow.bestExactFallbackPlainCandidate;
+                        selectedFlow = englishSearchFlow;
+                        selectedSource = 'english-exact-fallback-plain';
+                    }
+                }
+
+                if (!body) {
+                    body = primarySearchFlow.bestNativeSyncedCandidate;
+                    if (body) {
+                        selectedFlow = primarySearchFlow;
+                        selectedSource = 'primary-native-synced';
+                    }
+                }
+
+                if (!body) {
+                    await ensureEnglishSearchFlow();
+                    if (englishSearchFlow?.bestNativeSyncedCandidate) {
+                        body = englishSearchFlow.bestNativeSyncedCandidate;
+                        selectedFlow = englishSearchFlow;
+                        selectedSource = 'english-native-synced';
                     }
                 }
 
@@ -1380,6 +1556,8 @@
                         artistScore: body.artistScore.toFixed(3),
                         titleScore: body.titleScore.toFixed(3),
                         matchReason: body.matchReason,
+                        syncLineExactMatch: !!body.syncLineExactMatch,
+                        preferredLyricsSource: body.preferredLyricsSource,
                         searchMode: selectedFlow.resolvedSearch.searchLabel,
                         usedFallbackQuery: selectedFlow.usedFallbackQuery,
                         selectedSource,
@@ -1389,7 +1567,10 @@
                     return result;
                 }
 
-                if (body.syncedLyrics) {
+                if (body.preferredLyricsSource === 'plain' && body.plainLyrics) {
+                    result.unsynced = parsePlainLyrics(body.plainLyrics);
+                }
+                else if (body.syncedLyrics) {
                     const parsed = parseLRC(body.syncedLyrics);
                     result.synced = parsed.synced;
                     if (!result.unsynced) {
@@ -1427,6 +1608,9 @@
                     hasUnsynced: !!result.unsynced,
                     hasInterleavedTranslations: !!body.hasInterleavedTranslations,
                     matchReason: body.matchReason,
+                    syncDataLineCount: syncDataLineCharCounts?.length || 0,
+                    syncLineExactMatch: !!body.syncLineExactMatch,
+                    preferredLyricsSource: body.preferredLyricsSource,
                     searchMode: selectedFlow.resolvedSearch.searchLabel,
                     usedFallbackQuery: selectedFlow.usedFallbackQuery,
                     selectedSource,
