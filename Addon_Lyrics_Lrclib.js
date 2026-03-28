@@ -866,6 +866,79 @@
         };
     }
 
+    function buildLrclibCandidateSignature(candidate) {
+        const text = getCandidateLyricsText(candidate, candidate?.preferredLyricsSource);
+        return [
+            candidate?.id ?? '',
+            normalize(candidate?.trackName || candidate?.name || ''),
+            normalize(candidate?.artistName || ''),
+            Number(candidate?.duration || 0).toFixed(3),
+            normalize(text.slice(0, 160))
+        ].join('|');
+    }
+
+    function buildLrclibCandidateKey(candidate, sourceLabel, index) {
+        return `${sourceLabel}:${index}:${buildLrclibCandidateSignature(candidate)}`;
+    }
+
+    function buildPreviewCandidateList(primarySearchFlow, englishSearchFlow, selectedCandidate) {
+        const selectedSignature = selectedCandidate ? buildLrclibCandidateSignature(selectedCandidate) : null;
+        const seen = new Set();
+        const output = [];
+        let selectedCandidateKey = null;
+
+        const pushCandidates = (candidates, sourceLabel) => {
+            if (!Array.isArray(candidates)) return;
+
+            candidates.forEach((candidate, index) => {
+                const signature = buildLrclibCandidateSignature(candidate);
+                if (seen.has(signature)) return;
+                seen.add(signature);
+
+                const previewText = getCandidateLyricsText(candidate, candidate?.preferredLyricsSource);
+                const previewLines = getComparableLyricsLines(previewText);
+                const candidateKey = buildLrclibCandidateKey(candidate, sourceLabel, index);
+                const previewCandidate = {
+                    ...candidate,
+                    candidateKey,
+                    searchSource: sourceLabel,
+                    previewText,
+                    previewLineCount: previewLines.length,
+                    hasSyncedLyrics: !!candidate?.syncedLyrics,
+                    hasPlainLyrics: !!candidate?.plainLyrics,
+                    isSelectedByDefault: selectedSignature !== null && signature === selectedSignature
+                };
+
+                if (previewCandidate.isSelectedByDefault && !selectedCandidateKey) {
+                    selectedCandidateKey = candidateKey;
+                }
+
+                output.push(previewCandidate);
+            });
+        };
+
+        if (selectedSignature) {
+            const selectedFirst = (primarySearchFlow?.rankedCandidates || []).concat(englishSearchFlow?.rankedCandidates || []);
+            const selectedMatch = selectedFirst.find(candidate => buildLrclibCandidateSignature(candidate) === selectedSignature);
+            if (selectedMatch) {
+                pushCandidates([selectedMatch], 'selected');
+            }
+        }
+
+        pushCandidates(primarySearchFlow?.rankedCandidates || [], 'primary');
+        pushCandidates(englishSearchFlow?.rankedCandidates || [], 'english');
+
+        if (!selectedCandidateKey && output.length > 0) {
+            output[0].isSelectedByDefault = true;
+            selectedCandidateKey = output[0].candidateKey;
+        }
+
+        return {
+            candidates: output,
+            selectedCandidateKey
+        };
+    }
+
     /**
      * ────────────────────────────────────────────────────────────────────────────
      * LRC 형식 파싱 함수 (Ultra-Flexible)
@@ -945,6 +1018,478 @@
          */
         async init() {
             syncAddonCacheVersion();
+        },
+
+        async searchCandidates(info) {
+            try {
+                const title = info?.title?.trim?.();
+                const artist = info?.artist?.trim?.();
+                const album = info?.album?.trim?.();
+                const searchSettings = getSearchSettings();
+                const trackDuration = Number(info?.duration || 0);
+                const trackDurationSec = trackDuration > 0 ? trackDuration / 1000 : 0;
+                const expectedArtists = splitArtists(artist);
+
+                if (!title || !artist || !trackDurationSec) {
+                    return {
+                        success: false,
+                        error: 'Missing track metadata',
+                        candidates: [],
+                        selectedCandidateKey: null
+                    };
+                }
+
+                const headers = { 'x-user-agent': `spicetify v${Spicetify.Config?.version || 'unknown'}` };
+                const trackId = info?.uri?.split?.(':')?.[2] || '';
+                let syncDataLineCharCounts = null;
+
+                if (trackId && window.SyncDataService?.getSyncData) {
+                    try {
+                        const existingSyncData = await window.SyncDataService.getSyncData(trackId, ADDON_INFO.id);
+                        syncDataLineCharCounts = getSyncDataLineCharCounts(existingSyncData);
+                    } catch (e) {
+                        window.__ivLyricsDebugLog?.('[LR-DEBUG] Failed to fetch sync-data for exact line matching:', e?.message || e);
+                    }
+                }
+
+                const runSearch = async (params, label) => {
+                    const query = new URLSearchParams();
+                    if (params.track_name) query.set('track_name', params.track_name);
+                    if (params.artist_name) query.set('artist_name', params.artist_name);
+                    if (params.album_name && params.album_name !== 'undefined') query.set('album_name', params.album_name);
+                    if (params.q) query.set('q', params.q);
+
+                    const searchUrl = `${LRCLIB_API_BASE}/search?${query.toString()}`;
+                    const response = await fetchWithTimeout(searchUrl, { headers }, 35000);
+
+                    if (!response) {
+                        return {
+                            fatal: true,
+                            error: 'Network request failed',
+                            searchLabel: label,
+                            totalResults: 0,
+                            candidates: []
+                        };
+                    }
+
+                    if (!response.ok) {
+                        if (response.status === 429) {
+                            return {
+                                fatal: true,
+                                error: 'Rate limit exceeded (429)',
+                                searchLabel: label,
+                                totalResults: 0,
+                                candidates: []
+                            };
+                        }
+                        if (response.status === 404) {
+                            return {
+                                fatal: false,
+                                error: 'No lyrics found',
+                                searchLabel: label,
+                                totalResults: 0,
+                                candidates: []
+                            };
+                        }
+                        return {
+                            fatal: true,
+                            error: `API error: ${response.status}`,
+                            searchLabel: label,
+                            totalResults: 0,
+                            candidates: []
+                        };
+                    }
+
+                    const data = await response.json();
+                    if (!Array.isArray(data)) {
+                        return {
+                            fatal: true,
+                            error: 'Invalid LRCLIB response',
+                            searchLabel: label,
+                            totalResults: 0,
+                            candidates: []
+                        };
+                    }
+
+                    return {
+                        fatal: false,
+                        error: data.length === 0 ? 'No lyrics found' : null,
+                        searchLabel: label,
+                        totalResults: data.length,
+                        candidates: data
+                    };
+                };
+
+                const rankCandidates = (candidates, metadata, { allowTitleDrivenMatch = false } = {}) => {
+                    const metadataTitle = metadata?.title || '';
+                    const metadataArtists = metadata?.expectedArtists || [];
+
+                    return candidates
+                        .map(item => {
+                            const candidateArtists = splitArtists(item?.artistName || '');
+                            const candidateTitle = item?.trackName || item?.name || '';
+                            const syncLineMatch = getCandidateSyncLineMatch(item, syncDataLineCharCounts);
+                            const lyricsText = getCandidateLyricsText(item, syncLineMatch.preferredLyricsSource);
+                            const lyricsMix = analyzeLyricsLanguageMix(lyricsText);
+                            const titleScore = getTitleScore(metadataTitle, candidateTitle);
+                            const artistScore = getBestArtistScore(metadataArtists, candidateArtists);
+                            const durationDiff = Math.abs(Number(item?.duration || 0) - trackDurationSec);
+                            const exactDurationMatch = hasExactDurationMatch(trackDurationSec, Number(item?.duration || 0));
+                            const artistMatched = artistScore > LRCLIB_ARTIST_MATCH_THRESHOLD;
+                            const titleDrivenMatch = allowTitleDrivenMatch
+                                && titleScore >= LRCLIB_FALLBACK_TITLE_MATCH_THRESHOLD
+                                && exactDurationMatch;
+
+                            return {
+                                ...item,
+                                artistScore,
+                                titleScore,
+                                durationDiff,
+                                exactDurationMatch,
+                                artistMatched,
+                                titleDrivenMatch,
+                                syncLineExactMatch: syncLineMatch.syncLineExactMatch,
+                                exactSyncedLineMatch: syncLineMatch.exactSyncedLineMatch,
+                                exactPlainLineMatch: syncLineMatch.exactPlainLineMatch,
+                                preferredLyricsSource: syncLineMatch.preferredLyricsSource,
+                                lyricsMix,
+                                hasInterleavedTranslations: lyricsMix.hasInterleavedTranslations,
+                                matchReason: artistMatched ? 'artist' : (titleDrivenMatch ? 'title' : 'rejected')
+                            };
+                        })
+                        .filter(item => {
+                            if (!item?.syncedLyrics && !item?.plainLyrics && !item?.instrumental) return false;
+                            if (item.artistMatched) return true;
+                            if (allowTitleDrivenMatch && item.titleDrivenMatch) return true;
+                            return false;
+                        })
+                        .sort((a, b) => {
+                            if (a.syncLineExactMatch !== b.syncLineExactMatch) {
+                                return Number(b.syncLineExactMatch) - Number(a.syncLineExactMatch);
+                            }
+                            if (a.exactSyncedLineMatch !== b.exactSyncedLineMatch) {
+                                return Number(b.exactSyncedLineMatch) - Number(a.exactSyncedLineMatch);
+                            }
+                            if (a.artistMatched !== b.artistMatched) {
+                                return Number(b.artistMatched) - Number(a.artistMatched);
+                            }
+                            if (a.hasInterleavedTranslations !== b.hasInterleavedTranslations) {
+                                return Number(a.hasInterleavedTranslations) - Number(b.hasInterleavedTranslations);
+                            }
+                            if (b.titleScore !== a.titleScore) {
+                                return b.titleScore - a.titleScore;
+                            }
+                            if (a.durationDiff !== b.durationDiff) {
+                                return a.durationDiff - b.durationDiff;
+                            }
+                            return b.artistScore - a.artistScore;
+                        });
+                };
+
+                const runSearchFlow = async (metadata, { includeAlbum = true } = {}) => {
+                    const structuredSearch = await runSearch({
+                        track_name: metadata.title,
+                        artist_name: metadata.artist,
+                        album_name: includeAlbum ? metadata.album : ''
+                    }, includeAlbum ? 'structured' : 'structured:no-album');
+
+                    if (structuredSearch.fatal) {
+                        return {
+                            fatal: true,
+                            error: structuredSearch.error,
+                            resolvedSearch: structuredSearch,
+                            rankedCandidates: [],
+                            usedFallbackQuery: false,
+                            bestSyncedCandidate: null,
+                            bestPlainCandidate: null
+                        };
+                    }
+
+                    let resolvedSearch = structuredSearch;
+                    let rankedCandidates = rankCandidates(structuredSearch.candidates, metadata);
+                    let usedFallbackQuery = false;
+
+                    if (rankedCandidates.length === 0 && LRCLIB_ENABLE_INEXACT_SEARCH) {
+                        const fallbackAttempts = [];
+                        if (searchSettings.enableFallbackTitleArtist && metadata.title && metadata.artist) {
+                            fallbackAttempts.push({ params: { q: `${metadata.title} ${metadata.artist}` }, label: 'q:title+artist' });
+                        }
+                        if (searchSettings.enableFallbackTitleOnly && metadata.title) {
+                            fallbackAttempts.push({ params: { q: metadata.title }, label: 'q:title' });
+                        }
+
+                        for (const attempt of fallbackAttempts) {
+                            const fallbackSearch = await runSearch(attempt.params, attempt.label);
+                            usedFallbackQuery = true;
+
+                            if (fallbackSearch.fatal) {
+                                return {
+                                    fatal: true,
+                                    error: fallbackSearch.error,
+                                    resolvedSearch: fallbackSearch,
+                                    rankedCandidates: [],
+                                    usedFallbackQuery,
+                                    bestSyncedCandidate: null,
+                                    bestPlainCandidate: null
+                                };
+                            }
+
+                            resolvedSearch = fallbackSearch;
+                            rankedCandidates = rankCandidates(fallbackSearch.candidates, metadata, { allowTitleDrivenMatch: true });
+
+                            if (rankedCandidates.length > 0) {
+                                break;
+                            }
+                        }
+                    }
+
+                    const withinTolerance = item => item?.durationDiff <= LRCLIB_DURATION_TOLERANCE_SEC;
+                    const exactMatchCandidates = rankedCandidates.filter(item => item.syncLineExactMatch);
+                    const nativeScriptCandidates = rankedCandidates.filter(item => hasOriginalLyricsScript(getCandidateLyricsText(item, item.preferredLyricsSource)));
+                    const fallbackScriptCandidates = rankedCandidates.filter(item => !hasOriginalLyricsScript(getCandidateLyricsText(item, item.preferredLyricsSource)));
+                    const exactNativeScriptCandidates = nativeScriptCandidates.filter(item => item.syncLineExactMatch);
+                    const exactFallbackScriptCandidates = fallbackScriptCandidates.filter(item => item.syncLineExactMatch);
+                    const preferredNativeScriptCandidates = nativeScriptCandidates.filter(item => !item.hasInterleavedTranslations);
+                    const interleavedNativeScriptCandidates = nativeScriptCandidates.filter(item => item.hasInterleavedTranslations);
+                    const orderedNativeScriptCandidates = preferredNativeScriptCandidates.concat(interleavedNativeScriptCandidates);
+
+                    return {
+                        fatal: false,
+                        error: null,
+                        resolvedSearch,
+                        rankedCandidates,
+                        hasExactSyncLineMatch: exactMatchCandidates.length > 0,
+                        usedFallbackQuery,
+                        bestExactNativeSyncedCandidate: exactNativeScriptCandidates.find(item => withinTolerance(item) && item.preferredLyricsSource === 'synced')
+                            || exactNativeScriptCandidates.find(item => item.preferredLyricsSource === 'synced')
+                            || null,
+                        bestExactNativePlainCandidate: exactNativeScriptCandidates.find(item => withinTolerance(item) && item.preferredLyricsSource === 'plain')
+                            || exactNativeScriptCandidates.find(item => item.preferredLyricsSource === 'plain')
+                            || null,
+                        bestExactFallbackSyncedCandidate: exactFallbackScriptCandidates.find(item => withinTolerance(item) && item.preferredLyricsSource === 'synced')
+                            || exactFallbackScriptCandidates.find(item => item.preferredLyricsSource === 'synced')
+                            || null,
+                        bestExactFallbackPlainCandidate: exactFallbackScriptCandidates.find(item => withinTolerance(item) && item.preferredLyricsSource === 'plain')
+                            || exactFallbackScriptCandidates.find(item => item.preferredLyricsSource === 'plain')
+                            || null,
+                        bestNativeSyncedCandidate: orderedNativeScriptCandidates.find(item => withinTolerance(item) && item.syncedLyrics)
+                            || orderedNativeScriptCandidates.find(item => item.syncedLyrics)
+                            || null,
+                        bestNativePlainCandidate: orderedNativeScriptCandidates.find(item => withinTolerance(item) && item.plainLyrics)
+                            || orderedNativeScriptCandidates.find(item => item.plainLyrics)
+                            || null,
+                        bestFallbackSyncedCandidate: fallbackScriptCandidates.find(item => withinTolerance(item) && item.syncedLyrics)
+                            || fallbackScriptCandidates.find(item => item.syncedLyrics)
+                            || null,
+                        bestFallbackPlainCandidate: fallbackScriptCandidates.find(item => withinTolerance(item) && item.plainLyrics)
+                            || fallbackScriptCandidates.find(item => item.plainLyrics)
+                            || null,
+                        bestInstrumentalCandidate: rankedCandidates.find(item => withinTolerance(item) && item.instrumental)
+                            || rankedCandidates.find(item => item.instrumental)
+                            || null
+                    };
+                };
+
+                const primaryMetadata = {
+                    title,
+                    artist,
+                    album,
+                    expectedArtists
+                };
+
+                const primarySearchFlow = await runSearchFlow(primaryMetadata, { includeAlbum: true });
+                if (primarySearchFlow.fatal) {
+                    return {
+                        success: false,
+                        error: primarySearchFlow.error,
+                        candidates: [],
+                        selectedCandidateKey: null
+                    };
+                }
+
+                let body = null;
+                let selectedFlow = primarySearchFlow;
+                let selectedSource = 'primary-none';
+                let englishSearchFlow = null;
+                let englishMetadata = null;
+                let englishSearchError = null;
+                let englishSearchAttempted = false;
+                const shouldPreferExactSyncLineMatch = Array.isArray(syncDataLineCharCounts) && syncDataLineCharCounts.length > 0;
+
+                const ensureEnglishSearchFlow = async () => {
+                    if (englishSearchAttempted) return englishSearchFlow;
+                    englishSearchAttempted = true;
+                    englishMetadata = await getTrackMetadataForAcceptLanguage(info?.uri, LRCLIB_ENGLISH_ACCEPT_LANGUAGE);
+
+                    if (englishMetadata?.title && englishMetadata?.artist) {
+                        englishMetadata = {
+                            title: englishMetadata.title.trim(),
+                            artist: englishMetadata.artist.trim(),
+                            album: '',
+                            expectedArtists: splitArtists(englishMetadata.artist)
+                        };
+
+                        englishSearchFlow = await runSearchFlow(englishMetadata, { includeAlbum: false });
+
+                        if (englishSearchFlow.fatal) {
+                            englishSearchError = englishSearchFlow.error;
+                            englishSearchFlow = null;
+                        }
+                    }
+
+                    return englishSearchFlow;
+                };
+
+                if (shouldPreferExactSyncLineMatch) {
+                    if (primarySearchFlow.bestExactNativeSyncedCandidate) {
+                        body = primarySearchFlow.bestExactNativeSyncedCandidate;
+                        selectedFlow = primarySearchFlow;
+                        selectedSource = 'primary-exact-native-synced';
+                    }
+
+                    if (!body) {
+                        await ensureEnglishSearchFlow();
+                        if (englishSearchFlow?.bestExactNativeSyncedCandidate) {
+                            body = englishSearchFlow.bestExactNativeSyncedCandidate;
+                            selectedFlow = englishSearchFlow;
+                            selectedSource = 'english-exact-native-synced';
+                        }
+                    }
+
+                    if (!body && primarySearchFlow.bestExactNativePlainCandidate) {
+                        body = primarySearchFlow.bestExactNativePlainCandidate;
+                        selectedFlow = primarySearchFlow;
+                        selectedSource = 'primary-exact-native-plain';
+                    }
+
+                    if (!body && englishSearchFlow?.bestExactNativePlainCandidate) {
+                        body = englishSearchFlow.bestExactNativePlainCandidate;
+                        selectedFlow = englishSearchFlow;
+                        selectedSource = 'english-exact-native-plain';
+                    }
+
+                    if (!body && primarySearchFlow.bestExactFallbackSyncedCandidate) {
+                        body = primarySearchFlow.bestExactFallbackSyncedCandidate;
+                        selectedFlow = primarySearchFlow;
+                        selectedSource = 'primary-exact-fallback-synced';
+                    }
+
+                    if (!body && englishSearchFlow?.bestExactFallbackSyncedCandidate) {
+                        body = englishSearchFlow.bestExactFallbackSyncedCandidate;
+                        selectedFlow = englishSearchFlow;
+                        selectedSource = 'english-exact-fallback-synced';
+                    }
+
+                    if (!body && primarySearchFlow.bestExactFallbackPlainCandidate) {
+                        body = primarySearchFlow.bestExactFallbackPlainCandidate;
+                        selectedFlow = primarySearchFlow;
+                        selectedSource = 'primary-exact-fallback-plain';
+                    }
+
+                    if (!body && englishSearchFlow?.bestExactFallbackPlainCandidate) {
+                        body = englishSearchFlow.bestExactFallbackPlainCandidate;
+                        selectedFlow = englishSearchFlow;
+                        selectedSource = 'english-exact-fallback-plain';
+                    }
+                }
+
+                if (!body) {
+                    body = primarySearchFlow.bestNativeSyncedCandidate;
+                    if (body) {
+                        selectedFlow = primarySearchFlow;
+                        selectedSource = 'primary-native-synced';
+                    }
+                }
+
+                if (!body) {
+                    await ensureEnglishSearchFlow();
+                    if (englishSearchFlow?.bestNativeSyncedCandidate) {
+                        body = englishSearchFlow.bestNativeSyncedCandidate;
+                        selectedFlow = englishSearchFlow;
+                        selectedSource = 'english-native-synced';
+                    }
+                }
+
+                if (!body) {
+                    if (primarySearchFlow.bestNativePlainCandidate) {
+                        body = primarySearchFlow.bestNativePlainCandidate;
+                        selectedFlow = primarySearchFlow;
+                        selectedSource = 'primary-native-plain';
+                    }
+                    else if (englishSearchFlow?.bestNativePlainCandidate) {
+                        body = englishSearchFlow.bestNativePlainCandidate;
+                        selectedFlow = englishSearchFlow;
+                        selectedSource = 'english-native-plain';
+                    }
+                    else if (primarySearchFlow.bestFallbackSyncedCandidate) {
+                        body = primarySearchFlow.bestFallbackSyncedCandidate;
+                        selectedFlow = primarySearchFlow;
+                        selectedSource = 'primary-fallback-synced';
+                    }
+                    else if (englishSearchFlow?.bestFallbackSyncedCandidate) {
+                        body = englishSearchFlow.bestFallbackSyncedCandidate;
+                        selectedFlow = englishSearchFlow;
+                        selectedSource = 'english-fallback-synced';
+                    }
+                    else if (primarySearchFlow.bestFallbackPlainCandidate) {
+                        body = primarySearchFlow.bestFallbackPlainCandidate;
+                        selectedFlow = primarySearchFlow;
+                        selectedSource = 'primary-fallback-plain';
+                    }
+                    else if (englishSearchFlow?.bestFallbackPlainCandidate) {
+                        body = englishSearchFlow.bestFallbackPlainCandidate;
+                        selectedFlow = englishSearchFlow;
+                        selectedSource = 'english-fallback-plain';
+                    }
+                    else if (primarySearchFlow.bestInstrumentalCandidate) {
+                        body = primarySearchFlow.bestInstrumentalCandidate;
+                        selectedFlow = primarySearchFlow;
+                        selectedSource = 'primary-instrumental';
+                    }
+                    else if (englishSearchFlow?.bestInstrumentalCandidate) {
+                        body = englishSearchFlow.bestInstrumentalCandidate;
+                        selectedFlow = englishSearchFlow;
+                        selectedSource = 'english-instrumental';
+                    }
+                }
+
+                if (!body) {
+                    const finalFlow = englishSearchFlow || primarySearchFlow;
+                    return {
+                        success: false,
+                        error: englishSearchError || (finalFlow.resolvedSearch.totalResults > 0
+                            ? 'Low confidence metadata match'
+                            : (finalFlow.resolvedSearch.error || 'No lyrics found')),
+                        candidates: [],
+                        selectedCandidateKey: null,
+                        searchMode: finalFlow.resolvedSearch?.searchLabel,
+                        totalResults: finalFlow.resolvedSearch?.totalResults || 0,
+                        usedFallbackQuery: finalFlow.usedFallbackQuery || false
+                    };
+                }
+
+                const previewList = buildPreviewCandidateList(primarySearchFlow, englishSearchFlow, body);
+                return {
+                    success: true,
+                    error: null,
+                    candidates: previewList.candidates,
+                    selectedCandidateKey: previewList.selectedCandidateKey,
+                    selectedSource,
+                    searchMode: selectedFlow.resolvedSearch?.searchLabel || 'structured',
+                    totalResults: previewList.candidates.length,
+                    usedFallbackQuery: !!selectedFlow.usedFallbackQuery,
+                    syncDataLineCount: syncDataLineCharCounts?.length || 0,
+                    englishTitle: englishMetadata?.title || null,
+                    englishArtist: englishMetadata?.artist || null
+                };
+            } catch (e) {
+                return {
+                    success: false,
+                    error: e?.message || 'LRCLIB candidate search failed',
+                    candidates: [],
+                    selectedCandidateKey: null
+                };
+            }
         },
 
         /**
