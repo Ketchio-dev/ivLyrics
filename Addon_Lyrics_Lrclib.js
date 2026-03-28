@@ -840,7 +840,7 @@
                 syncLineExactMatch: false,
                 exactSyncedLineMatch: false,
                 exactPlainLineMatch: false,
-                preferredLyricsSource: candidate?.plainLyrics ? 'plain' : (candidate?.syncedLyrics ? 'synced' : null)
+                preferredLyricsSource: null
             };
         }
 
@@ -856,7 +856,7 @@
             ? 'synced'
             : (exactPlainLineMatch
                 ? 'plain'
-                : (candidate?.plainLyrics ? 'plain' : (candidate?.syncedLyrics ? 'synced' : null)));
+                : null);
 
         return {
             syncLineExactMatch: exactSyncedLineMatch || exactPlainLineMatch,
