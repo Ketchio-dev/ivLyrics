@@ -242,25 +242,97 @@
         return LANGUAGE_DATA[lang] || LANGUAGE_DATA[shortLang] || LANGUAGE_DATA['en'];
     }
 
-    /**
-     * Build request body params from advanced settings
-     */
-    function getAdvancedRequestParams() {
-        const params = {};
+    function getDefaultRequestBodyMergePatch() {
+        return {
+            max_completion_tokens: 16000,
+            temperature: 0.3
+        };
+    }
 
-        // max_tokens (OFF by default - some models don't support it)
-        const useMaxTokens = getSetting('adv-maxTokens-enabled', false);
-        if (useMaxTokens) {
-            params.max_tokens = parseInt(getSetting('adv-maxTokens-value', 16000)) || 16000;
+    function getDefaultRequestBodyMergeJson() {
+        return JSON.stringify(getDefaultRequestBodyMergePatch(), null, 2);
+    }
+
+    function normalizeRequestBodyMergeJson(rawValue) {
+        if (rawValue === null || rawValue === undefined || rawValue === '') {
+            return '';
         }
 
-        // temperature
-        const useTemperature = getSetting('adv-temperature-enabled', true);
-        if (useTemperature) {
-            params.temperature = parseFloat(getSetting('adv-temperature-value', 0.3)) || 0.3;
+        if (typeof rawValue === 'string') {
+            return rawValue;
         }
 
-        return params;
+        if (isPlainObject(rawValue) || Array.isArray(rawValue)) {
+            return JSON.stringify(rawValue, null, 2);
+        }
+
+        return String(rawValue);
+    }
+
+    function isPlainObject(value) {
+        return value !== null && typeof value === 'object' && !Array.isArray(value);
+    }
+
+    function mergeRequestBody(base, patch) {
+        const result = { ...base };
+
+        for (const [key, value] of Object.entries(patch)) {
+            if (value === null) {
+                delete result[key];
+                continue;
+            }
+
+            if (isPlainObject(value) && isPlainObject(result[key])) {
+                result[key] = mergeRequestBody(result[key], value);
+                continue;
+            }
+
+            result[key] = value;
+        }
+
+        return result;
+    }
+
+    function getRequestBodyMergeValidationError(rawValue) {
+        const raw = normalizeRequestBodyMergeJson(rawValue).trim();
+        if (!raw) return '';
+
+        try {
+            const parsed = JSON.parse(raw);
+            if (!isPlainObject(parsed)) {
+                return 'Request Body Merge JSON must be a JSON object.';
+            }
+            return '';
+        } catch (e) {
+            return e.message || 'Invalid JSON.';
+        }
+    }
+
+    function getRequestBodyMergePatch() {
+        const raw = normalizeRequestBodyMergeJson(getSetting('adv-requestBodyMergeJson', '')).trim();
+        if (!raw) return getDefaultRequestBodyMergePatch();
+
+        const validationError = getRequestBodyMergeValidationError(raw);
+        if (validationError) {
+            throw new Error(`[ChatGPT] Invalid Request Body Merge JSON: ${validationError}`);
+        }
+
+        return JSON.parse(raw);
+    }
+
+    function buildChatGPTRequestBody(model, prompt, { stream = false } = {}) {
+        const requestBody = {
+            model: model,
+            messages: [
+                { role: 'user', content: prompt }
+            ]
+        };
+
+        if (stream) {
+            requestBody.stream = true;
+        }
+
+        return mergeRequestBody(requestBody, getRequestBodyMergePatch());
     }
 
     // ============================================
@@ -414,13 +486,7 @@ Even if the song is English, the description and trivia MUST be written in ${lan
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${apiKey}`
                         },
-                        body: JSON.stringify({
-                            model: model,
-                            messages: [
-                                { role: 'user', content: prompt }
-                            ],
-                            ...getAdvancedRequestParams()
-                        })
+                        body: JSON.stringify(buildChatGPTRequestBody(model, prompt))
                     });
 
                     if (response.status === 429 || response.status === 403) {
@@ -503,14 +569,7 @@ Even if the song is English, the description and trivia MUST be written in ${lan
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${apiKey}`
                         },
-                        body: JSON.stringify({
-                            model: model,
-                            messages: [
-                                { role: 'user', content: prompt }
-                            ],
-                            ...getAdvancedRequestParams(),
-                            stream: true
-                        })
+                        body: JSON.stringify(buildChatGPTRequestBody(model, prompt, { stream: true }))
                     });
 
                     if (response.status === 429 || response.status === 403) {
@@ -818,10 +877,17 @@ Even if the song is English, the description and trivia MUST be written in ${lan
 
             function AdvancedParamsSection() {
                 const [expanded, setExpanded] = useState(getSetting('adv-expanded', false));
-                const [maxTokensEnabled, setMaxTokensEnabled] = useState(getSetting('adv-maxTokens-enabled', false));
-                const [maxTokensValue, setMaxTokensValue] = useState(getSetting('adv-maxTokens-value', 16000));
-                const [temperatureEnabled, setTemperatureEnabled] = useState(getSetting('adv-temperature-enabled', true));
-                const [temperatureValue, setTemperatureValue] = useState(getSetting('adv-temperature-value', 0.3));
+                const [requestBodyMergeJson, setRequestBodyMergeJson] = useState(() => {
+                    const savedValue = normalizeRequestBodyMergeJson(getSetting('adv-requestBodyMergeJson', ''));
+                    return savedValue || getDefaultRequestBodyMergeJson();
+                });
+                const requestBodyMergeError = getRequestBodyMergeValidationError(requestBodyMergeJson);
+
+                useEffect(() => {
+                    if (!normalizeRequestBodyMergeJson(getSetting('adv-requestBodyMergeJson', ''))) {
+                        setSetting('adv-requestBodyMergeJson', getDefaultRequestBodyMergeJson());
+                    }
+                }, []);
 
                 const toggleExpanded = useCallback(() => {
                     const next = !expanded;
@@ -838,33 +904,24 @@ Even if the song is English, the description and trivia MUST be written in ${lan
                         React.createElement('label', { style: { cursor: 'pointer', margin: 0, fontSize: '12px', opacity: 0.8 } }, 'Advanced API Parameters')
                     ),
                     expanded && React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px', paddingLeft: '8px', borderLeft: '2px solid rgba(255,255,255,0.1)' } },
-                        // Max Tokens
-                        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '8px' } },
-                            React.createElement('input', {
-                                type: 'checkbox', checked: maxTokensEnabled,
-                                onChange: (e) => { setMaxTokensEnabled(e.target.checked); setSetting('adv-maxTokens-enabled', e.target.checked); }
+                        React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: '4px' } },
+                            React.createElement('span', { style: { fontSize: '12px' } }, 'Request Body Merge JSON'),
+                            React.createElement('textarea', {
+                                value: requestBodyMergeJson,
+                                rows: 7,
+                                spellCheck: false,
+                                style: { width: '100%', fontSize: '12px', fontFamily: 'monospace', resize: 'vertical' },
+                                placeholder: '{\n  "max_completion_tokens": 16000,\n  "max_tokens": null\n}',
+                                onChange: (e) => {
+                                    const value = e.target.value;
+                                    setRequestBodyMergeJson(value);
+                                    setSetting('adv-requestBodyMergeJson', value);
+                                }
                             }),
-                            React.createElement('span', { style: { fontSize: '12px', minWidth: '110px' } }, 'Max Tokens'),
-                            React.createElement('input', {
-                                type: 'number', value: maxTokensValue, disabled: !maxTokensEnabled,
-                                style: { width: '80px', fontSize: '12px' },
-                                onChange: (e) => { const v = parseInt(e.target.value) || 16000; setMaxTokensValue(v); setSetting('adv-maxTokens-value', v); }
-                            })
-                        ),
-                        // Temperature
-                        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '8px' } },
-                            React.createElement('input', {
-                                type: 'checkbox', checked: temperatureEnabled,
-                                onChange: (e) => { setTemperatureEnabled(e.target.checked); setSetting('adv-temperature-enabled', e.target.checked); }
-                            }),
-                            React.createElement('span', { style: { fontSize: '12px', minWidth: '110px' } }, 'Temperature'),
-                            React.createElement('input', {
-                                type: 'number', value: temperatureValue, disabled: !temperatureEnabled,
-                                style: { width: '80px', fontSize: '12px' }, step: '0.1', min: '0', max: '2',
-                                onChange: (e) => { const v = parseFloat(e.target.value) || 0.3; setTemperatureValue(v); setSetting('adv-temperature-value', v); }
-                            })
-                        ),
-                        React.createElement('small', { style: { opacity: 0.5, fontSize: '11px' } }, 'Uncheck to exclude parameter from API request. Some models may not support max_tokens.')
+                            requestBodyMergeError
+                                ? React.createElement('small', { style: { color: '#ff9b9b', fontSize: '11px' } }, requestBodyMergeError)
+                                : React.createElement('small', { style: { opacity: 0.65, fontSize: '11px' } }, 'Merged into the default request body. max_completion_tokens and temperature are filled in by default. Set a key to null to remove it.')
+                        )
                     )
                 );
             }
