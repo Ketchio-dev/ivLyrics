@@ -1647,7 +1647,7 @@ window.LANG_HI = {
     "copied": "✓ क्लिपबोर्ड पर कॉपी किया गया",
     "downloaded": "✓ डाउनलोड किया गया",
     "shared": "✓ साझा किया गया",
-    "maxLinesReached": "आप अधिकतम 3 लाइनें चुन सकते हैं",
+    "maxLinesReached": "आप अधिकतम 10 लाइनें चुन सकते हैं",
     "noSelection": "लिरिक्स चुनें"
   },
   "setupWizard": {

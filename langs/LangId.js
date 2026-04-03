@@ -1647,7 +1647,7 @@ window.LANG_ID = {
     "copied": "✓ Disalin ke Papan Klip",
     "downloaded": "✓ Diunduh",
     "shared": "✓ Dibagikan",
-    "maxLinesReached": "Maksimal memilih 3 baris",
+    "maxLinesReached": "Maksimal memilih 10 baris",
     "noSelection": "Pilih lirik terlebih dahulu"
   },
   "setupWizard": {

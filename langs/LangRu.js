@@ -1648,7 +1648,7 @@ window.LANG_RU = {
     "copied": "✓ Скопировано в буфер",
     "downloaded": "✓ Скачано",
     "shared": "✓ Опубликовано",
-    "maxLinesReached": "Максимум 3 строки",
+    "maxLinesReached": "Максимум 10 строк",
     "noSelection": "Выберите текст"
   },
   "setupWizard": {

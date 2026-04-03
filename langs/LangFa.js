@@ -1647,7 +1647,7 @@ window.LANG_FA = {
     "copied": "✓ در کلیپ‌بورد کپی شد",
     "downloaded": "✓ دانلود شد",
     "shared": "✓ به اشتراک گذاشته شد",
-    "maxLinesReached": "حداکثر می‌توانید 6 خط انتخاب کنید",
+    "maxLinesReached": "حداکثر می‌توانید 10 خط انتخاب کنید",
     "noSelection": "متن را انتخاب کنید"
   },
   "setupWizard": {

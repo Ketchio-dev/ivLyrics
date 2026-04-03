@@ -1647,7 +1647,7 @@ window.LANG_DE = {
     "copied": "✓ In Zwischenablage kopiert",
     "downloaded": "✓ Heruntergeladen",
     "shared": "✓ Geteilt",
-    "maxLinesReached": "Maximal 3 Zeilen auswählbar",
+    "maxLinesReached": "Maximal 10 Zeilen auswählbar",
     "noSelection": "Bitte Songtext auswählen"
   },
   "setupWizard": {

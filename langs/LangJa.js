@@ -1648,7 +1648,7 @@ window.LANG_JA = {
     "copied": "✓ クリップボードにコピー済み",
     "downloaded": "✓ ダウンロード済み",
     "shared": "✓ 共有済み",
-    "maxLinesReached": "最大3行まで選択できます",
+    "maxLinesReached": "最大10行まで選択できます",
     "noSelection": "歌詞を選択してください"
   },
   "setupWizard": {

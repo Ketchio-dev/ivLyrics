@@ -1648,7 +1648,7 @@ window.LANG_ES = {
     "copied": "✓ Copiado al portapapeles",
     "downloaded": "✓ Descargado",
     "shared": "✓ Compartido",
-    "maxLinesReached": "Puedes seleccionar hasta 3 líneas",
+    "maxLinesReached": "Puedes seleccionar hasta 10 líneas",
     "noSelection": "Selecciona las letras"
   },
   "setupWizard": {

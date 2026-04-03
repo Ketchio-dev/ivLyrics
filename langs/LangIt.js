@@ -1648,7 +1648,7 @@ window.LANG_IT = {
     "copied": "✓ Copiato negli appunti",
     "downloaded": "✓ Scaricato",
     "shared": "✓ Condiviso",
-    "maxLinesReached": "Puoi selezionare massimo 3 righe",
+    "maxLinesReached": "Puoi selezionare massimo 10 righe",
     "noSelection": "Seleziona il testo"
   },
   "setupWizard": {

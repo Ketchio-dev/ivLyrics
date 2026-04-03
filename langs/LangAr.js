@@ -1647,7 +1647,7 @@ window.LANG_AR = {
     "copied": "✓ تم النسخ للحافظة",
     "downloaded": "✓ تم التنزيل",
     "shared": "✓ تمت المشاركة",
-    "maxLinesReached": "يمكنك اختيار 3 أسطر كحد أقصى",
+    "maxLinesReached": "يمكنك اختيار 10 أسطر كحد أقصى",
     "noSelection": "اختر كلمات"
   },
   "setupWizard": {

@@ -1648,7 +1648,7 @@ window.LANG_KO = {
     "copied": "✓ 클립보드에 복사됨",
     "downloaded": "✓ 다운로드됨",
     "shared": "✓ 공유됨",
-    "maxLinesReached": "최대 3줄까지 선택할 수 있습니다",
+    "maxLinesReached": "최대 10줄까지 선택할 수 있습니다",
     "noSelection": "가사를 선택하세요"
   },
   "setupWizard": {

@@ -1648,7 +1648,7 @@ window.LANG_TH = {
     "copied": "✓ คัดลอกลงคลิปบอร์ดแล้ว",
     "downloaded": "✓ ดาวน์โหลดแล้ว",
     "shared": "✓ แชร์แล้ว",
-    "maxLinesReached": "เลือกได้สูงสุด 3 บรรทัด",
+    "maxLinesReached": "เลือกได้สูงสุด 10 บรรทัด",
     "noSelection": "โปรดเลือกเนื้อเพลง"
   },
   "setupWizard": {

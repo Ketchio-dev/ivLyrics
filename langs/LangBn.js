@@ -1648,7 +1648,7 @@ window.LANG_BN = {
     "copied": "✓ ক্লিপবোর্ডে কপি হয়েছে",
     "downloaded": "✓ ডাউনলোড হয়েছে",
     "shared": "✓ শেয়ার হয়েছে",
-    "maxLinesReached": "সর্বোচ্চ ৩ লাইন নির্বাচন করা যাবে",
+    "maxLinesReached": "সর্বোচ্চ ১০ লাইন নির্বাচন করা যাবে",
     "noSelection": "লিরিক্স নির্বাচন করুন"
   },
   "setupWizard": {

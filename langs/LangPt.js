@@ -1648,7 +1648,7 @@ window.LANG_PT = {
     "copied": "✓ Copiado para o Clipboard",
     "downloaded": "✓ Baixado",
     "shared": "✓ Compartilhado",
-    "maxLinesReached": "Você pode selecionar até 3 linhas",
+    "maxLinesReached": "Você pode selecionar até 10 linhas",
     "noSelection": "Selecione a letra"
   },
   "setupWizard": {

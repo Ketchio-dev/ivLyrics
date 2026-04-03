@@ -1648,7 +1648,7 @@ window.LANG_ZH_TW = {
     "copied": "✓ 已複製到剪貼簿",
     "downloaded": "✓ 已下載",
     "shared": "✓ 已分享",
-    "maxLinesReached": "最多只能選擇 3 行",
+    "maxLinesReached": "最多只能選擇 10 行",
     "noSelection": "請選擇歌詞"
   },
   "setupWizard": {

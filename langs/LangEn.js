@@ -1648,7 +1648,7 @@ window.LANG_EN = {
     "copied": "✓ Copied to clipboard",
     "downloaded": "✓ Downloaded",
     "shared": "✓ Shared",
-    "maxLinesReached": "You can select up to 3 lines",
+    "maxLinesReached": "You can select up to 10 lines",
     "noSelection": "Please select lyrics"
   },
   "setupWizard": {

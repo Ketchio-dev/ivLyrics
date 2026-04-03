@@ -1648,7 +1648,7 @@ window.LANG_FR = {
     "copied": "✓ Copié",
     "downloaded": "✓ Téléchargé",
     "shared": "✓ Partagé",
-    "maxLinesReached": "Maximum 3 lignes sélectionnables",
+    "maxLinesReached": "Maximum 10 lignes sélectionnables",
     "noSelection": "Sélectionnez des paroles"
   },
   "setupWizard": {

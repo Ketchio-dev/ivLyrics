@@ -1648,7 +1648,7 @@ window.LANG_VI = {
     "copied": "✓ Đã sao chép vào clipboard",
     "downloaded": "✓ Đã tải xuống",
     "shared": "✓ Đã chia sẻ",
-    "maxLinesReached": "Chỉ được chọn tối đa 3 dòng",
+    "maxLinesReached": "Chỉ được chọn tối đa 10 dòng",
     "noSelection": "Vui lòng chọn lời bài hát"
   },
   "setupWizard": {
