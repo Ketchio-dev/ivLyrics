@@ -115,6 +115,7 @@
         'fa': { name: 'Persian', native: 'فارسی', phoneticDesc: 'Persian script pronunciation' },
         'de': { name: 'German', native: 'Deutsch', phoneticDesc: 'German phonetic spelling' },
         'ru': { name: 'Russian', native: 'Русский', phoneticDesc: 'Russian Cyrillic pronunciation' },
+        'sv': { name: 'Swedish', native: 'Svenska', phoneticDesc: 'Swedish phonetic spelling' },
         'pt': { name: 'Portuguese', native: 'Português', phoneticDesc: 'Portuguese phonetic spelling' },
         'bn': { name: 'Bengali', native: 'বাংলা', phoneticDesc: 'Bengali script pronunciation' },
         'it': { name: 'Italian', native: 'Italiano', phoneticDesc: 'Italian phonetic spelling' },

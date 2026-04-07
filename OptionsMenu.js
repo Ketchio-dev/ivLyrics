@@ -2537,7 +2537,7 @@ const SyncAdjustButtonFluent = react.memo(({ trackUri, provider, onOffsetChange 
 });
 
 // Community Video Selector를 document.body에 직접 렌더링
-function openCommunityVideoSelector(trackUri, currentVideoId, onVideoSelect) {
+function openCommunityVideoSelector(trackUri, currentVideoId, onVideoSelect, defaultStartTime = 0) {
   // 이미 열려있으면 무시
   if (document.getElementById("ivLyrics-community-video-overlay")) {
     return;
@@ -2557,6 +2557,7 @@ function openCommunityVideoSelector(trackUri, currentVideoId, onVideoSelect) {
       react.createElement(CommunityVideoSelector, {
         trackUri: trackUri,
         currentVideoId: currentVideoId,
+        defaultStartTime,
         onVideoSelect: (newVideoInfo) => {
           if (onVideoSelect) {
             onVideoSelect(newVideoInfo);
@@ -2569,7 +2570,7 @@ function openCommunityVideoSelector(trackUri, currentVideoId, onVideoSelect) {
 }
 
 // Community Video Selector Button
-const CommunityVideoButton = react.memo(({ trackUri, videoInfo, onVideoSelect }) => {
+const CommunityVideoButton = react.memo(({ trackUri, videoInfo, onVideoSelect, defaultStartTime = 0 }) => {
   // 비디오 배경이 비활성화되어 있으면 버튼 숨김
   if (!CONFIG.visual["video-background"]) {
     return null;
@@ -2579,7 +2580,8 @@ const CommunityVideoButton = react.memo(({ trackUri, videoInfo, onVideoSelect })
     openCommunityVideoSelector(
       trackUri,
       videoInfo?.youtubeVideoId,
-      onVideoSelect
+      onVideoSelect,
+      defaultStartTime
     );
   };
 

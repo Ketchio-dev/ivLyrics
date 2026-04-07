@@ -626,16 +626,21 @@ const CommunityVideoSelector = ({
   trackUri,
   currentVideoId,
   onVideoSelect,
+  defaultStartTime = 0,
   onClose,
 }) => {
   const { useState, useEffect, useCallback, useRef } = react;
+  const getDefaultSubmitStartTime = () => {
+    const parsed = Number(defaultStartTime);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+  };
 
   const [videos, setVideos] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showSubmitForm, setShowSubmitForm] = useState(false);
   const [submitUrl, setSubmitUrl] = useState("");
-  const [submitStartTime, setSubmitStartTime] = useState(0);
+  const [submitStartTime, setSubmitStartTime] = useState(() => getDefaultSubmitStartTime());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [votingId, setVotingId] = useState(null);
   const [previewVideoId, setPreviewVideoId] = useState(null); // 목록에서 미리보기 중인 영상
@@ -681,12 +686,12 @@ const CommunityVideoSelector = ({
   const resetSubmitForm = useCallback(() => {
     setShowSubmitForm(false);
     setSubmitUrl("");
-    setSubmitStartTime(0);
+    setSubmitStartTime(getDefaultSubmitStartTime());
     setSubmitVideoTitle("");
     setFormPreviewVideoId(null);
     setEditingVideo(null);
     setIsLoadingTitle(false);
-  }, []);
+  }, [defaultStartTime]);
 
   const openSubmitForm = useCallback(async (video = null) => {
     try {
@@ -701,12 +706,12 @@ const CommunityVideoSelector = ({
 
     setEditingVideo(video);
     setSubmitUrl("");
-    setSubmitStartTime(video?.startTime || 0);
+    setSubmitStartTime(video?.startTime ?? getDefaultSubmitStartTime());
     setSubmitVideoTitle(video?.youtubeTitle || "");
     setFormPreviewVideoId(video?.youtubeVideoId || null);
     setIsLoadingTitle(false);
     setShowSubmitForm(true);
-  }, []);
+  }, [defaultStartTime]);
 
   // URL 변경 시 YouTube 제목 자동 가져오기
   useEffect(() => {

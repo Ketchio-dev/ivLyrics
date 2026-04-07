@@ -6110,6 +6110,13 @@ class LyricsContainer extends react.Component {
     };
 
     let mode = this.getCurrentMode();
+    const firstTimedLyricStartTimeMs = Number(this.state.currentLyrics?.[0]?.startTime);
+    const defaultCommunityVideoStartTime =
+      (mode === KARAOKE || mode === SYNCED) &&
+        Number.isFinite(firstTimedLyricStartTimeMs) &&
+        firstTimedLyricStartTimeMs >= 0
+        ? firstTimedLyricStartTimeMs / 1000
+        : 0;
 
     let showTranslationButton;
 
@@ -6559,6 +6566,7 @@ class LyricsContainer extends react.Component {
           react.createElement(CommunityVideoButton, {
             trackUri: this.currentTrackUri,
             videoInfo: this.state.videoInfo,
+            defaultStartTime: defaultCommunityVideoStartTime,
             onVideoSelect: async (newVideoInfo) => {
               this.setState({ videoInfo: newVideoInfo });
               if (newVideoInfo && this.currentTrackUri) {

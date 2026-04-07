@@ -107,6 +107,7 @@
         'fa': { name: 'Persian', native: 'فارسی' },
         'de': { name: 'German', native: 'Deutsch' },
         'ru': { name: 'Russian', native: 'Русский' },
+        'sv': { name: 'Swedish', native: 'Svenska' },
         'pt': { name: 'Portuguese', native: 'Português' },
         'bn': { name: 'Bengali', native: 'বাংলা' },
         'it': { name: 'Italian', native: 'Italiano' },
