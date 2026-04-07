@@ -1805,6 +1805,10 @@ const getStaticOptions = () => ({
       gemini_romaji: I18n.t("translationMenu.romajiGemini"),
       gemini_ko: I18n.t("translationMenu.koGemini"),
     },
+    swedish: {
+      gemini_romaji: I18n.t("translationMenu.romajiGemini"),
+      gemini_ko: I18n.t("translationMenu.koGemini"),
+    },
     spanish: {
       gemini_romaji: I18n.t("translationMenu.romajiGemini"),
       gemini_ko: I18n.t("translationMenu.koGemini"),
@@ -1926,6 +1930,7 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
       { key: "ru", value: getDisplayLanguageName("ru") },
       { key: "vi", value: getDisplayLanguageName("vi") },
       { key: "de", value: getDisplayLanguageName("de") },
+      { key: "sv", value: getDisplayLanguageName("sv") },
       { key: "es", value: getDisplayLanguageName("es") },
       { key: "fr", value: getDisplayLanguageName("fr") },
       { key: "pt", value: getDisplayLanguageName("pt") },

@@ -1396,6 +1396,9 @@ const CONFIG = {
     "translation-mode:german":
       StorageManager.getItem("ivLyrics:visual:translation-mode:german") ||
       "none",
+    "translation-mode:swedish":
+      StorageManager.getItem("ivLyrics:visual:translation-mode:swedish") ||
+      "none",
     "translation-mode:spanish":
       StorageManager.getItem("ivLyrics:visual:translation-mode:spanish") ||
       "none",
@@ -1456,6 +1459,9 @@ const CONFIG = {
       ) || "none",
     "translation-mode-2:german":
       StorageManager.getItem("ivLyrics:visual:translation-mode-2:german") ||
+      "none",
+    "translation-mode-2:swedish":
+      StorageManager.getItem("ivLyrics:visual:translation-mode-2:swedish") ||
       "none",
     "translation-mode-2:spanish":
       StorageManager.getItem("ivLyrics:visual:translation-mode-2:spanish") ||

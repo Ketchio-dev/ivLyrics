@@ -10,7 +10,7 @@
     var fallbackData = {};
     var STORAGE_KEY = "ivLyrics:visual:language";
     var DEFAULT_LANGUAGE = "ko";
-    var AVAILABLE_LANGUAGES = ["ko", "en", "zh-CN", "zh-TW", "ja", "es", "fr", "de", "it", "ru", "pt", "hi", "ar", "fa", "bn", "ur", "th", "vi", "id"];
+    var AVAILABLE_LANGUAGES = ["ko", "en", "zh-CN", "zh-TW", "ja", "es", "fr", "de", "it", "ru", "sv", "pt", "hi", "ar", "fa", "bn", "ur", "th", "vi", "id"];
 
     // Language display names
     var LANGUAGE_NAMES = {
@@ -24,6 +24,7 @@
         de: "Deutsch",
         it: "Italiano",
         ru: "Русский",
+        sv: "Svenska",
         pt: "Português",
         hi: "हिन्दी",
         ar: "العربية",
@@ -68,6 +69,9 @@
         }
         if (langCode === 'ru' && typeof window.LANG_RU !== 'undefined' && window.LANG_RU) {
             return window.LANG_RU;
+        }
+        if (langCode === 'sv' && typeof window.LANG_SV !== 'undefined' && window.LANG_SV) {
+            return window.LANG_SV;
         }
         if (langCode === 'pt' && typeof window.LANG_PT !== 'undefined' && window.LANG_PT) {
             return window.LANG_PT;

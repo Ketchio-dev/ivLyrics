@@ -312,7 +312,10 @@
             const cyrillicRegex = /[\u0400-\u04FF]/gu;
             const vietnameseRegex = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/gu;
             const vietnameseUniqueRegex = /[đĐưƯơƠăĂạảẠẢắằẳẵặẮẰẲẴẶấầẩẫậẤẦẨẪẬếềểễệẾỀỂỄỆịỉĨỈỊọỏộốồổỗỌỎỐỒỔỖớờởỡợỚỜỞỠỢụủứừửữựỤỦƯỨỪỬỮỰỵỷỹỲỴỶỸ]/gu;
+            const swedishRegex = /[åäöÅÄÖ]/gu;
+            const swedishUniqueRegex = /[åÅ]/gu;
             const germanCharsRegex = /[äöüßÄÖÜ]/gu;
+            const germanUniqueRegex = /[üßÜ]/gu;
             const spanishRegex = /[áéíóúüñÁÉÍÓÚÜÑ¿¡]/gu;
             const frenchRegex = /[àâæçéèêëïîôùûüÿœÀÂÆÇÉÈÊËÏÎÔÙÛÜŸŒ]/gu;
             const frenchUniqueRegex = /[æœçëïÿÆŒÇËÏŸ]/gu;
@@ -332,7 +335,10 @@
             const cyrillicMatch = rawLyrics.match(cyrillicRegex);
             const vietnameseMatch = rawLyrics.match(vietnameseRegex);
             const vietnameseUniqueMatch = rawLyrics.match(vietnameseUniqueRegex);
+            const swedishMatch = rawLyrics.match(swedishRegex);
+            const swedishUniqueMatch = rawLyrics.match(swedishUniqueRegex);
             const germanMatch = rawLyrics.match(germanCharsRegex);
+            const germanUniqueMatch = rawLyrics.match(germanUniqueRegex);
             const spanishMatch = rawLyrics.match(spanishRegex);
             const frenchMatch = rawLyrics.match(frenchRegex);
             const frenchUniqueMatch = rawLyrics.match(frenchUniqueRegex);
@@ -370,6 +376,9 @@
             const frenchUniqueCount = frenchUniqueMatch ? frenchUniqueMatch.length : 0;
             const vietnameseCount = vietnameseMatch ? vietnameseMatch.length : 0;
             const frenchCount = frenchMatch ? frenchMatch.length : 0;
+            const swedishCount = swedishMatch ? swedishMatch.length : 0;
+            const swedishUniqueCount = swedishUniqueMatch ? swedishUniqueMatch.length : 0;
+            const germanUniqueCount = germanUniqueMatch ? germanUniqueMatch.length : 0;
 
             if (vietnameseUniqueCount >= 2) {
                 this._cacheLanguageResult(cacheKey, "vi");
@@ -397,6 +406,11 @@
             if (polishMatch && polishMatch.length > 3) {
                 this._cacheLanguageResult(cacheKey, "pl");
                 return "pl";
+            }
+            // Swedish
+            if (swedishUniqueCount >= 1 || (swedishCount > 5 && germanUniqueCount === 0)) {
+                this._cacheLanguageResult(cacheKey, "sv");
+                return "sv";
             }
             // German
             if (germanMatch && germanMatch.length > 2) {
