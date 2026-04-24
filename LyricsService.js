@@ -336,11 +336,13 @@
             const frenchUniqueRegex = /[æœçëïÿÆŒÇËÏŸ]/gu;
             const portugueseRegex = /[ãõáàâéêíóôõúüçÃÕÁÀÂÉÊÍÓÔÕÚÜÇ]/gu;
             const turkishRegex = /[çğıöşüÇĞİÖŞÜ]/gu;
+            const turkishUniqueRegex = /[ğıİışĞIŞ]/gu;
             const polishRegex = /[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/gu;
             const arabicRegex = /[\u0600-\u06FF]/gu;
             const thaiRegex = /[\u0E00-\u0E7F]/gu;
             const devanagariRegex = /[\u0900-\u097F]/gu;
             const latinExtendedRegex = /[a-zA-ZÀ-ÿ]/gu;
+            const latinWordRegex = /[a-zà-ÿ]+(?:['’][a-zà-ÿ]+)?/giu;
 
             const cjkMatchRegex = this._cjkMatchRegex || (
                 this._cjkMatchRegex = new RegExp(`${kanaRegex.source}|${hanziRegex.source}|${hangulRegex.source}`, "gu")
@@ -359,11 +361,111 @@
             const frenchUniqueMatch = rawLyrics.match(frenchUniqueRegex);
             const portugueseMatch = rawLyrics.match(portugueseRegex);
             const turkishMatch = rawLyrics.match(turkishRegex);
+            const turkishUniqueMatch = rawLyrics.match(turkishUniqueRegex);
             const polishMatch = rawLyrics.match(polishRegex);
             const arabicMatch = rawLyrics.match(arabicRegex);
             const thaiMatch = rawLyrics.match(thaiRegex);
             const hindiMatch = rawLyrics.match(devanagariRegex);
             const latinMatch = rawLyrics.match(latinExtendedRegex);
+            const normalizedLatinLyrics = rawLyrics.toLowerCase().normalize("NFC");
+            const latinWords = normalizedLatinLyrics.match(latinWordRegex) || [];
+
+            const detectLatinLanguageByScore = () => {
+                if (latinWords.length < 4) return null;
+
+                const languageHints = {
+                    de: {
+                        strong: ["ich", "du", "nicht", "kein", "keine", "der", "die", "das", "den", "dem", "ein", "eine", "einen", "einem", "bin", "bist", "ist", "sind", "war", "waren", "werde", "wird", "werden", "mein", "meine", "dein", "deine", "mir", "dir", "mich", "dich", "für", "über", "schön", "liebe", "nacht", "herz"],
+                        weak: ["und", "oder", "aber", "mit", "auf", "im", "in", "zu", "zum", "zur", "nur", "noch", "schon", "wie", "was", "wenn", "dann", "doch", "alles", "immer"]
+                    },
+                    en: {
+                        strong: ["i", "you", "the", "and", "that", "with", "not", "for", "this", "your", "my", "me", "we", "are", "am", "is", "be", "was", "were", "have", "has", "do", "does", "don't", "can't", "love", "night", "heart"],
+                        weak: ["to", "in", "on", "of", "it", "all", "so", "no", "yes", "but", "if", "when", "now", "here", "there"]
+                    },
+                    fr: {
+                        strong: ["je", "tu", "nous", "vous", "pas", "ne", "est", "suis", "es", "sommes", "avec", "pour", "dans", "mon", "ma", "mes", "ton", "ta", "tes", "que", "qui", "sur", "plus", "amour", "coeur"],
+                        weak: ["le", "la", "les", "un", "une", "des", "du", "de", "et", "ou", "mais", "ce", "ces", "en"]
+                    },
+                    es: {
+                        strong: ["yo", "tú", "tu", "usted", "nosotros", "vosotros", "soy", "eres", "estoy", "estás", "no", "con", "para", "por", "mi", "mis", "tus", "quiero", "amor", "corazón"],
+                        weak: ["el", "la", "los", "las", "un", "una", "de", "y", "o", "pero", "que", "en", "es", "como"]
+                    },
+                    it: {
+                        strong: ["io", "tu", "noi", "voi", "sono", "sei", "non", "con", "per", "mio", "mia", "tuo", "tua", "amore", "cuore", "notte"],
+                        weak: ["il", "lo", "la", "gli", "le", "un", "una", "di", "e", "o", "ma", "che", "in", "come"]
+                    },
+                    pt: {
+                        strong: ["eu", "você", "voce", "nós", "nos", "sou", "és", "esta", "está", "não", "nao", "com", "para", "por", "meu", "minha", "teu", "tua", "amor", "coração", "coracao"],
+                        weak: ["o", "a", "os", "as", "um", "uma", "de", "e", "ou", "mas", "que", "em", "como"]
+                    },
+                    sv: {
+                        strong: ["jag", "du", "vi", "ni", "inte", "är", "var", "med", "för", "min", "mitt", "din", "ditt", "kärlek", "hjärta", "natt"],
+                        weak: ["och", "eller", "men", "det", "den", "en", "ett", "i", "på", "som", "om", "allt"]
+                    },
+                    tr: {
+                        strong: ["ben", "sen", "biz", "siz", "değil", "degil", "için", "icin", "çok", "cok", "gibi", "beni", "seni", "aşk", "ask", "kalp", "gece"],
+                        weak: ["ve", "bir", "bu", "o", "da", "de", "mi", "ne", "ile", "ama", "her"]
+                    },
+                    pl: {
+                        strong: ["ja", "ty", "my", "wy", "nie", "jest", "są", "sa", "dla", "przez", "mój", "moj", "moja", "twój", "twoj", "twoja", "miłość", "milosc", "serce", "noc"],
+                        weak: ["i", "lub", "ale", "to", "ten", "ta", "te", "w", "na", "z", "do", "jak"]
+                    },
+                    nl: {
+                        strong: ["ik", "jij", "je", "wij", "niet", "ben", "bent", "is", "zijn", "met", "voor", "mijn", "jouw", "liefde", "hart", "nacht"],
+                        weak: ["de", "het", "een", "en", "of", "maar", "dat", "dit", "in", "op", "als"]
+                    }
+                };
+
+                const scores = {};
+                Object.keys(languageHints).forEach((lang) => {
+                    scores[lang] = 0;
+                });
+
+                Object.entries(languageHints).forEach(([lang, hints]) => {
+                    const strong = new Set(hints.strong);
+                    const weak = new Set(hints.weak);
+                    latinWords.forEach((word) => {
+                        if (strong.has(word)) scores[lang] += 2;
+                        else if (weak.has(word)) scores[lang] += 1;
+                    });
+                });
+
+                const charBonus = (regex, weight) => {
+                    const match = normalizedLatinLyrics.match(regex);
+                    return match ? match.length * weight : 0;
+                };
+
+                scores.de += charBonus(/[ß]/gu, 5) + charBonus(/[ä]/gu, 3) + charBonus(/[öü]/gu, 1);
+                scores.tr += charBonus(/[ğıış]/gu, 5) + charBonus(/[ç]/gu, 2);
+                scores.sv += charBonus(/[å]/gu, 5) + charBonus(/[äö]/gu, 1);
+                scores.fr += charBonus(/[æœçëïÿêèùû]/gu, 3);
+                scores.es += charBonus(/[ñ¿¡]/gu, 5) + charBonus(/[áéíóú]/gu, 1);
+                scores.pt += charBonus(/[ãõ]/gu, 5) + charBonus(/[ç]/gu, 1);
+                scores.pl += charBonus(/[ąćęłńśźż]/gu, 5);
+
+                if (/\b(ich bin|du bist|ich hab|ich habe|du hast|wir sind|es ist|nicht mehr|für dich|mit dir)\b/u.test(normalizedLatinLyrics)) {
+                    scores.de += 4;
+                }
+                if (/\b(i am|you are|don't|can't|with you|for you|my heart)\b/u.test(normalizedLatinLyrics)) {
+                    scores.en += 4;
+                }
+                if (/\b(je suis|tu es|avec toi|mon coeur|mon cœur|pour toi)\b/u.test(normalizedLatinLyrics)) {
+                    scores.fr += 4;
+                }
+                if (/\b(yo soy|estoy aquí|estoy aqui|contigo|mi corazón|mi corazon)\b/u.test(normalizedLatinLyrics)) {
+                    scores.es += 4;
+                }
+
+                const sorted = Object.entries(scores).sort((left, right) => right[1] - left[1]);
+                const [bestLang, bestScore] = sorted[0];
+                const nextScore = sorted[1]?.[1] || 0;
+                const minScore = latinWords.length < 8 ? 4 : 5;
+
+                if (bestScore >= minScore && bestScore - nextScore >= 2) {
+                    return bestLang;
+                }
+                return null;
+            };
 
             // Arabic
             if (arabicMatch && arabicMatch.length > 5) {
@@ -394,6 +496,13 @@
             const swedishCount = swedishMatch ? swedishMatch.length : 0;
             const swedishUniqueCount = swedishUniqueMatch ? swedishUniqueMatch.length : 0;
             const germanUniqueCount = germanUniqueMatch ? germanUniqueMatch.length : 0;
+            const turkishUniqueCount = turkishUniqueMatch ? turkishUniqueMatch.length : 0;
+            const latinScoreLanguage = !cjkMatch ? detectLatinLanguageByScore() : null;
+
+            if (latinScoreLanguage) {
+                this._cacheLanguageResult(cacheKey, latinScoreLanguage);
+                return latinScoreLanguage;
+            }
 
             if (vietnameseUniqueCount >= 2) {
                 this._cacheLanguageResult(cacheKey, "vi");
@@ -413,7 +522,7 @@
             }
 
             // Turkish
-            if (turkishMatch && turkishMatch.length > 3) {
+            if (turkishMatch && turkishMatch.length > 3 && turkishUniqueCount > 0) {
                 this._cacheLanguageResult(cacheKey, "tr");
                 return "tr";
             }
