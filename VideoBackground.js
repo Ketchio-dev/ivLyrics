@@ -59,6 +59,15 @@ const VideoBackground = ({ trackUri, firstLyricTime, brightness, blurAmount, cov
     const brightnessRatio = brightnessValue / 100;
     const blurValue = Math.min(Math.max(Number(blurAmount) || 0, 0), 80);
     const useCoverMode = coverMode === true;
+    const blurCompositeStyle = blurValue ? {
+        willChange: "filter, transform, opacity",
+        backfaceVisibility: "hidden",
+        WebkitBackfaceVisibility: "hidden",
+        contain: "paint",
+    } : {};
+    const videoTransform = useCoverMode
+        ? `translate3d(-50%, -50%, 0)${blurValue ? " scale(1.05)" : ""}`
+        : (blurValue ? "translateZ(0) scale(1.05)" : undefined);
 
     // 헬퍼 모드 설정 확인
     useEffect(() => {
@@ -869,7 +878,8 @@ const VideoBackground = ({ trackUri, firstLyricTime, brightness, blurAmount, cov
                 backgroundSize: "cover",
                 backgroundPosition: "center",
                 filter: `brightness(${brightnessRatio}) blur(${blurValue}px)`,
-                transform: "scale(1.1)",
+                transform: "translateZ(0) scale(1.1)",
+                ...blurCompositeStyle,
                 zIndex: 0,
                 display: "flex",
                 alignItems: "center",
@@ -899,15 +909,14 @@ const VideoBackground = ({ trackUri, firstLyricTime, brightness, blurAmount, cov
         height: useCoverMode ? "56.25vw" : "100%",
         minWidth: useCoverMode ? "100%" : undefined,
         minHeight: useCoverMode ? "100%" : undefined,
-        transform: useCoverMode
-            ? `translate(-50%, -50%)${blurValue ? " scale(1.05)" : ""}`
-            : (blurValue ? "scale(1.05)" : undefined),
+        transform: videoTransform,
         opacity: isPlayerReady && isPlaying ? 1 : 0,
         transition: "opacity 0.5s ease",
         zIndex: 1,
         pointerEvents: "none",
         filter: blurValue ? `blur(${blurValue}px)` : "none",
         objectFit: useCoverMode ? "cover" : "contain",
+        ...blurCompositeStyle,
     };
 
     return react.createElement("div", {
@@ -919,6 +928,7 @@ const VideoBackground = ({ trackUri, firstLyricTime, brightness, blurAmount, cov
             height: "100%",
             overflow: "hidden",
             zIndex: 0,
+            isolation: "isolate",
         }
     },
         // Loading indicator (top-left corner)
@@ -1097,14 +1107,13 @@ const VideoBackground = ({ trackUri, firstLyricTime, brightness, blurAmount, cov
                 height: useCoverMode ? "56.25vw" : "100%", // 16:9 aspect ratio: 100vw * 9/16
                 minWidth: useCoverMode ? "100%" : undefined,
                 minHeight: useCoverMode ? "100%" : undefined,
-                transform: useCoverMode
-                    ? `translate(-50%, -50%)${blurValue ? " scale(1.05)" : ""}`
-                    : (blurValue ? "scale(1.05)" : undefined),
+                transform: videoTransform,
                 opacity: isPlayerReady && isPlaying ? 1 : 0, // Hide when paused or not ready
                 transition: "opacity 0.5s ease",
                 zIndex: 1,
                 pointerEvents: "none",
                 filter: blurValue ? `blur(${blurValue}px)` : "none",
+                ...blurCompositeStyle,
             }
         }),
         react.createElement("div", {

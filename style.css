@@ -1638,6 +1638,11 @@ div.lyrics-tabBar-headerItemLink {
   transition: background-color 0.5s ease, background-image 0.5s ease,
     filter 0.5s ease, background 1.5s ease;
   pointer-events: none;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translateZ(0);
+  will-change: filter, transform, opacity;
+  contain: paint;
 }
 
 /* Color Gradient Background */
@@ -1661,6 +1666,9 @@ div.lyrics-tabBar-headerItemLink {
   filter: blur(80px);
   opacity: 0.85;
   mix-blend-mode: screen;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  will-change: transform, filter;
 }
 
 .color-gradient-bg .blob-1 {
@@ -2269,6 +2277,7 @@ ruby rt {
   width: 100%;
   height: 100vh;
   transition: grid-template-columns var(--iv-motion-duration-slow) var(--iv-motion-ease-standard);
+  isolation: isolate;
 }
 
 /* Background elements in fullscreen should cover entire area */
@@ -2279,6 +2288,10 @@ ruby rt {
   width: 100%;
   height: 100%;
   grid-area: unset;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  will-change: background-color, opacity;
+  contain: paint;
 }
 
 .lyrics-lyricsContainer-LyricsContainer.fullscreen-active #ivLyrics-gradient-background {
@@ -2287,6 +2300,7 @@ ruby rt {
   left: 0;
   width: 100%;
   height: 100%;
+  overflow: hidden;
 }
 
 /* Reversed layout - Album on right, Lyrics on left */

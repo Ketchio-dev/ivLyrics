@@ -5966,6 +5966,13 @@ class LyricsContainer extends react.Component {
     }
 
     const backgroundStyle = {};
+    const compositedBackgroundStyle = {
+      willChange: "filter, transform, opacity",
+      backfaceVisibility: "hidden",
+      WebkitBackfaceVisibility: "hidden",
+      transform: "translateZ(0)",
+      contain: "paint",
+    };
     // Disable background features when in FAD mode (Full Screen extension)
     if (!this.state.isFADMode && CONFIG.visual["video-background"]) {
       // Video background is handled by the component
@@ -5979,6 +5986,7 @@ class LyricsContainer extends react.Component {
         Spicetify.Player.data?.item?.metadata?.image_url;
 
       if (albumArtUrl) {
+        Object.assign(backgroundStyle, compositedBackgroundStyle);
         backgroundStyle.backgroundImage = `url(${albumArtUrl})`;
         backgroundStyle.backgroundRepeat = "no-repeat";
         backgroundStyle.filter = `brightness(${brightness}) blur(${blurAmount}px)`;
@@ -6017,6 +6025,7 @@ class LyricsContainer extends react.Component {
       backgroundStyle["--ivLyrics-c1"] = `${c1.r}, ${c1.g}, ${c1.b}`;
       backgroundStyle["--ivLyrics-c2"] = `${c2.r}, ${c2.g}, ${c2.b}`;
       backgroundStyle["--ivLyrics-c3"] = `${c3.r}, ${c3.g}, ${c3.b}`;
+      Object.assign(backgroundStyle, compositedBackgroundStyle);
       backgroundStyle.filter = `brightness(${brightness}) saturate(2.5)`;
     } else if (
       !this.state.isFADMode &&
