@@ -228,11 +228,14 @@
                 if (uri !== this.currentUri) {
                     this.currentUri = uri;
                     this.songChangeAt = now;
-                    this.correctionMs = 0;
+                    this.correctionMs =
+                        rawProgress >= IVLYRICS_PROGRESS_CORRECTION_THRESHOLD_MS
+                            ? rawProgress
+                            : 0;
                     this.lastRawProgress = rawProgress;
-                    this.lastAdjustedProgress = rawProgress;
+                    this.lastAdjustedProgress = Math.max(0, rawProgress - this.correctionMs);
                     this.lastSampleAt = now;
-                    return rawProgress;
+                    return this.lastAdjustedProgress;
                 }
 
                 if (this.lastSampleAt > 0) {
