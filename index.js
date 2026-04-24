@@ -12,33 +12,8 @@ const FuriganaConverter = (() => {
   // Debug mode - set to false to reduce console logs
   const DEBUG_MODE = false;
   const MAX_CONVERSION_CACHE_SIZE = 1000;
+  const KUROMOJI_DICT_PATH = "https://unpkg.com/kuromoji@0.1.2/dict";
   let hasLoggedKuromojiWarning = false;
-
-// Patch XMLHttpRequest once to fix Kuromoji dictionary URLs
-if (!XMLHttpRequest.prototype.__ivLyricsFuriganaPatched) {
-  const originalXHROpen = XMLHttpRequest.prototype.open;
-  XMLHttpRequest.prototype.open = function (method, url, ...args) {
-    // Fix Kuromoji dictionary URLs
-    if (
-      typeof url === "string" &&
-      url.includes("/dict/") &&
-      url.includes(".dat.gz")
-    ) {
-      // If URL doesn't start with http/https, fix it
-      if (!url.startsWith("http://") && !url.startsWith("https://")) {
-        url =
-          "https://unpkg.com/kuromoji@0.1.2/dict/" + url.split("/dict/").pop();
-      }
-      // If URL has wrong host, fix it
-      else if (url.includes("xpui.app.spotify.com")) {
-        const filename = url.split("/dict/").pop();
-        url = "https://unpkg.com/kuromoji@0.1.2/dict/" + filename;
-      }
-    }
-    return originalXHROpen.call(this, method, url, ...args);
-  };
-  XMLHttpRequest.prototype.__ivLyricsFuriganaPatched = true;
-}
 
   const init = async () => {
     if (kuromojiInstance) {
@@ -56,12 +31,9 @@ if (!XMLHttpRequest.prototype.__ivLyricsFuriganaPatched) {
         return;
       }
 
-      // Use any path - our XHR patch will fix it
-      const dicPath = "/dict";
-
       window.kuromoji
         .builder({
-          dicPath: dicPath,
+          dicPath: KUROMOJI_DICT_PATH,
         })
         .build((err, tokenizer) => {
           if (err) {
@@ -303,9 +275,6 @@ if (!window.OverlaySender) {
 }
 
 // 하위 호환성을 위해 OverlaySender 별칭 생성
-const OverlaySender = window.OverlaySender;
-
-
 /** @type {React} */
 const react = Spicetify.React;
 const { useState, useEffect, useCallback, useMemo, useRef } = react;
@@ -1180,8 +1149,7 @@ const UNSYNCED = 2;
 
 const CONFIG = {
   visual: {
-    language:
-      StorageManager.getItem("ivLyrics:visual:language") || StorageManager.getItem("ivLyrics:visual:language"),
+    language: StorageManager.getItem("ivLyrics:visual:language"),
     "playbar-button": StorageManager.get(
       "ivLyrics:visual:playbar-button",
       false

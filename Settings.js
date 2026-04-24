@@ -3747,6 +3747,41 @@ const SettingsMainPanelShell = ({
     )
   );
 
+const SETTINGS_RELEASE_LINK_STYLE = "color: rgba(248, 250, 252, 0.92); text-decoration: none; border-bottom: 1px solid rgba(255, 255, 255, 0.24); transition: border-color 0.2s;";
+const SETTINGS_RELEASE_CODE_STYLE = "background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.9em; color: #fbbf24;";
+const SETTINGS_RELEASE_PARAGRAPH_STYLE = "margin: 12px 0; line-height: 1.7;";
+
+function escapeSettingsReleaseHtml(value) {
+  return Utils.escapeHtml(value);
+}
+
+function escapeSettingsReleaseAttribute(value) {
+  return Utils.escapeAttribute(value);
+}
+
+function sanitizeSettingsReleaseUrl(url) {
+  return Utils.sanitizeHttpUrl(url);
+}
+
+function renderSettingsReleaseMarkdown(markdown) {
+  return Utils.renderSafeMarkdownToHTML(markdown, {
+    linkStyle: SETTINGS_RELEASE_LINK_STYLE,
+    codeStyle: SETTINGS_RELEASE_CODE_STYLE,
+    paragraphStyle: SETTINGS_RELEASE_PARAGRAPH_STYLE,
+    imageStyle: "max-width: 100%; height: auto; border-radius: 8px; margin: 12px 0; display: block;",
+    preStyle: "background: rgba(0,0,0,0.3); padding: 12px; border-radius: 6px; overflow-x: auto; margin: 12px 0;",
+    blockCodeStyle: "font-family: monospace; font-size: 13px; color: rgba(255,255,255,0.9);",
+    blockquoteStyle: "margin: 12px 0; padding-left: 16px; border-left: 3px solid rgba(255, 255, 255, 0.24); color: rgba(255,255,255,0.7); font-style: italic;",
+    hrStyle: "border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0;",
+    headingStyles: {
+      1: { tag: "h2", style: "margin: 24px 0 12px; color: #ffffff; font-size: 20px; font-weight: 700;" },
+      2: { tag: "h3", style: "margin: 20px 0 10px; color: #ffffff; font-size: 18px; font-weight: 700;" },
+      3: { tag: "h4", style: "margin: 16px 0 8px; color: #ffffff; font-size: 16px; font-weight: 600;" },
+      4: { tag: "h5", style: "margin: 14px 0 6px; color: #ffffff; font-size: 15px; font-weight: 600;" },
+    },
+  });
+}
+
 const ConfigModal = ({
   onRequestClose = () => {},
   initialTab = "general",
@@ -4685,83 +4720,24 @@ const ConfigModal = ({
           }
 
           const data = await response.json();
-          const version = data.tag_name || "Unknown";
-          const publishedDate = data.published_at
+          const version = escapeSettingsReleaseHtml(data.tag_name || "Unknown");
+          const publishedDate = escapeSettingsReleaseHtml(data.published_at
             ? new Date(data.published_at).toLocaleDateString("ko-KR", {
               year: "numeric",
               month: "long",
               day: "numeric",
             })
-            : "Unknown";
+            : "Unknown");
 
-          // Markdown을 HTML로 변환
-          let body = data.body || I18n.t("settingsAdvanced.patchNotes.empty");
-
-          // 마크다운 변환 (순서 중요)
-          body = body
-            // 코드 블록 먼저 처리 (```로 감싼 부분)
-            .replace(/```[\s\S]*?```/g, (match) => {
-              return `<pre style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 6px; overflow-x: auto; margin: 12px 0;"><code style="font-family: monospace; font-size: 13px; color: rgba(255,255,255,0.9);">${match.slice(3, -3).trim()}</code></pre>`;
-            })
-            // 헤딩 처리
-            .replace(/^#### (.*?)$/gm, '<h5 style="margin: 14px 0 6px; color: #ffffff; font-size: 15px; font-weight: 600;">$1</h5>')
-            .replace(/^### (.*?)$/gm, '<h4 style="margin: 16px 0 8px; color: #ffffff; font-size: 16px; font-weight: 600;">$1</h4>')
-            .replace(/^## (.*?)$/gm, '<h3 style="margin: 20px 0 10px; color: #ffffff; font-size: 18px; font-weight: 700;">$1</h3>')
-            .replace(/^# (.*?)$/gm, '<h2 style="margin: 24px 0 12px; color: #ffffff; font-size: 20px; font-weight: 700;">$1</h2>')
-            // 인라인 코드
-            .replace(/`([^`]+)`/g, '<code style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.9em; color: #fbbf24;">$1</code>')
-            // 볼드와 이탤릭
-            .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
-            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\*(.+?)\*/g, '<em>$1</em>')
-            // 이미지
-            .replace(/!\[(.*?)\]\((.*?)\)/g, '<img src="$2" alt="$1" style="max-width: 100%; height: auto; border-radius: 8px; margin: 12px 0; display: block;" />')
-            // 링크
-            .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color: rgba(248, 250, 252, 0.92); text-decoration: none; border-bottom: 1px solid rgba(255, 255, 255, 0.24); transition: border-color 0.2s;" onmouseover="this.style.borderBottomColor=\'rgba(255, 255, 255, 0.52)\'" onmouseout="this.style.borderBottomColor=\'rgba(255, 255, 255, 0.24)\'">$1</a>')
-            // 체크박스 리스트
-            .replace(/^- \[x\] (.*?)$/gm, '<li style="margin: 6px 0; list-style: none;"><span style="color: #4ade80; margin-right: 6px;">✓</span>$1</li>')
-            .replace(/^- \[ \] (.*?)$/gm, '<li style="margin: 6px 0; list-style: none;"><span style="color: rgba(255,255,255,0.3); margin-right: 6px;">○</span>$1</li>')
-            // 일반 리스트 (-, *, +)
-            .replace(/^[\-\*\+] (.*?)$/gm, '<li style="margin: 6px 0; padding-left: 4px;">$1</li>')
-            // 숫자 리스트
-            .replace(/^\d+\. (.*?)$/gm, '<li style="margin: 6px 0; padding-left: 4px;">$1</li>')
-            // 블록쿼트
-            .replace(/^> (.*?)$/gm, '<blockquote style="margin: 12px 0; padding-left: 16px; border-left: 3px solid rgba(255, 255, 255, 0.24); color: rgba(255,255,255,0.7); font-style: italic;">$1</blockquote>')
-            // 구분선
-            .replace(/^---$/gm, '<hr style="border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0;" />')
-            .replace(/^\*\*\*$/gm, '<hr style="border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0;" />')
-            // 줄바꿈 처리 (두 번 연속된 줄바꿈은 단락 구분)
-            .replace(/\n\n/g, '</p><p style="margin: 12px 0; line-height: 1.7;">');
-
-          // li 태그들을 ul/ol로 감싸기
-          body = body.replace(/(<li[^>]*>.*?<\/li>(\s|<br\/>)*)+/gs, (match) => {
-            // 체크박스나 일반 리스트인 경우
-            if (match.includes('list-style: none')) {
-              return `<ul style="margin: 8px 0 16px; padding-left: 8px; list-style: none;">${match}</ul>`;
-            }
-            return `<ul style="margin: 8px 0 16px; padding-left: 24px; list-style: disc;">${match}</ul>`;
-          });
-
-          // 시작 p 태그 추가
-          if (!body.startsWith('<h') && !body.startsWith('<ul') && !body.startsWith('<pre')) {
-            body = `<p style="margin: 12px 0; line-height: 1.7;">${body}`;
-          }
-          // 끝 p 태그 추가
-          if (!body.endsWith('</p>') && !body.endsWith('</ul>') && !body.endsWith('</pre>')) {
-            body = `${body}</p>`;
-          }
-
-          container.style.display = "block";
-          container.style.alignItems = "flex-start";
-          container.style.justifyContent = "flex-start";
-          container.innerHTML = `
-            <div style="width: 100%;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1);">
-                <div>
-                  <h3 style="margin: 0; font-size: 18px; color: #ffffff; font-weight: 700;">${version}</h3>
-                  <p style="margin: 4px 0 0; font-size: 13px; color: rgba(255,255,255,0.5);">${publishedDate}</p>
-                </div>
-                <a href="${data.html_url}" target="_blank" style="
+          // Render release notes through the local sanitizer before assigning innerHTML.
+          const releaseUrl = sanitizeSettingsReleaseUrl(data.html_url);
+          const body = renderSettingsReleaseMarkdown(
+            data.body || I18n.t("settingsAdvanced.patchNotes.empty")
+          );
+          const viewOnGithubLabel = escapeSettingsReleaseHtml(
+            I18n.t("settingsAdvanced.aboutTab.viewOnGithub")
+          );
+          const releaseLinkStyle = `
                   display: inline-flex;
                   align-items: center;
                   gap: 6px;
@@ -4774,13 +4750,29 @@ const ConfigModal = ({
                   font-size: 13px;
                   font-weight: 600;
                   transition: all 0.2s;
-                " onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
-                  ${I18n.t("settingsAdvanced.aboutTab.viewOnGithub")}
+                `;
+          const releaseLink = releaseUrl
+            ? `<a href="${escapeSettingsReleaseAttribute(releaseUrl)}" target="_blank" rel="noopener noreferrer" style="${releaseLinkStyle}" onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
+                  ${viewOnGithubLabel}
                   <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
                     <path d="M3.75 2A1.75 1.75 0 002 3.75v8.5c0 .966.784 1.75 1.75 1.75h8.5A1.75 1.75 0 0014 12.25v-3.5a.75.75 0 00-1.5 0v3.5a.25.25 0 01-.25.25h-8.5a.25.25 0 01-.25-.25v-8.5a.25.25 0 01.25-.25h3.5a.75.75 0 000-1.5h-3.5z"/>
                     <path d="M10.75 1a.75.75 0 000 1.5h1.69L8.22 6.72a.75.75 0 001.06 1.06l4.22-4.22v1.69a.75.75 0 001.5 0V1h-4.25z"/>
                   </svg>
-                </a>
+                </a>`
+            : `<span style="${releaseLinkStyle}; opacity: 0.55; cursor: default;">
+                  ${viewOnGithubLabel}
+                </span>`;
+          container.style.display = "block";
+          container.style.alignItems = "flex-start";
+          container.style.justifyContent = "flex-start";
+          container.innerHTML = `
+            <div style="width: 100%;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                <div>
+                  <h3 style="margin: 0; font-size: 18px; color: #ffffff; font-weight: 700;">${version}</h3>
+                  <p style="margin: 4px 0 0; font-size: 13px; color: rgba(255,255,255,0.5);">${publishedDate}</p>
+                </div>
+                ${releaseLink}
               </div>
               <div style="line-height: 1.7; color: rgba(255,255,255,0.85); font-size: 14px;">
                 ${body}
@@ -4792,6 +4784,13 @@ const ConfigModal = ({
           container.style.display = "flex";
           container.style.alignItems = "center";
           container.style.justifyContent = "center";
+          const patchNotesLoadFailed = escapeSettingsReleaseHtml(
+            I18n.t("settingsAdvanced.aboutTab.patchNotesLoadFailed")
+          );
+          const checkGithubReleases = escapeSettingsReleaseHtml(
+            I18n.t("settingsAdvanced.aboutTab.checkGithubReleases")
+          );
+
           container.innerHTML = `
             <div style="text-align: center; color: rgba(255,255,255,0.5);">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="margin-bottom: 12px; opacity: 0.3;">
@@ -4799,8 +4798,8 @@ const ConfigModal = ({
                 <line x1="12" y1="8" x2="12" y2="12" stroke-width="2" stroke-linecap="round"/>
                 <line x1="12" y1="16" x2="12.01" y2="16" stroke-width="2" stroke-linecap="round"/>
               </svg>
-              <p style="margin: 0; font-size: 14px;">${I18n.t("settingsAdvanced.aboutTab.patchNotesLoadFailed")}</p>
-              <p style="margin: 4px 0 0; font-size: 12px; opacity: 0.7;">${I18n.t("settingsAdvanced.aboutTab.checkGithubReleases")}</p>
+              <p style="margin: 0; font-size: 14px;">${patchNotesLoadFailed}</p>
+              <p style="margin: 4px 0 0; font-size: 12px; opacity: 0.7;">${checkGithubReleases}</p>
             </div>
           `;
         }
@@ -12595,6 +12594,32 @@ const ConfigModal = ({
                     } else if (updateInfo.hasUpdate) {
                       showUpdateSection = true;
                       showCopyButton = true;
+                      const safeUpdateAvailable = escapeSettingsReleaseHtml(
+                        I18n.t("notifications.updateAvailable")
+                      );
+                      const safeVersionChange = escapeSettingsReleaseHtml(
+                        I18n.t("update.versionChange")
+                      );
+                      const safeCurrentVersion = escapeSettingsReleaseHtml(
+                        updateInfo.currentVersion
+                      );
+                      const safeLatestVersion = escapeSettingsReleaseHtml(
+                        updateInfo.latestVersion
+                      );
+                      const safePlatformName = escapeSettingsReleaseHtml(platformName);
+                      const safeInstallCommand = escapeSettingsReleaseHtml(installCommand);
+                      const releaseNotesUrl = sanitizeSettingsReleaseUrl(
+                        `https://github.com/ivLis-Studio/ivLyrics/releases/tag/v${encodeURIComponent(String(updateInfo.latestVersion ?? ""))}`
+                      );
+                      const releaseNotesHref = releaseNotesUrl
+                        ? escapeSettingsReleaseAttribute(releaseNotesUrl)
+                        : "https://github.com/ivLis-Studio/ivLyrics/releases";
+                      const releaseNotesLabel = escapeSettingsReleaseHtml(
+                        I18n.t("update.releaseNotes")
+                      );
+                      const copyCommandLabel = escapeSettingsReleaseHtml(
+                        I18n.t("update.copyCommand")
+                      );
 
                       resultContainer.innerHTML = `
 												<div style="
@@ -12627,11 +12652,11 @@ const ConfigModal = ({
 																	color: rgba(255, 255, 255, 0.95);
 																	margin-bottom: 2px;
 																	letter-spacing: -0.01em;
-																">${I18n.t("notifications.updateAvailable")}</div>
+																">${safeUpdateAvailable}</div>
 																<div style="
 																	font-size: 12px;
 																	color: rgba(255, 255, 255, 0.5);
-																">${I18n.t("update.versionChange")} ${updateInfo.currentVersion} → ${updateInfo.latestVersion}</div>
+																">${safeVersionChange} ${safeCurrentVersion} → ${safeLatestVersion}</div>
 															</div>
 														</div>
 													</div>
@@ -12648,7 +12673,7 @@ const ConfigModal = ({
 															color: rgba(255, 255, 255, 0.6);
 															margin-bottom: 8px;
 															font-weight: 500;
-														">${platformName}</div>
+														">${safePlatformName}</div>
 														<code style="
 															font-family: Consolas, Monaco, 'Courier New', monospace;
 															font-size: 12px;
@@ -12656,7 +12681,7 @@ const ConfigModal = ({
 															word-break: break-all;
 															line-height: 1.6;
 															user-select: all;
-														">${installCommand}</code>
+														">${safeInstallCommand}</code>
 													</div>
 													
 													<div style="display: flex; gap: 8px;">
@@ -12672,9 +12697,10 @@ const ConfigModal = ({
 															font-weight: 600;
 															transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 															letter-spacing: -0.01em;
-														">${I18n.t("update.copyCommand")}</button>
-														<a href="https://github.com/ivLis-Studio/ivLyrics/releases/tag/v${updateInfo.latestVersion}" 
+														">${copyCommandLabel}</button>
+														<a href="${releaseNotesHref}"
 														   target="_blank"
+														   rel="noopener noreferrer"
 														   style="
 															flex: 1;
 															background: rgba(255, 255, 255, 0.08);
@@ -12690,7 +12716,7 @@ const ConfigModal = ({
 															align-items: center;
 															justify-content: center;
 															letter-spacing: -0.01em;
-														">${I18n.t("update.releaseNotes")}</a>
+														">${releaseNotesLabel}</a>
 													</div>
 												</div>
 											`;
@@ -12720,6 +12746,16 @@ const ConfigModal = ({
                         });
                       }
                     } else {
+                      const latestVersionLabel = escapeSettingsReleaseHtml(
+                        I18n.t("notifications.latestVersion")
+                      );
+                      const safeVersionChange = escapeSettingsReleaseHtml(
+                        I18n.t("update.versionChange")
+                      );
+                      const safeCurrentVersion = escapeSettingsReleaseHtml(
+                        updateInfo.currentVersion
+                      );
+
                       resultContainer.innerHTML = `
 												<div style="
 													padding: 16px 20px;
@@ -12744,8 +12780,8 @@ const ConfigModal = ({
 															<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
 														</svg>
 														<div>
-															<div style="font-weight: 600; margin-bottom: 2px;">${I18n.t("notifications.latestVersion")}</div>
-															<div style="opacity: 0.8; font-size: 12px;">${I18n.t("update.versionChange")} ${updateInfo.currentVersion}</div>
+															<div style="font-weight: 600; margin-bottom: 2px;">${latestVersionLabel}</div>
+															<div style="opacity: 0.8; font-size: 12px;">${safeVersionChange} ${safeCurrentVersion}</div>
 														</div>
 													</div>
 												</div>

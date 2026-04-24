@@ -4530,13 +4530,7 @@
         },
         set enabled(value) {
             Spicetify.LocalStorage.set('ivLyrics:overlay-enabled', value ? 'true' : 'false');
-            if (value) {
-                this.startProgressSync();
-                this.checkConnection();
-            } else {
-                clearSettingsPolling(this);
-                this.stopProgressSync();
-            }
+            this.syncRuntimeState();
         },
 
         setSettingsOpen(isOpen) {
@@ -4874,10 +4868,11 @@
         },
 
         stopProgressSync() {
-            if (this._worker) {
-                this._worker.terminate();
-                this._worker = null;
-            }
+            if (!this._worker) return;
+            cleanupWorker(this._worker);
+            this._worker = null;
+            this._isSendingProgress = false;
+            this._lastProgressUri = null;
         },
 
         setupOffsetListener() {
@@ -4886,23 +4881,23 @@
             this._offsetListenerSetup = true;
 
             // localStorage 변경 감지
-            window.addEventListener('storage', (e) => {
+            this._storageListener = (e) => {
                 if (e.key && e.key.startsWith('lyrics-delay:')) {
                     this.resendWithNewOffset();
                 }
-            });
+            };
 
             // 커스텀 이벤트 리스너
-            window.addEventListener('ivLyrics:delay-changed', () => {
+            this._delayChangedListener = () => {
                 this.resendWithNewOffset();
-            });
+            };
 
-            window.addEventListener('ivLyrics:offset-changed', () => {
+            this._offsetChangedListener = () => {
                 this.resendWithNewOffset();
-            });
+            };
 
             // ivLyrics 페이지에서 가사가 준비되면 오버레이로 전송
-            window.addEventListener('ivLyrics:lyrics-ready', (e) => {
+            this._lyricsReadyListener = (e) => {
                 if (!this.enabled) return;
                 const { trackInfo, lyrics } = e.detail || {};
                 if (trackInfo) {
@@ -4913,26 +4908,26 @@
                     });
                     this.sendLyrics(trackInfo, lyrics || []);
                 }
-            });
+            };
 
             // 페이지 가시성 변경 감지
-            document.addEventListener('visibilitychange', () => {
+            this._visibilityChangeListener = () => {
                 if (document.visibilityState === 'visible' && this.enabled) {
                     helperDebug('[OverlaySender] 페이지 활성화 - 가사 재전송');
                     setTimeout(() => this.resendWithNewOffset(), 200);
                 }
-            });
+            };
 
             // 창 포커스 시
-            window.addEventListener('focus', () => {
+            this._focusListener = () => {
                 if (this.enabled && this._lastTrackInfo) {
                     helperDebug('[OverlaySender] 창 포커스 - 가사 재전송');
                     setTimeout(() => this.resendWithNewOffset(), 300);
                 }
-            });
+            };
 
             // 트랙 변경 감지
-            Spicetify.Player.addEventListener('songchange', async () => {
+            this._songChangeListener = async () => {
                 // 캐시 초기화
                 this.lastSentUri = null;
                 this.lastSentLyrics = null;
@@ -4994,18 +4989,140 @@
                 } catch (e) {
                     console.error('[OverlaySender] 가사 가져오기 실패:', e);
                 }
-            });
+            };
+
+            window.addEventListener('storage', this._storageListener);
+            window.addEventListener('ivLyrics:delay-changed', this._delayChangedListener);
+            window.addEventListener('ivLyrics:offset-changed', this._offsetChangedListener);
+            window.addEventListener('ivLyrics:lyrics-ready', this._lyricsReadyListener);
+            document.addEventListener('visibilitychange', this._visibilityChangeListener);
+            window.addEventListener('focus', this._focusListener);
+            Spicetify.Player.addEventListener('songchange', this._songChangeListener);
+        },
+
+        teardownOffsetListener() {
+            if (!this._offsetListenerSetup) return;
+            this._offsetListenerSetup = false;
+
+            if (this._storageListener) {
+                window.removeEventListener('storage', this._storageListener);
+                this._storageListener = null;
+            }
+            if (this._delayChangedListener) {
+                window.removeEventListener('ivLyrics:delay-changed', this._delayChangedListener);
+                this._delayChangedListener = null;
+            }
+            if (this._offsetChangedListener) {
+                window.removeEventListener('ivLyrics:offset-changed', this._offsetChangedListener);
+                this._offsetChangedListener = null;
+            }
+            if (this._lyricsReadyListener) {
+                window.removeEventListener('ivLyrics:lyrics-ready', this._lyricsReadyListener);
+                this._lyricsReadyListener = null;
+            }
+            if (this._visibilityChangeListener) {
+                document.removeEventListener('visibilitychange', this._visibilityChangeListener);
+                this._visibilityChangeListener = null;
+            }
+            if (this._focusListener) {
+                window.removeEventListener('focus', this._focusListener);
+                this._focusListener = null;
+            }
+            if (this._songChangeListener && typeof Spicetify.Player?.removeEventListener === 'function') {
+                try {
+                    Spicetify.Player.removeEventListener('songchange', this._songChangeListener);
+                } catch (e) { }
+                this._songChangeListener = null;
+            }
+        },
+
+        scheduleConnectionCheck() {
+            if (this._connectionCheckTimer) {
+                clearTimeout(this._connectionCheckTimer);
+            }
+
+            if (!this.enabled) {
+                this._connectionCheckTimer = null;
+                return;
+            }
+
+            this._connectionCheckTimer = setTimeout(() => {
+                this._connectionCheckTimer = null;
+                this.checkConnection();
+            }, 1000);
+        },
+
+        syncRuntimeState() {
+            const enabled = !!this.enabled;
+            if (this._runtimeEnabledState === enabled) {
+                return;
+            }
+
+            this._runtimeEnabledState = enabled;
+            if (enabled) {
+                this.startProgressSync();
+                this.setupOffsetListener();
+                this.scheduleConnectionCheck();
+            } else {
+                this.stopProgressSync();
+                this.teardownOffsetListener();
+                clearSettingsPolling(this);
+                this.lastSentUri = null;
+                this.lastSentLyrics = null;
+                this.lastSentOffset = null;
+                this._lastTrackInfo = null;
+                this._lastLyrics = null;
+                this._offsetCache = {};
+                this.isConnected = false;
+            }
+        },
+
+        setupRuntimeListener() {
+            if (this._runtimeListenerSetup) return;
+            this._runtimeListenerSetup = true;
+
+            this._runtimeStorageListener = () => {
+                this.syncRuntimeState();
+            };
+            this._runtimeEventListener = () => {
+                this.syncRuntimeState();
+            };
+
+            window.addEventListener('storage', this._runtimeStorageListener);
+            window.addEventListener('ivLyrics', this._runtimeEventListener);
+        },
+
+        teardownRuntimeListener() {
+            if (!this._runtimeListenerSetup) return;
+            this._runtimeListenerSetup = false;
+
+            if (this._runtimeStorageListener) {
+                window.removeEventListener('storage', this._runtimeStorageListener);
+                this._runtimeStorageListener = null;
+            }
+            if (this._runtimeEventListener) {
+                window.removeEventListener('ivLyrics', this._runtimeEventListener);
+                this._runtimeEventListener = null;
+            }
+            if (this._connectionCheckTimer) {
+                clearTimeout(this._connectionCheckTimer);
+                this._connectionCheckTimer = null;
+            }
         },
 
         init() {
             if (this._initialized) return;
             this._initialized = true;
-            if (this.enabled) {
-                this.startProgressSync();
-                this.setupOffsetListener();
-                setTimeout(() => this.checkConnection(), 1000);
-            }
+            this.setupRuntimeListener();
+            this.syncRuntimeState();
             helperDebug('[OverlaySender] Initialized in Extension');
+        },
+
+        destroy() {
+            this.stopProgressSync();
+            this.teardownOffsetListener();
+            this.teardownRuntimeListener();
+            clearSettingsPolling(this);
         }
     };
 

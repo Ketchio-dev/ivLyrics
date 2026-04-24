@@ -25,195 +25,20 @@ const MarketplacePage = (() => {
 
     const _mdCache = new Map();
 
-    function escapeHtml(value) {
-        return String(value ?? '')
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;');
-    }
-
-    function escapeAttribute(value) {
-        return escapeHtml(value)
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
-    }
-
-    function sanitizeCodeLanguage(lang) {
-        return String(lang || '').toLowerCase().replace(/[^a-z0-9_-]/g, '');
-    }
-
-    function formatCodeLanguageLabel(lang) {
-        const safeLang = sanitizeCodeLanguage(lang);
-        if (!safeLang) return '';
-
-        const knownLabels = {
-            js: 'JavaScript',
-            jsx: 'JSX',
-            ts: 'TypeScript',
-            tsx: 'TSX',
-            sh: 'Shell',
-            bash: 'Bash',
-            zsh: 'Zsh',
-            pwsh: 'PowerShell',
-            powershell: 'PowerShell',
-            ps1: 'PowerShell',
-            json: 'JSON',
-            yaml: 'YAML',
-            yml: 'YAML',
-            md: 'Markdown',
-            csharp: 'C#',
-            cpp: 'C++',
-            plaintext: 'Plain Text',
-            text: 'Plain Text'
-        };
-
-        if (knownLabels[safeLang]) {
-            return knownLabels[safeLang];
-        }
-
-        return safeLang
-            .split(/[-_]/g)
-            .filter(Boolean)
-            .map(part => part.charAt(0).toUpperCase() + part.slice(1))
-            .join(' ');
-    }
-
-    function sanitizeUrl(url) {
-        if (typeof url !== 'string') return null;
-
-        const trimmed = url.trim();
-        if (!trimmed) return null;
-
-        try {
-            const parsed = new URL(trimmed, window.location.origin);
-            if (!['http:', 'https:'].includes(parsed.protocol)) {
-                return null;
-            }
-            return parsed.toString();
-        } catch {
-            return null;
-        }
-    }
-
-    function buildSafeLinkHtml(url, label) {
-        const safeUrl = sanitizeUrl(url);
-        const safeLabel = escapeHtml(label ?? url ?? '');
-
-        if (!safeUrl) {
-            return safeLabel;
-        }
-
-        return `<a href="${escapeAttribute(safeUrl)}" target="_blank" rel="noopener noreferrer">${safeLabel}</a>`;
-    }
-
     function renderMarkdownToHTML(md) {
         if (_mdCache.has(md)) return _mdCache.get(md);
 
-        let html = md;
-
-        // Normalize line endings
-        html = html.replace(/\r\n/g, '\n');
-
-        // Escape HTML entities (but preserve existing tags we'll generate)
-        html = escapeHtml(html);
-
-        // Code blocks (fenced) - must be before other inline rules
-        html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
-            const safeLang = sanitizeCodeLanguage(lang);
-            const className = safeLang ? ` class="language-${safeLang}"` : '';
-            const languageLabel = formatCodeLanguageLabel(lang);
-            const languageHtml = languageLabel
-                ? `<span class="ivlyrics-marketplace-code-language">${escapeHtml(languageLabel)}</span>`
-                : '<span class="ivlyrics-marketplace-code-language is-empty"></span>';
-            return `<div class="ivlyrics-marketplace-code-block"><div class="ivlyrics-marketplace-code-toolbar">${languageHtml}<button type="button" class="ivlyrics-marketplace-code-copy" data-copy-code="true">Copy</button></div><pre><code${className}>${code.trim()}</code></pre></div>`;
-        });
-
-        // Inline code
-        html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-
-        // Images: ![alt](url)
-        html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, src) => {
-            const safeSrc = sanitizeUrl(src);
-            const safeAlt = escapeAttribute(alt);
-
-            if (!safeSrc) {
-                return alt ? `<span>${escapeHtml(alt)}</span>` : '';
+        const result = Utils.renderSafeMarkdownToHTML(md, {
+            allowTables: true,
+            allowYouTubeEmbeds: true,
+            codeBlockRenderer: ({ code, className, languageLabel, escapeHtml }) => {
+                const languageHtml = languageLabel
+                    ? `<span class="ivlyrics-marketplace-code-language">${escapeHtml(languageLabel)}</span>`
+                    : '<span class="ivlyrics-marketplace-code-language is-empty"></span>';
+                return `<div class="ivlyrics-marketplace-code-block"><div class="ivlyrics-marketplace-code-toolbar">${languageHtml}<button type="button" class="ivlyrics-marketplace-code-copy" data-copy-code="true">Copy</button></div><pre><code${className}>${code}</code></pre></div>`;
             }
-
-            return `<img src="${escapeAttribute(safeSrc)}" alt="${safeAlt}" style="max-width:100%;border-radius:8px;margin:8px 0;" loading="lazy" />`;
         });
 
-        // Links: [text](url)
-        html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, text, url) => buildSafeLinkHtml(url, text));
-
-        // Headings
-        html = html.replace(/^######\s+(.+)$/gm, '<h6>$1</h6>');
-        html = html.replace(/^#####\s+(.+)$/gm, '<h5>$1</h5>');
-        html = html.replace(/^####\s+(.+)$/gm, '<h4>$1</h4>');
-        html = html.replace(/^###\s+(.+)$/gm, '<h3>$1</h3>');
-        html = html.replace(/^##\s+(.+)$/gm, '<h2>$1</h2>');
-        html = html.replace(/^#\s+(.+)$/gm, '<h1>$1</h1>');
-
-        // Bold + Italic
-        html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
-        html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-        html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
-
-        // Strikethrough
-        html = html.replace(/~~(.+?)~~/g, '<del>$1</del>');
-
-        // Horizontal rules
-        html = html.replace(/^---+$/gm, '<hr />');
-        html = html.replace(/^\*\*\*+$/gm, '<hr />');
-
-        // Blockquotes
-        html = html.replace(/^&gt;\s+(.+)$/gm, '<blockquote>$1</blockquote>');
-
-        // Unordered lists
-        html = html.replace(/^[\s]*[-*+]\s+(.+)$/gm, '<li>$1</li>');
-        html = html.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>');
-
-        // Ordered lists
-        html = html.replace(/^[\s]*\d+\.\s+(.+)$/gm, '<li>$1</li>');
-
-        // Tables
-        html = html.replace(/^\|(.+)\|\s*\n\|[-| :]+\|\s*\n((?:\|.+\|\s*\n?)*)/gm, (_, header, body) => {
-            const headers = header.split('|').map(h => h.trim()).filter(Boolean);
-            const rows = body.trim().split('\n').map(row =>
-                row.split('|').map(c => c.trim()).filter(Boolean)
-            );
-            let table = '<table><thead><tr>';
-            headers.forEach(h => { table += `<th>${h}</th>`; });
-            table += '</tr></thead><tbody>';
-            rows.forEach(row => {
-                table += '<tr>';
-                row.forEach(c => { table += `<td>${c}</td>`; });
-                table += '</tr>';
-            });
-            table += '</tbody></table>';
-            return table;
-        });
-
-        // YouTube embeds (raw URLs on their own line)
-        html = html.replace(
-            /(?:^|\n)(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)(?:[^\s]*)?(?:\n|$)/gm,
-            (_, videoId) => {
-                const safeVideoId = String(videoId || '').replace(/[^\w-]/g, '');
-                if (!safeVideoId) return '\n';
-                return `\n<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:8px;margin:8px 0;"><iframe src="https://www.youtube.com/embed/${safeVideoId}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;" allowfullscreen></iframe></div>\n`;
-            }
-        );
-
-        // Paragraphs: wrap remaining standalone lines
-        html = html.replace(/^(?!<[a-z/])((?!<).+)$/gm, '<p>$1</p>');
-
-        // Clean up empty paragraphs
-        html = html.replace(/<p>\s*<\/p>/g, '');
-
-        // Merge consecutive blockquotes
-        html = html.replace(/<\/blockquote>\s*<blockquote>/g, '<br/>');
-
-        const result = html.trim();
         _mdCache.set(md, result);
         return result;
     }
@@ -324,7 +149,11 @@ const MarketplacePage = (() => {
                 .catch(() => {
                     if (!cancelled) {
                         // URL 로드 실패 시 URL 자체를 링크로 표시
-                        setContent(buildSafeLinkHtml(description, description));
+                        const safeUrl = Utils.sanitizeHttpUrl(description);
+                        const safeLabel = Utils.escapeHtml(description);
+                        setContent(safeUrl
+                            ? `<a href="${Utils.escapeAttribute(safeUrl)}" target="_blank" rel="noopener noreferrer">${safeLabel}</a>`
+                            : safeLabel);
                     }
                 })
                 .finally(() => {
@@ -364,7 +193,7 @@ const MarketplacePage = (() => {
 
     function tWithFallback(key, fallbackValue) {
         const value = I18n.t(key);
-        return value === key ? fallbackValue : value;
+        return !value || value === key ? fallbackValue : value;
     }
 
     function getAddonTypeLabel(type) {
