@@ -1194,6 +1194,10 @@ window.LANG_SV = {
       "browserFullscreen": {
         "desc": "Använd webbläsaren i helskärm",
         "info": "Byt webbläsare till helskärmsläge för att fylla hela bildskärmen när du anger sångtexter i helskärmsläge"
+      },
+      "hideOverlay": {
+        "desc": "Dölj overlay i ivLyrics helskärm",
+        "info": "Skickar pausad uppspelningsstatus till overlay-appen medan ivLyrics helskärm är öppen, så att skrivbordets overlaytexter tonas ut"
       }
     },
     "normalMode": {

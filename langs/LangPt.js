@@ -1194,6 +1194,10 @@ window.LANG_PT = {
       "browserFullscreen": {
         "desc": "Spotify em Tela Cheia",
         "info": "Coloca o navegador/Spotify em tela cheia ao entrar no modo tela cheia da extensão"
+      },
+      "hideOverlay": {
+        "desc": "Ocultar overlay na tela cheia do ivLyrics",
+        "info": "Envia ao app de overlay um estado de reprodução pausada enquanto a tela cheia do ivLyrics estiver aberta, para que as letras do overlay da área de trabalho desapareçam"
       }
     },
     "normalMode": {

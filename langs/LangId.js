@@ -1194,6 +1194,10 @@ window.LANG_ID = {
       "browserFullscreen": {
         "desc": "Gunakan Layar Penuh Spotify",
         "info": "Alihkan Spotify ke layar penuh saat masuk ke mode layar penuh untuk memenuhi monitor"
+      },
+      "hideOverlay": {
+        "desc": "Sembunyikan Overlay saat ivLyrics Layar Penuh",
+        "info": "Mengirim status pemutaran dijeda ke aplikasi overlay saat layar penuh ivLyrics terbuka agar lirik overlay desktop memudar"
       }
     },
     "normalMode": {

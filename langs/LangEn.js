@@ -1194,6 +1194,10 @@ window.LANG_EN = {
       "browserFullscreen": {
         "desc": "Use Browser Fullscreen",
         "info": "Switch browser to fullscreen mode to fill the entire monitor when entering lyrics fullscreen"
+      },
+      "hideOverlay": {
+        "desc": "Hide Overlay in ivLyrics Fullscreen",
+        "info": "Send the overlay app a paused playback state while ivLyrics fullscreen is open so desktop overlay lyrics fade out"
       }
     },
     "normalMode": {

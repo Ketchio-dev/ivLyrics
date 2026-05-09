@@ -1194,6 +1194,10 @@ window.LANG_ES = {
       "browserFullscreen": {
         "desc": "Spotify en pantalla completa",
         "info": "Pone la ventana de Spotify en pantalla completa al entrar al modo"
+      },
+      "hideOverlay": {
+        "desc": "Ocultar overlay en pantalla completa de ivLyrics",
+        "info": "Envía al overlay un estado de reproducción pausada mientras la pantalla completa de ivLyrics está abierta para que las letras del overlay de escritorio se desvanezcan"
       }
     },
     "normalMode": {

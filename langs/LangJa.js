@@ -1194,6 +1194,10 @@ window.LANG_JA = {
       "browserFullscreen": {
         "desc": "Spotifyフルスクリーンを使用",
         "info": "フルスクリーンモードに入る際、Spotifyを全画面にしてモニターいっぱいに表示します"
+      },
+      "hideOverlay": {
+        "desc": "ivLyricsフルスクリーンでオーバーレイを非表示",
+        "info": "ivLyricsフルスクリーン中はオーバーレイアプリへ一時停止状態を送り、デスクトップオーバーレイの歌詞をフェードアウトさせます"
       }
     },
     "normalMode": {

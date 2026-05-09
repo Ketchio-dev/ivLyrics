@@ -1194,6 +1194,10 @@ window.LANG_ZH_TW = {
       "browserFullscreen": {
         "desc": "使用 Spotify 全螢幕",
         "info": "進入全螢幕模式時，將 Spotify 切換至全螢幕以填滿顯示器"
+      },
+      "hideOverlay": {
+        "desc": "在 ivLyrics 全螢幕時隱藏覆蓋層",
+        "info": "ivLyrics 全螢幕開啟時向覆蓋層應用程式傳送暫停播放狀態，讓桌面覆蓋歌詞自動淡出"
       }
     },
     "normalMode": {

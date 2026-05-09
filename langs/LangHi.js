@@ -1194,6 +1194,10 @@ window.LANG_HI = {
       "browserFullscreen": {
         "desc": "Spotify फुलस्क्रीन का उपयोग करें",
         "info": "फुलस्क्रीन मोड में Spotify को भी फुलस्क्रीन करें"
+      },
+      "hideOverlay": {
+        "desc": "ivLyrics फुलस्क्रीन में ओवरले छिपाएँ",
+        "info": "ivLyrics फुलस्क्रीन खुली होने पर ओवरले ऐप को paused playback स्थिति भेजता है, ताकि डेस्कटॉप ओवरले के बोल पारदर्शी हो जाएँ"
       }
     },
     "normalMode": {

@@ -1194,6 +1194,10 @@ window.LANG_DE = {
       "browserFullscreen": {
         "desc": "Spotify-Vollbild verwenden",
         "info": "Schaltet Spotify beim Betreten des Modus in den echten Browser-Vollbildmodus"
+      },
+      "hideOverlay": {
+        "desc": "Overlay im ivLyrics-Vollbild ausblenden",
+        "info": "Sendet der Overlay-App einen pausierten Wiedergabestatus, solange das ivLyrics-Vollbild geöffnet ist, damit die Desktop-Overlay-Texte ausgeblendet werden"
       }
     },
     "normalMode": {

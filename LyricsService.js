@@ -3963,7 +3963,31 @@
         if (window.StorageManager && typeof window.StorageManager.getItem === 'function') {
             return window.StorageManager.getItem(key);
         }
-        return Spicetify.LocalStorage.get(key);
+        const spicetifyValue = Spicetify.LocalStorage.get(key);
+        if (spicetifyValue !== null && spicetifyValue !== undefined) {
+            return spicetifyValue;
+        }
+        return localStorage.getItem(key);
+    }
+
+    function shouldHideOverlayForIvLyricsFullscreen() {
+        const configuredValue = window.CONFIG?.visual?.["fullscreen-hide-overlay"];
+        const enabled = configuredValue !== undefined
+            ? configuredValue !== false && configuredValue !== "false"
+            : getStorageItem('ivLyrics:visual:fullscreen-hide-overlay') !== 'false';
+        if (!enabled) return false;
+
+        const fullscreenContainer = document.getElementById('lyrics-fullscreen-container');
+        return !!(
+            fullscreenContainer &&
+            document.body.contains(fullscreenContainer) &&
+            fullscreenContainer.querySelector('.lyrics-lyricsContainer-LyricsContainer.fullscreen-active')
+        );
+    }
+
+    function getOverlayProgressIsPlaying() {
+        const isPlaying = Spicetify.Player.isPlaying() || false;
+        return isPlaying && !shouldHideOverlayForIvLyricsFullscreen();
     }
 
     // Utils가 없을 경우 대체
@@ -4853,7 +4877,7 @@
 
                     await this.sendToEndpoint('/progress', {
                         position: position,
-                        isPlaying: Spicetify.Player.isPlaying() || false,
+                        isPlaying: getOverlayProgressIsPlaying(),
                         duration: duration,
                         remaining: remaining,
                         currentTrack: currentTrack,
@@ -5553,7 +5577,7 @@
                         // 새로운 엔드포인트 사용: /lyrics/progress
                         await this.sendToEndpoint('/lyrics/progress', {
                             position: position,
-                            isPlaying: Spicetify.Player.isPlaying() || false,
+                            isPlaying: getOverlayProgressIsPlaying(),
                             duration: duration,
                             remaining: remaining,
                             currentTrack: currentTrack,

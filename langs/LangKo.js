@@ -1194,6 +1194,10 @@ window.LANG_KO = {
       "browserFullscreen": {
         "desc": "Spotify 전체화면 사용",
         "info": "전체화면 모드 진입 시 Spotify를 전체화면으로 전환하여 모니터를 꽉 채웁니다"
+      },
+      "hideOverlay": {
+        "desc": "ivLyrics 전체화면에서 오버레이 숨김",
+        "info": "ivLyrics 전체화면이 열려 있는 동안 오버레이 앱에 일시정지 상태를 보내 데스크톱 오버레이 가사를 투명하게 숨깁니다"
       }
     },
     "normalMode": {

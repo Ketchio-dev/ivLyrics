@@ -1689,6 +1689,10 @@ const CONFIG = {
       "ivLyrics:visual:fullscreen-browser-fullscreen",
       false
     ),
+    "fullscreen-hide-overlay": StorageManager.get(
+      "ivLyrics:visual:fullscreen-hide-overlay",
+      true
+    ),
     // TMI font size
     "fullscreen-tmi-font-size":
       Number(StorageManager.getItem("ivLyrics:visual:fullscreen-tmi-font-size")) ||

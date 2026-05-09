@@ -1194,6 +1194,10 @@ window.LANG_FR = {
       "browserFullscreen": {
         "desc": "Plein écran navigateur",
         "info": "Passe aussi le navigateur en plein écran (F11)"
+      },
+      "hideOverlay": {
+        "desc": "Masquer l'overlay en plein écran ivLyrics",
+        "info": "Envoie à l'application d'overlay un état de lecture en pause tant que le plein écran ivLyrics est ouvert afin de faire disparaître les paroles de l'overlay du bureau"
       }
     },
     "normalMode": {

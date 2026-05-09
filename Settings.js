@@ -11581,6 +11581,13 @@ const ConfigModal = ({
               defaultValue: CONFIG.visual["fullscreen-browser-fullscreen"] ?? false,
             },
             {
+              desc: I18n.t("settingsAdvanced.fullscreenMode.hideOverlay.desc"),
+              info: I18n.t("settingsAdvanced.fullscreenMode.hideOverlay.info"),
+              key: "fullscreen-hide-overlay",
+              type: ConfigSlider,
+              defaultValue: CONFIG.visual["fullscreen-hide-overlay"] ?? true,
+            },
+            {
               desc: I18n.t("settingsAdvanced.fullscreenMode.tvMode.desc"),
               info: I18n.t("settingsAdvanced.fullscreenMode.tvMode.info"),
               key: "fullscreen-tv-mode",
