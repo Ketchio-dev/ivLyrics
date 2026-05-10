@@ -6335,6 +6335,10 @@ ruby rt {
 }
 
 .lyrics-fluent-floating-toolbar.fullscreen-mode-container {
+  top: auto;
+  right: 24px;
+  bottom: var(--iv-floating-toolbar-bottom-gap, 40px);
+  left: auto;
   width: 52px;
   height: 52px;
   padding: 0;
@@ -6359,24 +6363,30 @@ ruby rt {
 .lyrics-fluent-floating-toolbar.fullscreen-mode-container.menu-open,
 .lyrics-fluent-floating-toolbar.fullscreen-mode-container.menu-closing {
   --iv-floating-toolbar-menu-offset: 0px;
-  top: var(--iv-floating-toolbar-top-gap, 20px);
+  top: auto;
+  right: 24px;
   bottom: var(--iv-floating-toolbar-bottom-gap, 40px);
+  left: auto;
   width: auto;
   height: auto;
-  max-height: none;
+  max-height: calc(100vh - var(--iv-floating-toolbar-top-gap, 20px) - var(--iv-floating-toolbar-bottom-gap, 40px));
+  max-height: calc(100dvh - var(--iv-floating-toolbar-top-gap, 20px) - var(--iv-floating-toolbar-bottom-gap, 40px));
   padding: 10px;
   gap: 10px;
   border-radius: 0;
+  flex-direction: column-reverse;
   justify-content: flex-start;
   overflow: visible;
 }
 
 .lyrics-fluent-floating-toolbar.fullscreen-mode-container.menu-open .lyrics-floating-menu-content,
 .lyrics-fluent-floating-toolbar.fullscreen-mode-container.menu-closing .lyrics-floating-menu-content {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   height: auto;
-  max-height: none;
+  max-height: calc(100vh - var(--iv-floating-toolbar-top-gap, 20px) - var(--iv-floating-toolbar-bottom-gap, 40px) - 86px);
+  max-height: calc(100dvh - var(--iv-floating-toolbar-top-gap, 20px) - var(--iv-floating-toolbar-bottom-gap, 40px) - 86px);
   min-height: 0;
+  margin-top: 0;
 }
 
 .lyrics-fluent-floating-toolbar.fullscreen-mode-container.menu-open .lyrics-floating-menu-toggle {
