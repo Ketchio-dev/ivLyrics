@@ -25,6 +25,7 @@
   --iv-layer-marketplace: 300;
   --iv-layer-floating-toolbar: 900;
   --iv-layer-floating-toolbar-menu: 901;
+  --iv-layer-update-banner: 1000;
   --iv-layer-internal-dialog: 1200;
   --iv-layer-fullscreen: 2147483600;
   --iv-layer-modal: 2147483647;
@@ -332,6 +333,7 @@
 /* Update Banner Styles - Fluent Design */
 .ivLyrics-update-banner {
   animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: var(--iv-layer-update-banner);
 }
 
 /* Hide Spotify top bar on ivLyrics page to prevent click interception */

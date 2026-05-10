@@ -395,7 +395,7 @@ const UpdateBanner = ({ updateInfo, onDismiss }) => {
           "0 8px 32px 0 rgba(0, 0, 0, 0.18), inset 0 1px 0 0 rgba(255, 255, 255, 0.05)",
         animation: "slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
         position: "relative",
-        zIndex: 150,
+        zIndex: "var(--iv-layer-update-banner, 1000)",
         overflow: "hidden",
         transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
       },
