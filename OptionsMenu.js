@@ -151,7 +151,7 @@ function ensureFluentModalStyles() {
   background: rgba(0, 0, 0, 0.72);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  z-index: 9999;
+  z-index: var(--iv-layer-modal, 2147483647);
 }
 
 .ivlyrics-fluent-overlay[data-ui-theme="light"] {
@@ -572,6 +572,7 @@ function ensureFluentModalStyles() {
   background: rgba(15, 23, 42, 0.98);
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+  z-index: var(--iv-layer-modal, 2147483647) !important;
 }
 
 .optionsMenu-dropdown-list[data-ui-theme="light"] {
@@ -615,7 +616,7 @@ function ensureFluentModalStyles() {
   position: fixed;
   right: 24px;
   bottom: 24px;
-  z-index: 99999;
+  z-index: var(--iv-layer-modal, 2147483647);
   pointer-events: none;
 }
 
@@ -1472,7 +1473,7 @@ const OptionsMenu = react.memo(
             minWidth: `${dropdownPosition.width}px`,
             maxWidth: '300px',
             marginTop: '0', // Portal 사용 시 margin 불필요
-            zIndex: 99999 // 최상위
+            zIndex: 'var(--iv-layer-modal, 2147483647)' // 최상위
           }
         },
         safeOptions.map(({ key, value }) => {
