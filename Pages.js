@@ -1423,6 +1423,74 @@ const KARAOKE_PRE_SPACE_MIN_DURATION_MS = 45;
 const KARAOKE_PRE_SPACE_NEXT_CHAR_RATIO = 0.7;
 const KARAOKE_PRE_SPACE_MAX_DURATION_MS = 120;
 const PSEUDO_KARAOKE_SOURCES = new Set(["audio-analysis-pseudo", "spotify-audio-analysis"]);
+const KARAOKE_NO_WORD_WRAP_LANGUAGE_PREFIXES = ["ja", "zh", "th", "lo", "km", "my"];
+
+const shouldWrapKaraokeByWord = (text, language) => {
+	const normalizedText = typeof text === "string" ? text : "";
+	if (!/\S\s+\S/u.test(normalizedText)) {
+		return false;
+	}
+
+	const normalizedLanguage = String(language || "").toLowerCase();
+	if (!normalizedLanguage) {
+		return true;
+	}
+
+	return !KARAOKE_NO_WORD_WRAP_LANGUAGE_PREFIXES.some((prefix) =>
+		normalizedLanguage === prefix || normalizedLanguage.startsWith(`${prefix}-`)
+	);
+};
+
+const buildKaraokeWordElements = (timedChars, charElements) => {
+	if (!Array.isArray(timedChars) || !Array.isArray(charElements) || timedChars.length !== charElements.length) {
+		return charElements;
+	}
+
+	const wordElements = [];
+	let currentWord = [];
+	let currentWordStart = 0;
+
+	const flushWord = () => {
+		if (currentWord.length === 0) {
+			return;
+		}
+
+		wordElements.push(react.createElement(
+			"span",
+			{
+				className: "lyrics-karaoke-word",
+				key: `karaoke-word-${currentWordStart}`,
+			},
+			currentWord
+		));
+		currentWord = [];
+	};
+
+	timedChars.forEach((charInfo, index) => {
+		const char = charInfo?.char || "";
+		const element = charElements[index];
+		const isWhitespace = /\s/u.test(char);
+
+		if (!isWhitespace && currentWord.length === 0) {
+			currentWordStart = index;
+		}
+
+		if (isWhitespace) {
+			if (currentWord.length > 0) {
+				currentWord.push(element);
+				flushWord();
+			} else {
+				wordElements.push(element);
+			}
+			return;
+		}
+
+		currentWord.push(element);
+	});
+
+	flushWord();
+	return wordElements;
+};
 
 const getPseudoKaraokeRenderAdvance = (karaokeSource) => {
 	if (!PSEUDO_KARAOKE_SOURCES.has(karaokeSource)) {
@@ -2283,7 +2351,7 @@ const KaraokeLine = react.memo(({ line, position, isActive, globalCharOffset = 0
 	const furiganaReady = window.FuriganaConverter?.isAvailable?.() === true;
 	const detectedLanguage = Utils.getDetectedLanguage?.() || null;
 
-	const { furiganaMap, timedChars, endTime } = useMemo(() => {
+	const { furiganaMap, timedChars, endTime, wrapByWord } = useMemo(() => {
 		const rawLineText = line.syllables?.map((syllable) => syllable?.text || "").join("")
 			|| getCopyableText(line.text)
 			|| "";
@@ -2297,6 +2365,7 @@ const KaraokeLine = react.memo(({ line, position, isActive, globalCharOffset = 0
 				(maxEndTime, charInfo) => Math.max(maxEndTime, Number.isFinite(charInfo?.endTime) ? charInfo.endTime : 0),
 				getKaraokeLineBounds(line).endTime
 			),
+			wrapByWord: shouldWrapKaraokeByWord(rawLineText, detectedLanguage),
 		};
 	}, [line, furiganaEnabled, furiganaReady, detectedLanguage]);
 	const isComplete = isActive && position >= endTime;
@@ -2353,13 +2422,16 @@ const KaraokeLine = react.memo(({ line, position, isActive, globalCharOffset = 0
 			react.createElement("rt", null, reading)
 		);
 	});
+	const lineChildren = wrapByWord
+		? buildKaraokeWordElements(timedChars, charElements)
+		: charElements;
 
 	return react.createElement(
 		"span",
 		{
-			className: `lyrics-karaoke-line${isActive ? " is-active" : ""}${isComplete ? " is-complete" : ""}`,
+			className: `lyrics-karaoke-line${wrapByWord ? " has-word-wrap" : ""}${isActive ? " is-active" : ""}${isComplete ? " is-complete" : ""}`,
 		},
-		charElements
+		lineChildren
 	);
 });
 
