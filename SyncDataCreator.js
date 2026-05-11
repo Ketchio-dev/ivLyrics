@@ -2,6 +2,56 @@
  * SyncDataCreator - 노래방 싱크 데이터 생성 UI
  */
 
+const SYNC_CREATOR_RTL_STRONG_CHAR_REGEX = /[\u0590-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFC]/u;
+const SYNC_CREATOR_LTR_STRONG_CHAR_REGEX = /[A-Za-z\u00C0-\u02AF\u0370-\u052F\u1E00-\u1EFF]/u;
+
+const getSyncCreatorTextDirection = (text) => {
+	const normalizedText = typeof text === 'string' ? text : '';
+	let rtlCount = 0;
+	let ltrCount = 0;
+
+	for (const char of Array.from(normalizedText)) {
+		if (SYNC_CREATOR_RTL_STRONG_CHAR_REGEX.test(char)) {
+			rtlCount++;
+			continue;
+		}
+		if (SYNC_CREATOR_LTR_STRONG_CHAR_REGEX.test(char)) {
+			ltrCount++;
+		}
+	}
+
+	return rtlCount > ltrCount ? 'rtl' : 'ltr';
+};
+
+const hasSyncCreatorRtlText = (text) => {
+	const normalizedText = typeof text === 'string' ? text : '';
+	return SYNC_CREATOR_RTL_STRONG_CHAR_REGEX.test(normalizedText);
+};
+
+const getSyncCreatorCodeUnitOffsets = (chars) => {
+	const offsets = [0];
+	let offset = 0;
+	(Array.isArray(chars) ? chars : []).forEach((char) => {
+		offset += String(char || '').length;
+		offsets.push(offset);
+	});
+	return offsets;
+};
+
+const getSyncCreatorCharIndexFromCodeUnitOffset = (offsets, offset) => {
+	if (!Array.isArray(offsets) || offsets.length < 2) {
+		return 0;
+	}
+
+	const safeOffset = Math.max(0, Math.min(offset, offsets[offsets.length - 1]));
+	for (let index = 0; index < offsets.length - 1; index++) {
+		if (safeOffset >= offsets[index] && safeOffset < offsets[index + 1]) {
+			return index;
+		}
+	}
+	return Math.max(0, offsets.length - 2);
+};
+
 const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 	const { useState, useEffect, useRef, useCallback, useMemo } = react;
 
@@ -335,6 +385,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 	const animationRef = useRef(null);
 	const charTimesRef = useRef([]);
 	const charElementsRef = useRef([]);
+	const rtlTextRunRef = useRef(null);
 	const preventNextTrackRef = useRef(false);
 	const publishWorkersRef = useRef([]);
 
@@ -520,6 +571,22 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		if (currentLineIndex < 0 || currentLineIndex >= lyricsLines.length) return [];
 		return Array.from(lyricsLines[currentLineIndex]);
 	}, [lyricsLines, currentLineIndex]);
+	const currentLineText = currentLineIndex >= 0 && currentLineIndex < lyricsLines.length
+		? lyricsLines[currentLineIndex]
+		: '';
+	const currentLineDirection = useMemo(
+		() => getSyncCreatorTextDirection(currentLineText),
+		[currentLineText]
+	);
+	const isCurrentLineRtl = currentLineDirection === 'rtl';
+	const useCurrentLineTextRun = useMemo(
+		() => hasSyncCreatorRtlText(currentLineText),
+		[currentLineText]
+	);
+	const currentLineCodeUnitOffsets = useMemo(
+		() => getSyncCreatorCodeUnitOffsets(currentLineChars),
+		[currentLineChars]
+	);
 
 	const currentLineSyllableSegments = useMemo(
 		() => buildLineSyllableSegments(currentLineChars),
@@ -854,6 +921,12 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 	const autoScroll = useCallback((charIndex) => {
 		if (!lyricsScrollRef.current || charIndex < 0) return;
 		const scrollContainer = lyricsScrollRef.current;
+		if (useCurrentLineTextRun && currentLineChars.length > 0) {
+			const maxScrollLeft = Math.max(0, scrollContainer.scrollWidth - scrollContainer.clientWidth);
+			const progress = charIndex / Math.max(1, currentLineChars.length - 1);
+			scrollContainer.scrollLeft = isCurrentLineRtl ? -maxScrollLeft * progress : maxScrollLeft * progress;
+			return;
+		}
 		const charElement = charElementsRef.current[charIndex];
 		if (!charElement) return;
 
@@ -866,9 +939,51 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		if (Math.abs(scrollOffset) > 50) {
 			scrollContainer.scrollLeft += scrollOffset * 0.3;
 		}
-	}, []);
+	}, [currentLineChars.length, isCurrentLineRtl, useCurrentLineTextRun]);
 
 	const getCharIndexFromPoint = useCallback((clientX, clientY) => {
+		if (useCurrentLineTextRun && rtlTextRunRef.current && currentLineChars.length > 0) {
+			const textEl = rtlTextRunRef.current;
+			const resolveTextOffset = (node, offset) => {
+				if (!node || !textEl.contains(node)) return null;
+				if (node.nodeType === Node.TEXT_NODE) {
+					let totalOffset = 0;
+					const walker = document.createTreeWalker(textEl, NodeFilter.SHOW_TEXT);
+					let textNode = walker.nextNode();
+					while (textNode) {
+						if (textNode === node) {
+							return totalOffset + offset;
+						}
+						totalOffset += textNode.nodeValue?.length || 0;
+						textNode = walker.nextNode();
+					}
+				}
+				return null;
+			};
+
+			let textOffset = null;
+			if (typeof document.caretPositionFromPoint === 'function') {
+				const caretPosition = document.caretPositionFromPoint(clientX, clientY);
+				textOffset = resolveTextOffset(caretPosition?.offsetNode, caretPosition?.offset || 0);
+			}
+			if (textOffset === null && typeof document.caretRangeFromPoint === 'function') {
+				const caretRange = document.caretRangeFromPoint(clientX, clientY);
+				textOffset = resolveTextOffset(caretRange?.startContainer, caretRange?.startOffset || 0);
+			}
+			if (textOffset !== null) {
+				return getSyncCreatorCharIndexFromCodeUnitOffset(currentLineCodeUnitOffsets, textOffset);
+			}
+
+			const rect = textEl.getBoundingClientRect();
+			if (rect.width > 0) {
+				const rawRatio = isCurrentLineRtl
+					? (rect.right - clientX) / rect.width
+					: (clientX - rect.left) / rect.width;
+				const ratio = Math.max(0, Math.min(1, rawRatio));
+				return Math.max(0, Math.min(currentLineChars.length - 1, Math.floor(ratio * currentLineChars.length)));
+			}
+		}
+
 		for (let i = 0; i < charElementsRef.current.length; i++) {
 			const el = charElementsRef.current[i];
 			if (!el) continue;
@@ -904,7 +1019,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			}
 		}
 		return 0;
-	}, []);
+	}, [currentLineChars.length, currentLineCodeUnitOffsets, isCurrentLineRtl, useCurrentLineTextRun]);
 
 	const handleDragStart = useCallback((charIndex, e) => {
 		if (mode !== 'record' || currentLineIndex >= lyricsLines.length) return;
@@ -2289,6 +2404,8 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		lyricsBox: { background: 'var(--spice-card)', borderRadius: '12px', padding: '32px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: mode === 'record' ? 'pointer' : 'default', userSelect: 'none', marginBottom: '12px' },
 		lyricsScroll: { width: '100%', overflowX: 'auto', overflowY: 'hidden', paddingBottom: '28px', display: 'flex', justifyContent: 'center' },
 		lyricsLine: { display: 'inline-flex', flexWrap: 'nowrap', gap: '0px', paddingLeft: '32px', paddingRight: '32px', justifyContent: 'center' },
+		rtlLyricsLine: { display: 'block', width: '100%', paddingLeft: '32px', paddingRight: '32px', textAlign: 'center', direction: 'rtl', unicodeBidi: 'plaintext' },
+		rtlTextRun: { display: 'inline-block', maxWidth: '100%', padding: '10px 1px', fontSize: '32px', fontWeight: '600', lineHeight: 1.45, letterSpacing: 0, whiteSpace: 'pre', cursor: mode === 'record' ? 'pointer' : 'default', color: 'transparent', WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent' },
 		charSpan: { padding: '10px 1px', borderRadius: '4px', cursor: mode === 'record' ? 'pointer' : 'default', position: 'relative', fontSize: '32px', fontWeight: '600', minWidth: '6px', textAlign: 'center', flexShrink: 0, color: 'var(--spice-text)', letterSpacing: '-1px' },
 		charSynced: { background: 'rgba(var(--spice-rgb-button), 0.2)' },
 		charPlayed: { background: 'var(--spice-button)', color: 'var(--spice-button-text, #000)' },
@@ -2324,6 +2441,23 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		shortcutItem: { display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--spice-subtext)' },
 		shortcutKey: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: '24px', height: '22px', padding: '0 6px', background: 'var(--spice-misc)', color: 'var(--spice-text)', borderRadius: '4px', fontSize: '10px', fontWeight: '700', fontFamily: 'monospace', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 2px 0 rgba(0,0,0,0.3)' },
 		shortcutDesc: { color: 'var(--spice-subtext)' },
+	};
+
+	const currentLineData = syncLinesByStart?.get(lineCharOffsets[currentLineIndex]);
+	const currentLinePreviewIndex = currentLineText ? getPreviewCharIndex(currentLineIndex) : -1;
+	const currentLineSyncedIndex = (currentLineData?.chars?.length || 0) - 1;
+	const currentLineProgressIndex = mode === 'preview'
+		? currentLinePreviewIndex
+		: mode === 'record' && recordingCharIndex >= 0
+			? recordingCharIndex
+			: currentLineSyncedIndex;
+	const currentLineProgressPercent = currentLineChars.length > 0 && currentLineProgressIndex >= 0
+		? Math.max(0, Math.min(100, ((currentLineProgressIndex + 1) / currentLineChars.length) * 100))
+		: 0;
+	const rtlTextRunStyle = {
+		...s.rtlTextRun,
+		direction: currentLineDirection,
+		backgroundImage: `linear-gradient(${currentLineDirection === 'rtl' ? 'to left' : 'to right'}, var(--spice-button) 0%, var(--spice-button) ${currentLineProgressPercent}%, var(--spice-subtext) ${currentLineProgressPercent}%, var(--spice-subtext) 100%)`,
 	};
 
 	return react.createElement('div', { style: s.overlay, ref: containerRef },
@@ -2525,8 +2659,15 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 
 				// Lyrics Box
 				react.createElement('div', { style: s.lyricsBox, onMouseDown: handleContainerMouseDown, onTouchStart: handleContainerMouseDown, ref: lyricsScrollRef },
-					react.createElement('div', { style: s.lyricsLine },
-						currentLineChars.map((char, i) => {
+					react.createElement('div', { style: useCurrentLineTextRun ? { ...s.rtlLyricsLine, direction: currentLineDirection } : s.lyricsLine },
+						useCurrentLineTextRun
+							? react.createElement('span', {
+								ref: rtlTextRunRef,
+								style: rtlTextRunStyle,
+								dir: currentLineDirection,
+								'data-rtl-text-run': 'true'
+							}, currentLineText)
+							: currentLineChars.map((char, i) => {
 							const isSynced = isCharSynced(currentLineIndex, i);
 							const isRec = mode === 'record' && recordingCharIndex >= 0 && i <= recordingCharIndex;
 							const previewIdx = getPreviewCharIndex(currentLineIndex);
@@ -2548,7 +2689,13 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				// Next Line
 				currentLineIndex < lyricsLines.length - 1 && react.createElement('div', { style: s.nextLineBox },
 					react.createElement('div', { style: s.nextLineLabel }, I18n.t('syncCreator.nextLine')),
-					react.createElement('div', { style: s.nextLineText }, lyricsLines[currentLineIndex + 1])
+					react.createElement('div', {
+						style: {
+							...s.nextLineText,
+							direction: getSyncCreatorTextDirection(lyricsLines[currentLineIndex + 1]),
+							unicodeBidi: 'plaintext'
+						}
+					}, lyricsLines[currentLineIndex + 1])
 				),
 
 				mode === 'record' && react.createElement('div', { style: s.hint }, I18n.t('syncCreator.dragHint')),

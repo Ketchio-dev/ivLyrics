@@ -939,6 +939,15 @@ div.lyrics-tabBar-headerItemLink {
   text-shadow: none !important;
 }
 
+.lyrics-karaoke-line.is-text-run {
+  letter-spacing: 0;
+  unicode-bidi: plaintext;
+}
+
+.lyrics-karaoke-line.is-rtl {
+  direction: ltr;
+}
+
 .lyrics-karaoke-line.has-word-wrap {
   word-break: normal;
   overflow-wrap: normal;
@@ -950,11 +959,44 @@ div.lyrics-tabBar-headerItemLink {
   vertical-align: baseline;
 }
 
+.lyrics-karaoke-text-run-segment {
+  display: inline-block;
+  white-space: pre;
+  color: transparent;
+  background-image: linear-gradient(var(--karaoke-gradient-direction, to right),
+      var(--lyrics-color-active) 0,
+      var(--lyrics-color-active) var(--karaoke-char-fill-soft-start, var(--karaoke-char-fill, 0%)),
+      var(--lyrics-color-inactive) var(--karaoke-char-fill-soft-end, var(--karaoke-char-fill, 0%)),
+      var(--lyrics-color-inactive) 100%);
+  background-repeat: no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: none !important;
+  filter: var(--lyrics-text-drop-shadow, none);
+  transform: translateY(var(--karaoke-bounce-y, 0)) scale(var(--karaoke-bounce-scale, 1));
+  transition: filter 0.08s linear,
+    text-shadow 0.08s linear,
+    opacity 0.12s ease,
+    transform 0.38s cubic-bezier(0.2, 0.9, 0.28, 1);
+  vertical-align: baseline;
+  unicode-bidi: isolate;
+}
+
+.lyrics-karaoke-text-run-space {
+  white-space: pre-wrap;
+}
+
+.lyrics-karaoke-line.is-active .lyrics-karaoke-text-run-segment {
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.12);
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.08));
+}
+
 .lyrics-karaoke-char {
   display: inline-block;
   white-space: pre-wrap;
   color: transparent;
-  background-image: linear-gradient(to right,
+  background-image: linear-gradient(var(--karaoke-gradient-direction, to right),
       var(--lyrics-color-active) 0,
       var(--lyrics-color-active) var(--karaoke-char-fill-soft-start, var(--karaoke-char-fill, 0%)),
       var(--lyrics-color-inactive) var(--karaoke-char-fill-soft-end, var(--karaoke-char-fill, 0%)),

@@ -1424,6 +1424,33 @@ const KARAOKE_PRE_SPACE_NEXT_CHAR_RATIO = 0.7;
 const KARAOKE_PRE_SPACE_MAX_DURATION_MS = 120;
 const PSEUDO_KARAOKE_SOURCES = new Set(["audio-analysis-pseudo", "spotify-audio-analysis"]);
 const KARAOKE_NO_WORD_WRAP_LANGUAGE_PREFIXES = ["ja", "zh", "th", "lo", "km", "my"];
+const KARAOKE_RTL_STRONG_CHAR_REGEX = /[\u0590-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFC]/u;
+const KARAOKE_LTR_STRONG_CHAR_REGEX = /[A-Za-z\u00C0-\u02AF\u0370-\u052F\u1E00-\u1EFF]/u;
+const KARAOKE_JOINING_SCRIPT_REGEX = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFC]/u;
+
+const getKaraokeTextDirection = (text) => {
+	const normalizedText = typeof text === "string" ? text : "";
+	let rtlCount = 0;
+	let ltrCount = 0;
+
+	for (const char of Array.from(normalizedText)) {
+		if (KARAOKE_RTL_STRONG_CHAR_REGEX.test(char)) {
+			rtlCount++;
+			continue;
+		}
+		if (KARAOKE_LTR_STRONG_CHAR_REGEX.test(char)) {
+			ltrCount++;
+		}
+	}
+
+	return rtlCount > ltrCount ? "rtl" : "ltr";
+};
+
+const shouldUseKaraokeTextRun = (text) => {
+	const normalizedText = typeof text === "string" ? text : "";
+	return KARAOKE_RTL_STRONG_CHAR_REGEX.test(normalizedText) ||
+		KARAOKE_JOINING_SCRIPT_REGEX.test(normalizedText);
+};
 
 const shouldWrapKaraokeByWord = (text, language) => {
 	const normalizedText = typeof text === "string" ? text : "";
@@ -1490,6 +1517,111 @@ const buildKaraokeWordElements = (timedChars, charElements) => {
 
 	flushWord();
 	return wordElements;
+};
+
+const getKaraokeSegmentFill = (segment, position, isActive, isComplete) => {
+	if (isComplete) {
+		return 100;
+	}
+	if (!isActive || !segment) {
+		return 0;
+	}
+
+	const startTime = Number.isFinite(segment.startTime) ? segment.startTime : 0;
+	const endTime = Number.isFinite(segment.endTime) ? segment.endTime : startTime;
+	if (position <= startTime) {
+		return 0;
+	}
+	if (position >= endTime) {
+		return 100;
+	}
+
+	return Math.max(0, Math.min(100, ((position - startTime) / Math.max(1, endTime - startTime)) * 100));
+};
+
+const buildKaraokeTextRunSegments = (timedChars) => {
+	if (!Array.isArray(timedChars) || timedChars.length === 0) {
+		return [];
+	}
+
+	const segments = [];
+	let currentSegment = null;
+
+	const flushSegment = () => {
+		if (!currentSegment || currentSegment.text.length === 0) {
+			currentSegment = null;
+			return;
+		}
+		segments.push(currentSegment);
+		currentSegment = null;
+	};
+
+	timedChars.forEach((charInfo, index) => {
+		const char = charInfo?.char || "";
+		const type = /\s/u.test(char) ? "space" : "text";
+		if (!currentSegment || currentSegment.type !== type) {
+			flushSegment();
+			currentSegment = {
+				type,
+				startIndex: index,
+				text: "",
+				startTime: Number.isFinite(charInfo?.startTime) ? charInfo.startTime : 0,
+				endTime: Number.isFinite(charInfo?.endTime) ? charInfo.endTime : 0,
+			};
+		}
+
+		currentSegment.text += char;
+		if (Number.isFinite(charInfo?.endTime)) {
+			currentSegment.endTime = Math.max(currentSegment.endTime, charInfo.endTime);
+		}
+	});
+
+	flushSegment();
+	return segments;
+};
+
+const buildKaraokeTextRunElements = (timedChars, position, isActive, isComplete, textDirection) => {
+	const segments = buildKaraokeTextRunSegments(timedChars);
+	const renderSegments = textDirection === "rtl" ? [...segments].reverse() : segments;
+
+	return renderSegments.map((segment) => {
+		if (segment.type === "space") {
+			return react.createElement(
+				"span",
+				{
+					className: "lyrics-karaoke-text-run-space",
+					key: `karaoke-text-run-space-${segment.startIndex}`,
+				},
+				segment.text
+			);
+		}
+
+		const fillValue = getKaraokeSegmentFill(segment, position, isActive, isComplete);
+		const softEdge = 10;
+		const shouldFeather = fillValue > 0 && fillValue < 100;
+		const bounce = getKaraokeBounceValues(position, isActive, segment.startTime, segment.endTime);
+		const segmentDirection = getKaraokeTextDirection(segment.text) || textDirection;
+		const gradientDirection = segmentDirection === "rtl" ? "to left" : "to right";
+		const segmentStyle = {
+			"--karaoke-gradient-direction": gradientDirection,
+			"--karaoke-char-fill": `${fillValue}%`,
+			"--karaoke-char-fill-soft-start": `${shouldFeather ? Math.max(0, fillValue - softEdge) : fillValue}%`,
+			"--karaoke-char-fill-soft-end": `${shouldFeather ? Math.min(100, fillValue + softEdge) : fillValue}%`,
+			"--karaoke-bounce-y": `${bounce.offsetY}px`,
+			"--karaoke-bounce-scale": bounce.scale,
+		};
+
+		return react.createElement(
+			"span",
+			{
+				className: `lyrics-karaoke-text-run-segment${isComplete ? " is-complete" : ""}`,
+				dir: segmentDirection,
+				style: segmentStyle,
+				key: `karaoke-text-run-segment-${segment.startIndex}`,
+			},
+			segment.text
+		);
+	});
 };
 
 const getPseudoKaraokeRenderAdvance = (karaokeSource) => {
@@ -2351,12 +2483,13 @@ const KaraokeLine = react.memo(({ line, position, isActive, globalCharOffset = 0
 	const furiganaReady = window.FuriganaConverter?.isAvailable?.() === true;
 	const detectedLanguage = Utils.getDetectedLanguage?.() || null;
 
-	const { furiganaMap, timedChars, endTime, wrapByWord } = useMemo(() => {
+	const { furiganaMap, timedChars, endTime, wrapByWord, textDirection, useTextRun } = useMemo(() => {
 		const rawLineText = line.syllables?.map((syllable) => syllable?.text || "").join("")
 			|| getCopyableText(line.text)
 			|| "";
 		const processedText = Utils.applyFuriganaIfEnabled(rawLineText);
 		const compensatedTimedChars = applyKaraokeWhitespaceCompensation(buildKaraokeTimedChars(line));
+		const detectedTextDirection = getKaraokeTextDirection(rawLineText);
 
 		return {
 			furiganaMap: buildKaraokeFuriganaMap(processedText),
@@ -2366,11 +2499,13 @@ const KaraokeLine = react.memo(({ line, position, isActive, globalCharOffset = 0
 				getKaraokeLineBounds(line).endTime
 			),
 			wrapByWord: shouldWrapKaraokeByWord(rawLineText, detectedLanguage),
+			textDirection: detectedTextDirection,
+			useTextRun: shouldUseKaraokeTextRun(rawLineText),
 		};
 	}, [line, furiganaEnabled, furiganaReady, detectedLanguage]);
 	const isComplete = isActive && position >= endTime;
 
-	const charElements = timedChars.map((charInfo, index) => {
+	const charElements = useTextRun ? [] : timedChars.map((charInfo, index) => {
 		const fillValue = Math.max(0, Math.min(100, getKaraokeCharFill(
 			position,
 			isActive,
@@ -2422,14 +2557,17 @@ const KaraokeLine = react.memo(({ line, position, isActive, globalCharOffset = 0
 			react.createElement("rt", null, reading)
 		);
 	});
-	const lineChildren = wrapByWord
+	const lineChildren = useTextRun
+		? buildKaraokeTextRunElements(timedChars, position, isActive, isComplete, textDirection)
+		: wrapByWord
 		? buildKaraokeWordElements(timedChars, charElements)
 		: charElements;
 
 	return react.createElement(
 		"span",
 		{
-			className: `lyrics-karaoke-line${wrapByWord ? " has-word-wrap" : ""}${isActive ? " is-active" : ""}${isComplete ? " is-complete" : ""}`,
+			className: `lyrics-karaoke-line${wrapByWord || useTextRun ? " has-word-wrap" : ""}${useTextRun ? " is-text-run" : ""}${textDirection === "rtl" ? " is-rtl" : ""}${isActive ? " is-active" : ""}${isComplete ? " is-complete" : ""}`,
+			dir: useTextRun ? (textDirection === "rtl" ? "ltr" : textDirection) : undefined,
 		},
 		lineChildren
 	);
