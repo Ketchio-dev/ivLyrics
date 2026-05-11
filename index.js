@@ -6333,6 +6333,7 @@ class LyricsContainer extends react.Component {
     const isLayoutReversed = CONFIG.visual["fullscreen-layout-reverse"] === true;
     const centerWhenNoLyrics = CONFIG.visual["fullscreen-center-when-no-lyrics"] !== false;
     const shouldReduceMotion = this.shouldReduceMotion();
+    const isFullscreenMarketplace = this.state.isFullscreen && this.state.showMarketplace;
     const shouldRenderFloatingMenu =
       !this.state.isFullscreen ||
       this.state.isFloatingMenuOpen ||
@@ -6446,6 +6447,9 @@ class LyricsContainer extends react.Component {
       if (CONFIG.visual["fullscreen-tv-mode"] === true) {
         fullscreenClasses += " tv-mode-active";
       }
+      if (this.state.showMarketplace) {
+        fullscreenClasses += " marketplace-active";
+      }
       // TMI 폰트 크기 CSS 변수 업데이트
       if (this.fullscreenContainer) {
         const tmiScale = (CONFIG.visual["fullscreen-tmi-font-size"] || 100) / 100;
@@ -6475,7 +6479,7 @@ class LyricsContainer extends react.Component {
         },
       },
       // Left panel for fullscreen mode
-      this.state.isFullscreen && window.FullscreenOverlay && react.createElement(window.FullscreenOverlay, {
+      this.state.isFullscreen && !this.state.showMarketplace && window.FullscreenOverlay && react.createElement(window.FullscreenOverlay, {
         coverUrl: this.state.coverUrl,
         title: this.state.title,
         artist: this.state.artist,
@@ -6517,7 +6521,7 @@ class LyricsContainer extends react.Component {
       }),
       // Phonetic loading indicator
       this.state.isPhoneticLoading &&
-      react.createElement(
+      !isFullscreenMarketplace && react.createElement(
         "div",
         {
           className: "lyrics-translation-loading-indicator",
@@ -6539,7 +6543,7 @@ class LyricsContainer extends react.Component {
       ),
       // Translation loading indicator
       this.state.isTranslationLoading &&
-      react.createElement(
+      !isFullscreenMarketplace && react.createElement(
         "div",
         {
           className: "lyrics-translation-loading-indicator",
@@ -6561,7 +6565,7 @@ class LyricsContainer extends react.Component {
         )
       ),
       // ===== 플로팅 바 (일반 모드: 전체 표시, 전체화면: 메뉴 토글 방식) =====
-      react.createElement(
+      !isFullscreenMarketplace && react.createElement(
         "div",
         {
           className: "lyrics-config-button-container lyrics-fluent-floating-toolbar" +
@@ -6720,7 +6724,14 @@ class LyricsContainer extends react.Component {
               {
                 className: `lyrics-config-button lyrics-marketplace-button${this.state.showMarketplace ? " active" : ""}`,
                 type: "button",
-                onClick: () => this.setState({ showMarketplace: !this.state.showMarketplace }),
+                onClick: () => {
+                  this.clearFloatingMenuCloseTimer();
+                  this.setState((prevState) => ({
+                    showMarketplace: !prevState.showMarketplace,
+                    isFloatingMenuOpen: false,
+                    isFloatingMenuClosing: false,
+                  }));
+                },
               },
               react.createElement("svg", {
                 width: 18,
