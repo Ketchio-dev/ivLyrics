@@ -994,10 +994,11 @@ div.lyrics-tabBar-headerItemLink {
 
 .lyrics-karaoke-line.is-active .lyrics-karaoke-text-run-segment {
   text-shadow: 0 0 8px rgba(255, 255, 255, 0.12);
-  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.08));
 }
 
+/* drop-shadow는 텍스트가 transparent + background-clip:text인 활성 세그먼트에만 필요. */
 .lyrics-karaoke-line.is-active .lyrics-karaoke-text-run-segment--active {
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.08));
   will-change: transform;
 }
 
@@ -1031,10 +1032,13 @@ div.lyrics-tabBar-headerItemLink {
 
 .lyrics-karaoke-line.is-active .lyrics-karaoke-char {
   text-shadow: 0 0 8px rgba(255, 255, 255, 0.12);
-  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.08));
 }
 
+/* drop-shadow는 글자가 transparent + background-clip:text인 활성 글자에만 적용.
+   solid color로 그려지는 pending/done 글자는 text-shadow만으로 같은 글로우 효과를 얻음.
+   덕분에 라인 전환 시 filter context 변경이 30→1개로 감소. */
 .lyrics-karaoke-line.is-active .lyrics-karaoke-char--active {
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.08));
   will-change: transform;
 }
 

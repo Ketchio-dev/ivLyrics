@@ -2092,7 +2092,7 @@ const useSyncedLyricsEngine = ({
 					"--line-shift-delay": isScrolling
 						? "0s"
 						: `${animationIndex > 0 ? Math.min(animationIndex, 3) * 0.02 : 0}s`,
-					"--blur-index": Math.abs(animationIndex),
+					"--blur-index": Math.min(Math.abs(animationIndex), 3),
 				},
 				line,
 				startTime,
