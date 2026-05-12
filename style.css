@@ -937,6 +937,11 @@ div.lyrics-tabBar-headerItemLink {
   line-height: 1.3;
   color: var(--lyrics-color-inactive);
   text-shadow: none !important;
+  /* Force grayscale antialiasing so active (background-clip:text, transparent fill)
+     and done (solid color) chars share the same AA mode. Without this, done chars
+     pick up sub-pixel AA and visibly thicken at the active→done transition. */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .lyrics-karaoke-line.is-text-run {
@@ -992,9 +997,10 @@ div.lyrics-tabBar-headerItemLink {
   white-space: pre-wrap;
 }
 
-.lyrics-karaoke-line.is-active .lyrics-karaoke-text-run-segment {
-  text-shadow: 0 0 8px rgba(255, 255, 255, 0.12);
-}
+/* text-shadow intentionally omitted on the segment: it would be invisible on the
+   active (transparent + background-clip:text) segment and only appear on the done
+   segment, making chars look thicker right at the transition. The active glow is
+   handled below via filter:drop-shadow which works on both transparent and solid text. */
 
 /* Active gradient text needs filter because text-shadow does not render through background-clip:text. */
 .lyrics-karaoke-line.is-active .lyrics-karaoke-text-run-segment--active {
@@ -1033,9 +1039,9 @@ div.lyrics-tabBar-headerItemLink {
   -webkit-text-fill-color: transparent;
 }
 
-.lyrics-karaoke-line.is-active .lyrics-karaoke-char {
-  text-shadow: 0 0 8px rgba(255, 255, 255, 0.12);
-}
+/* See the matching note on .lyrics-karaoke-text-run-segment: the .is-active
+   text-shadow was invisible on active chars and only appeared on done chars,
+   causing a visible thickening at the active→done transition. */
 
 /* Keep the configured text shadow in the active filter stack so active chars match done chars. */
 .lyrics-karaoke-line.is-active .lyrics-karaoke-char--active {
