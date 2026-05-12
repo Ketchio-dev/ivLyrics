@@ -8,6 +8,7 @@ window.LANG_ID = {
   "tabs": {
     "general": "Umum",
     "appearance": "Tampilan",
+    "performance": "Performa",
     "behavior": "Perilaku",
     "advanced": "Lanjutan",
     "fullscreen": "Layar Penuh",
@@ -42,6 +43,7 @@ window.LANG_ID = {
       "badges": {
         "workspace": "Inti",
         "typography": "Teks",
+        "performance": "FPS",
         "behavior": "Alur",
         "surface": "Tampilan",
         "providers": "Sumber",
@@ -49,6 +51,7 @@ window.LANG_ID = {
       },
       "generalDesc": "Bahasa, overlay desktop, dan pengaturan inti.",
       "appearanceDesc": "Latar belakang, tipografi, animasi, dan komposisi layar.",
+      "performanceDesc": "Kontrol frame rate, gerakan, dan efek visual berat.",
       "lyricsDesc": "Sinkronisasi, terjemahan, karaoke, dan pemrosesan lirik.",
       "fullscreenDesc": "Tata letak pemutaran layar penuh dan elemen yang ditampilkan.",
       "nowplayingDesc": "Tata letak, ukuran, dan latar lirik panel.",
@@ -740,6 +743,25 @@ window.LANG_ID = {
     "donate": {
       "title": "Traktir kopi untuk pengembang",
       "button": "Donasi"
+    },
+    "performance": {
+      "rendering": {
+        "title": "Frame Rate Rendering",
+        "subtitle": "Batasi laju pembaruan lirik untuk mengurangi beban GPU dan CPU."
+      },
+      "frameRate": {
+        "label": "Frame Rate Lirik",
+        "desc": "Mengatur berapa kali lirik sinkron dan karaoke diperbarui per detik. Nilai lebih rendah mengurangi beban, nilai lebih tinggi terasa lebih halus.",
+        "unit": " FPS"
+      },
+      "visualCost": {
+        "title": "Beban Visual",
+        "subtitle": "Akses cepat ke efek yang dapat menambah kerja GPU."
+      },
+      "backgroundWork": {
+        "title": "Kerja Latar Belakang",
+        "subtitle": "Mengatur pra-muat yang dapat menambah aktivitas CPU, jaringan, atau disk."
+      }
     },
     "syncMode": {
       "title": "Mode Sinkronisasi",

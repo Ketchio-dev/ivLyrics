@@ -8,6 +8,7 @@ window.LANG_ZH_TW = {
   "tabs": {
     "general": "一般",
     "appearance": "外觀",
+    "performance": "效能",
     "behavior": "動作",
     "advanced": "進階",
     "fullscreen": "全螢幕",
@@ -42,6 +43,7 @@ window.LANG_ZH_TW = {
       "badges": {
         "workspace": "核心",
         "typography": "文字",
+        "performance": "FPS",
         "behavior": "流程",
         "surface": "視圖",
         "providers": "來源",
@@ -49,6 +51,7 @@ window.LANG_ZH_TW = {
       },
       "generalDesc": "語言、桌面浮窗與核心預設設定。",
       "appearanceDesc": "背景、字體、動效與畫面配置。",
+      "performanceDesc": "調整幀率、動效與高負載視覺效果。",
       "lyricsDesc": "同步、翻譯、卡拉 OK 與歌詞處理。",
       "fullscreenDesc": "全螢幕播放版面與顯示內容設定。",
       "nowplayingDesc": "面板歌詞的版面、大小與背景效果。",
@@ -740,6 +743,25 @@ window.LANG_ZH_TW = {
     "donate": {
       "title": "請開發者喝杯咖啡",
       "button": "贊助"
+    },
+    "performance": {
+      "rendering": {
+        "title": "渲染幀率",
+        "subtitle": "限制歌詞更新頻率，以降低 GPU 與 CPU 負載。"
+      },
+      "frameRate": {
+        "label": "歌詞幀率",
+        "desc": "控制同步歌詞與卡拉 OK 歌詞每秒更新的次數。較低數值可降低負載，較高數值較流暢。",
+        "unit": " FPS"
+      },
+      "visualCost": {
+        "title": "視覺負載",
+        "subtitle": "快速調整可能增加 GPU 工作量的效果。"
+      },
+      "backgroundWork": {
+        "title": "背景工作",
+        "subtitle": "控制可能增加 CPU、網路或磁碟活動的預先載入。"
+      }
     },
     "syncMode": {
       "title": "同步模式",

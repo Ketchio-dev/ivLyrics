@@ -8,6 +8,7 @@ window.LANG_KO = {
   "tabs": {
     "general": "일반",
     "appearance": "외관",
+    "performance": "성능",
     "behavior": "동작",
     "advanced": "고급",
     "lyricsProviders": "가사 제공자",
@@ -42,6 +43,7 @@ window.LANG_KO = {
       "badges": {
         "workspace": "기본",
         "typography": "텍스트",
+        "performance": "FPS",
         "behavior": "동작",
         "surface": "화면",
         "providers": "소스",
@@ -49,6 +51,7 @@ window.LANG_KO = {
       },
       "generalDesc": "언어, 데스크톱 오버레이, 기본 동작을 정리합니다.",
       "appearanceDesc": "배경, 타이포그래피, 모션, 레이아웃을 조정합니다.",
+      "performanceDesc": "프레임, 모션, GPU 비용이 큰 효과를 조정합니다.",
       "lyricsDesc": "싱크, 번역, 가사 처리 흐름을 설정합니다.",
       "fullscreenDesc": "전체화면 재생 레이아웃과 표시 요소를 다룹니다.",
       "nowplayingDesc": "패널 가사의 배치, 배경, 크기를 설정합니다.",
@@ -740,6 +743,25 @@ window.LANG_KO = {
     "donate": {
       "title": "개발자에게 커피 한잔 사주기",
       "button": "후원"
+    },
+    "performance": {
+      "rendering": {
+        "title": "렌더링 프레임",
+        "subtitle": "가사 갱신 빈도를 제한해 GPU와 CPU 사용량을 낮춥니다."
+      },
+      "frameRate": {
+        "label": "가사 프레임",
+        "desc": "싱크 및 노래방 가사를 초당 몇 번 갱신할지 정합니다. 낮추면 부하가 줄고, 높이면 더 부드럽습니다.",
+        "unit": " FPS"
+      },
+      "visualCost": {
+        "title": "시각 효과 부하",
+        "subtitle": "GPU 사용량을 늘릴 수 있는 효과를 빠르게 조정합니다."
+      },
+      "backgroundWork": {
+        "title": "백그라운드 작업",
+        "subtitle": "CPU, 네트워크, 디스크 활동을 만들 수 있는 미리 불러오기를 조정합니다."
+      }
     },
     "syncMode": {
       "title": "동기화 모드",

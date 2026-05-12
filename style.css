@@ -670,6 +670,32 @@ body.ivlyrics-page-active .main-topBar-container {
   transform: translateY(calc(var(--position-index) * var(--lyrics-line-height) + var(--offset)));
 }
 
+.lyrics-lyricsContainer-SyncedLyricsPage.is-karaoke .lyrics-lyricsContainer-SyncedLyrics .lyrics-lyricsContainer-LyricsLine,
+.lyrics-lyricsContainer-SyncedLyricsPage.is-karaoke .lyrics-lyricsContainer-SyncedLyrics .lyrics-lyricsContainer-LyricsLine.lyrics-lyricsContainer-LyricsLine-active,
+.lyrics-lyricsContainer-UnsyncedLyricsPage.is-karaoke .lyrics-lyricsContainer-LyricsLine,
+.lyrics-lyricsContainer-UnsyncedLyricsPage.is-karaoke .lyrics-lyricsContainer-LyricsLine.lyrics-lyricsContainer-LyricsLine-active {
+  transition: none;
+  will-change: auto;
+}
+
+.lyrics-lyricsContainer-SyncedLyricsPage.is-karaoke .lyrics-lyricsContainer-LyricsLine > p,
+.lyrics-lyricsContainer-SyncedLyricsPage.is-karaoke .lyrics-lyricsContainer-LyricsLine-phonetic,
+.lyrics-lyricsContainer-SyncedLyricsPage.is-karaoke .lyrics-lyricsContainer-LyricsLine-translation,
+.lyrics-lyricsContainer-SyncedLyricsPage.is-karaoke .lyrics-karaoke-line,
+.lyrics-lyricsContainer-UnsyncedLyricsPage.is-karaoke .lyrics-lyricsContainer-LyricsLine > p,
+.lyrics-lyricsContainer-UnsyncedLyricsPage.is-karaoke .lyrics-lyricsContainer-LyricsLine-phonetic,
+.lyrics-lyricsContainer-UnsyncedLyricsPage.is-karaoke .lyrics-lyricsContainer-LyricsLine-translation,
+.lyrics-lyricsContainer-UnsyncedLyricsPage.is-karaoke .lyrics-karaoke-line {
+  transition: none;
+}
+
+.lyrics-lyricsContainer-SyncedLyricsPage.is-karaoke .lyrics-lyricsContainer-LyricsLine-active > p,
+.lyrics-lyricsContainer-SyncedLyricsPage.is-karaoke .lyrics-lyricsContainer-LyricsLine-active .lyrics-karaoke-line,
+.lyrics-lyricsContainer-UnsyncedLyricsPage.is-karaoke .lyrics-lyricsContainer-LyricsLine-active > p,
+.lyrics-lyricsContainer-UnsyncedLyricsPage.is-karaoke .lyrics-lyricsContainer-LyricsLine-active .lyrics-karaoke-line {
+  transform: none;
+}
+
 .lyrics-lyricsContainer-SyncedLyrics>.lyrics-lyricsContainer-LyricsLine-paddingLine {
   opacity: 0;
   filter: blur(6px);
@@ -945,6 +971,8 @@ div.lyrics-tabBar-headerItemLink {
   letter-spacing: var(--lyrics-original-letter-spacing, 0);
   line-height: 1.3;
   color: var(--lyrics-color-inactive);
+  /* Apply the configured shadow once per line instead of once per karaoke char. */
+  filter: var(--lyrics-text-drop-shadow, none);
   text-shadow: none !important;
   /* Force grayscale antialiasing so active (background-clip:text, transparent fill)
      and done (solid color) chars share the same AA mode. Without this, done chars
@@ -977,7 +1005,7 @@ div.lyrics-tabBar-headerItemLink {
   display: inline-block;
   white-space: pre;
   color: var(--lyrics-color-inactive);
-  filter: var(--lyrics-text-drop-shadow, none);
+  filter: none;
   text-shadow: none;
   vertical-align: baseline;
   unicode-bidi: isolate;
@@ -1017,24 +1045,15 @@ div.lyrics-tabBar-headerItemLink {
   white-space: pre-wrap;
 }
 
-/* text-shadow intentionally omitted on the segment: it would be invisible on the
-   active (transparent + background-clip:text) segment and only appear on the done
-   segment, making chars look thicker right at the transition. The active glow is
-   handled below via filter:drop-shadow which works on both transparent and solid text. */
-
-/* Active gradient text needs filter because text-shadow does not render through background-clip:text. */
 .lyrics-karaoke-line.is-active .lyrics-karaoke-text-run-segment--active {
-  filter: var(
-    --lyrics-karaoke-active-drop-shadow,
-    drop-shadow(0 0 10px rgba(255, 255, 255, 0.08))
-  );
+  filter: none;
 }
 
 .lyrics-karaoke-char {
   display: inline-block;
   white-space: pre-wrap;
   color: var(--lyrics-color-inactive);
-  filter: var(--lyrics-text-drop-shadow, none);
+  filter: none;
   text-shadow: none;
   vertical-align: baseline;
 }
@@ -1067,28 +1086,8 @@ div.lyrics-tabBar-headerItemLink {
   -webkit-text-fill-color: transparent;
 }
 
-/* See the matching note on .lyrics-karaoke-text-run-segment: the .is-active
-   text-shadow was invisible on active chars and only appeared on done chars,
-   causing a visible thickening at the active→done transition. */
-
-/* Keep the configured text shadow in the active filter stack so active chars match done chars. */
 .lyrics-karaoke-line.is-active .lyrics-karaoke-char--active {
-  filter: var(
-    --lyrics-karaoke-active-drop-shadow,
-    drop-shadow(0 0 10px rgba(255, 255, 255, 0.08))
-  );
-}
-
-/* Pin every char/segment in the active line to a GPU layer. The --active rules above
-   add a filter that promotes them, but when a char crosses into --done that filter
-   disappears and the layer demotes — at which point the glyph re-rasterizes on the
-   main thread with different sub-pixel positioning, looking like a 1px shift / AA
-   change right when the bounce settles. Holding will-change here keeps the layer
-   alive across the active→done transition. Scoped to .is-active so non-active
-   lines don't pay the GPU memory cost. */
-.lyrics-karaoke-line.is-active .lyrics-karaoke-char,
-.lyrics-karaoke-line.is-active .lyrics-karaoke-text-run-segment {
-  will-change: transform;
+  filter: none;
 }
 
 /* Stay on the transparent + background-clip:text paint path even after the line
@@ -3161,10 +3160,12 @@ ruby rt {
 }
 
 .fullscreen-progress-fill {
+  width: 100%;
   height: 100%;
   background: var(--spice-text);
   border-radius: 3px;
-  transition: width var(--iv-motion-duration-medium) var(--iv-motion-ease-emphasis);
+  transform-origin: left center;
+  transition: transform var(--iv-motion-duration-medium) var(--iv-motion-ease-emphasis);
 }
 
 .fullscreen-progress-handle {
@@ -3389,10 +3390,12 @@ ruby rt {
 }
 
 .fullscreen-lyrics-progress-fill {
+  width: 100%;
   height: 100%;
   background: var(--spice-text);
   border-radius: 2px;
-  transition: width var(--iv-motion-duration-medium) var(--iv-motion-ease-emphasis);
+  transform-origin: left center;
+  transition: transform var(--iv-motion-duration-medium) var(--iv-motion-ease-emphasis);
 }
 
 .fullscreen-bottom-left.hidden .fullscreen-context-info {

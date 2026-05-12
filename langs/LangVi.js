@@ -8,6 +8,7 @@ window.LANG_VI = {
   "tabs": {
     "general": "Chung",
     "appearance": "Giao diện",
+    "performance": "Hiệu năng",
     "behavior": "Hành vi",
     "advanced": "Nâng cao",
     "fullscreen": "Toàn màn hình",
@@ -42,6 +43,7 @@ window.LANG_VI = {
       "badges": {
         "workspace": "Cốt lõi",
         "typography": "Văn bản",
+        "performance": "FPS",
         "behavior": "Luồng",
         "surface": "Giao diện",
         "providers": "Nguồn",
@@ -49,6 +51,7 @@ window.LANG_VI = {
       },
       "generalDesc": "Ngôn ngữ, lớp phủ desktop và các thiết lập cốt lõi.",
       "appearanceDesc": "Nền, kiểu chữ, chuyển động và bố cục màn hình.",
+      "performanceDesc": "Điều chỉnh tốc độ khung hình, chuyển động và hiệu ứng hình ảnh nặng.",
       "lyricsDesc": "Đồng bộ, dịch, karaoke và xử lý lời bài hát.",
       "fullscreenDesc": "Bố cục phát toàn màn hình và các thành phần hiển thị.",
       "nowplayingDesc": "Bố cục, kích thước và nền của lời bài hát bảng.",
@@ -740,6 +743,25 @@ window.LANG_VI = {
     "donate": {
       "title": "Mua cho nhà phát triển một ly cà phê",
       "button": "Ủng hộ"
+    },
+    "performance": {
+      "rendering": {
+        "title": "Tốc độ khung hình kết xuất",
+        "subtitle": "Giới hạn tần suất làm mới lời bài hát để giảm tải GPU và CPU."
+      },
+      "frameRate": {
+        "label": "Tốc độ khung hình lời",
+        "desc": "Điều khiển số lần cập nhật lời đồng bộ và karaoke mỗi giây. Giá trị thấp giảm tải, giá trị cao mượt hơn.",
+        "unit": " FPS"
+      },
+      "visualCost": {
+        "title": "Chi phí hình ảnh",
+        "subtitle": "Truy cập nhanh các hiệu ứng có thể làm GPU hoạt động nhiều hơn."
+      },
+      "backgroundWork": {
+        "title": "Tác vụ nền",
+        "subtitle": "Điều khiển việc tải trước có thể tăng hoạt động CPU, mạng hoặc ổ đĩa."
+      }
     },
     "syncMode": {
       "title": "Chế độ đồng bộ",

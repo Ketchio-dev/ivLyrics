@@ -8,6 +8,7 @@ window.LANG_DE = {
   "tabs": {
     "general": "Allgemein",
     "appearance": "Aussehen",
+    "performance": "Leistung",
     "behavior": "Verhalten",
     "advanced": "Erweitert",
     "fullscreen": "Vollbild",
@@ -42,6 +43,7 @@ window.LANG_DE = {
       "badges": {
         "workspace": "Basis",
         "typography": "Text",
+        "performance": "FPS",
         "behavior": "Ablauf",
         "surface": "Ansicht",
         "providers": "Quelle",
@@ -49,6 +51,7 @@ window.LANG_DE = {
       },
       "generalDesc": "Sprache, Desktop-Overlay und zentrale Grundeinstellungen.",
       "appearanceDesc": "Hintergründe, Typografie, Animationen und Bildschirmaufbau.",
+      "performanceDesc": "Bildrate, Bewegung und visuell aufwendige Effekte steuern.",
       "lyricsDesc": "Synchronisation, Übersetzung, Karaoke und Liedtextverarbeitung.",
       "fullscreenDesc": "Vollbild-Layout und Darstellung bei der Wiedergabe.",
       "nowplayingDesc": "Layout, Größe und Hintergrund der Panel-Texte.",
@@ -740,6 +743,25 @@ window.LANG_DE = {
     "donate": {
       "title": "Dem Entwickler einen Kaffee spendieren",
       "button": "Unterstützen"
+    },
+    "performance": {
+      "rendering": {
+        "title": "Rendering-Bildrate",
+        "subtitle": "Begrenzt die Aktualisierungsrate der Lyrics, um GPU- und CPU-Last zu senken."
+      },
+      "frameRate": {
+        "label": "Lyrics-Bildrate",
+        "desc": "Legt fest, wie oft synchronisierte und Karaoke-Lyrics pro Sekunde aktualisiert werden. Niedrigere Werte reduzieren Last, höhere wirken flüssiger.",
+        "unit": " FPS"
+      },
+      "visualCost": {
+        "title": "Visuelle Last",
+        "subtitle": "Schneller Zugriff auf Effekte, die die GPU stärker belasten können."
+      },
+      "backgroundWork": {
+        "title": "Hintergrundarbeit",
+        "subtitle": "Steuert Vorabladen, das CPU-, Netzwerk- oder Datenträgeraktivität verursachen kann."
+      }
     },
     "syncMode": {
       "title": "Synchronisierungsmodus",

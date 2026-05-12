@@ -8,6 +8,7 @@ window.LANG_JA = {
   "tabs": {
     "general": "一般",
     "appearance": "外観",
+    "performance": "パフォーマンス",
     "behavior": "動作",
     "advanced": "詳細",
     "fullscreen": "フルスクリーン",
@@ -42,6 +43,7 @@ window.LANG_JA = {
       "badges": {
         "workspace": "基本",
         "typography": "文字",
+        "performance": "FPS",
         "behavior": "動作",
         "surface": "表示",
         "providers": "ソース",
@@ -49,6 +51,7 @@ window.LANG_JA = {
       },
       "generalDesc": "言語、デスクトップオーバーレイ、基本動作をまとめます。",
       "appearanceDesc": "背景、タイポグラフィ、モーション、画面構成を調整します。",
+      "performanceDesc": "フレームレート、モーション、負荷の高い視覚効果を調整します。",
       "lyricsDesc": "同期、翻訳、カラオケ、歌詞処理を設定します。",
       "fullscreenDesc": "フルスクリーン再生時のレイアウトと表示内容を管理します。",
       "nowplayingDesc": "パネル歌詞の配置、サイズ、背景表現を設定します。",
@@ -740,6 +743,25 @@ window.LANG_JA = {
     "donate": {
       "title": "開発者にコーヒーを一杯奢る",
       "button": "寄付"
+    },
+    "performance": {
+      "rendering": {
+        "title": "レンダリングフレームレート",
+        "subtitle": "歌詞の更新頻度を制限して GPU と CPU の負荷を下げます。"
+      },
+      "frameRate": {
+        "label": "歌詞フレームレート",
+        "desc": "同期歌詞とカラオケ歌詞を1秒あたり何回更新するかを調整します。低い値は負荷を下げ、高い値はより滑らかに表示します。",
+        "unit": " FPS"
+      },
+      "visualCost": {
+        "title": "視覚効果の負荷",
+        "subtitle": "GPU 負荷を増やす可能性がある効果を素早く調整します。"
+      },
+      "backgroundWork": {
+        "title": "バックグラウンド処理",
+        "subtitle": "CPU、ネットワーク、ディスクの活動を増やす可能性があるプリロードを調整します。"
+      }
     },
     "syncMode": {
       "title": "同期モード",

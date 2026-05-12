@@ -377,7 +377,7 @@ const FullscreenOverlay = (() => {
             },
                 react.createElement("div", {
                     className: "fullscreen-progress-fill",
-                    style: { width: `${progressPercent}%` }
+                    style: { transform: `scaleX(${Math.max(0, Math.min(1, progressPercent / 100))})` }
                 }),
                 react.createElement("div", {
                     className: "fullscreen-progress-handle",
@@ -708,7 +708,7 @@ const FullscreenOverlay = (() => {
             react.createElement("div", { className: "fullscreen-lyrics-progress-bar" },
                 react.createElement("div", {
                     className: "fullscreen-lyrics-progress-fill",
-                    style: { width: `${percent}%` }
+                    style: { transform: `scaleX(${Math.max(0, Math.min(1, percent / 100))})` }
                 })
             ),
             react.createElement("span", { className: "fullscreen-lyrics-progress-text" },

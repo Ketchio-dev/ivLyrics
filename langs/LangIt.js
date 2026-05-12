@@ -8,6 +8,7 @@ window.LANG_IT = {
   "tabs": {
     "general": "Generale",
     "appearance": "Aspetto",
+    "performance": "Prestazioni",
     "behavior": "Comportamento",
     "advanced": "Avanzate",
     "fullscreen": "Schermo intero",
@@ -42,6 +43,7 @@ window.LANG_IT = {
       "badges": {
         "workspace": "Base",
         "typography": "Testo",
+        "performance": "FPS",
         "behavior": "Flusso",
         "surface": "Vista",
         "providers": "Fonte",
@@ -49,6 +51,7 @@ window.LANG_IT = {
       },
       "generalDesc": "Lingua, overlay desktop e impostazioni principali.",
       "appearanceDesc": "Sfondi, tipografia, animazioni e composizione dello schermo.",
+      "performanceDesc": "Controlli per frame rate, movimento ed effetti visivi pesanti.",
       "lyricsDesc": "Sincronizzazione, traduzione, karaoke ed elaborazione dei testi.",
       "fullscreenDesc": "Layout di riproduzione a schermo intero ed elementi visibili.",
       "nowplayingDesc": "Layout, dimensione e sfondo dei testi nel pannello.",
@@ -740,6 +743,25 @@ window.LANG_IT = {
     "donate": {
       "title": "Offri un caffè allo sviluppatore",
       "button": "Dona"
+    },
+    "performance": {
+      "rendering": {
+        "title": "Frame rate di rendering",
+        "subtitle": "Limita la frequenza di aggiornamento dei testi per ridurre il carico di GPU e CPU."
+      },
+      "frameRate": {
+        "label": "Frame rate testi",
+        "desc": "Controlla quante volte al secondo si aggiornano i testi sincronizzati e karaoke. Valori più bassi riducono il carico, valori più alti sono più fluidi.",
+        "unit": " FPS"
+      },
+      "visualCost": {
+        "title": "Costo visivo",
+        "subtitle": "Accesso rapido agli effetti che possono aumentare il lavoro della GPU."
+      },
+      "backgroundWork": {
+        "title": "Attività in background",
+        "subtitle": "Controlla i precaricamenti che possono aggiungere attività di CPU, rete o disco."
+      }
     },
     "syncMode": {
       "title": "Modalità sincronizzazione",

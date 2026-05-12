@@ -8,6 +8,7 @@ window.LANG_ES = {
   "tabs": {
     "general": "General",
     "appearance": "Apariencia",
+    "performance": "Rendimiento",
     "behavior": "Comportamiento",
     "advanced": "Avanzado",
     "fullscreen": "Pantalla completa",
@@ -42,6 +43,7 @@ window.LANG_ES = {
       "badges": {
         "workspace": "Base",
         "typography": "Texto",
+        "performance": "FPS",
         "behavior": "Flujo",
         "surface": "Vista",
         "providers": "Fuente",
@@ -49,6 +51,7 @@ window.LANG_ES = {
       },
       "generalDesc": "Idioma, superposición de escritorio y ajustes principales.",
       "appearanceDesc": "Fondos, tipografía, animaciones y composición de pantalla.",
+      "performanceDesc": "Controles de tasa de fotogramas, movimiento y efectos visuales costosos.",
       "lyricsDesc": "Sincronización, traducción, karaoke y procesamiento de letras.",
       "fullscreenDesc": "Diseño de reproducción en pantalla completa y elementos visibles.",
       "nowplayingDesc": "Diseño, tamaño y fondo de las letras del panel.",
@@ -740,6 +743,25 @@ window.LANG_ES = {
     "donate": {
       "title": "Invítale un café al desarrollador",
       "button": "Donar"
+    },
+    "performance": {
+      "rendering": {
+        "title": "Tasa de fotogramas",
+        "subtitle": "Limita la frecuencia de actualización de las letras para reducir la carga de GPU y CPU."
+      },
+      "frameRate": {
+        "label": "FPS de letras",
+        "desc": "Controla cuántas veces por segundo se actualizan las letras sincronizadas y karaoke. Valores más bajos reducen carga; valores más altos se sienten más fluidos.",
+        "unit": " FPS"
+      },
+      "visualCost": {
+        "title": "Costo visual",
+        "subtitle": "Acceso rápido a efectos que pueden aumentar el trabajo de la GPU."
+      },
+      "backgroundWork": {
+        "title": "Trabajo en segundo plano",
+        "subtitle": "Controla la precarga que puede añadir actividad de CPU, red o disco."
+      }
     },
     "syncMode": {
       "title": "Modo de sincronización",

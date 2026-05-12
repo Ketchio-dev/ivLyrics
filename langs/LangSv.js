@@ -8,6 +8,7 @@ window.LANG_SV = {
   "tabs": {
     "general": "Allmänt",
     "appearance": "Utseende",
+    "performance": "Prestanda",
     "behavior": "Beteende",
     "advanced": "Avancerat",
     "lyricsProviders": "Textleverantörer",
@@ -42,6 +43,7 @@ window.LANG_SV = {
       "badges": {
         "workspace": "Kärna",
         "typography": "Text",
+        "performance": "FPS",
         "behavior": "Flöde",
         "surface": "Visa",
         "providers": "Källa",
@@ -49,6 +51,7 @@ window.LANG_SV = {
       },
       "generalDesc": "Standardinställningar för språk, skrivbordsöverlägg och grundläggande arbetsyta.",
       "appearanceDesc": "Bakgrunder, typografi, rörelse och skärmkomposition.",
+      "performanceDesc": "Kontroller för bildfrekvens, rörelse och tunga visuella effekter.",
       "lyricsDesc": "Synkronisera beteende, översättning, karaoke och textbehandling.",
       "fullscreenDesc": "Fullskärmsuppspelningslayout och fjärrvisningspresentation.",
       "nowplayingDesc": "Paneltexternas layout, skala och bakgrundsbehandling.",
@@ -740,6 +743,25 @@ window.LANG_SV = {
     "donate": {
       "title": "Köp utvecklaren en kaffe",
       "button": "Donera"
+    },
+    "performance": {
+      "rendering": {
+        "title": "Renderingsbildfrekvens",
+        "subtitle": "Begränsa hur ofta texter uppdateras för att minska GPU- och CPU-belastning."
+      },
+      "frameRate": {
+        "label": "Textbildfrekvens",
+        "desc": "Styr hur många gånger per sekund synkade och karaoke-texter uppdateras. Lägre värden minskar belastningen, högre känns mjukare.",
+        "unit": " FPS"
+      },
+      "visualCost": {
+        "title": "Visuell kostnad",
+        "subtitle": "Snabb åtkomst till effekter som kan öka GPU-arbetet."
+      },
+      "backgroundWork": {
+        "title": "Bakgrundsarbete",
+        "subtitle": "Styr förladdning som kan öka CPU-, nätverks- eller diskaktivitet."
+      }
     },
     "syncMode": {
       "title": "Synkroniseringsläge",

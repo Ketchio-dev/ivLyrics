@@ -8,6 +8,7 @@ window.LANG_PT = {
   "tabs": {
     "general": "Geral",
     "appearance": "Aparência",
+    "performance": "Desempenho",
     "behavior": "Comportamento",
     "advanced": "Avançado",
     "fullscreen": "Tela Cheia",
@@ -42,6 +43,7 @@ window.LANG_PT = {
       "badges": {
         "workspace": "Base",
         "typography": "Texto",
+        "performance": "FPS",
         "behavior": "Fluxo",
         "surface": "Visão",
         "providers": "Fonte",
@@ -49,6 +51,7 @@ window.LANG_PT = {
       },
       "generalDesc": "Idioma, sobreposição da área de trabalho e ajustes principais.",
       "appearanceDesc": "Fundos, tipografia, animações e composição da tela.",
+      "performanceDesc": "Controles de taxa de quadros, movimento e efeitos visuais pesados.",
       "lyricsDesc": "Sincronização, tradução, karaokê e processamento das letras.",
       "fullscreenDesc": "Layout de reprodução em tela cheia e elementos exibidos.",
       "nowplayingDesc": "Layout, tamanho e fundo das letras do painel.",
@@ -740,6 +743,25 @@ window.LANG_PT = {
     "donate": {
       "title": "Comprar um café para o desenvolvedor",
       "button": "Doar"
+    },
+    "performance": {
+      "rendering": {
+        "title": "Taxa de quadros de renderização",
+        "subtitle": "Limita a frequência de atualização das letras para reduzir a carga de GPU e CPU."
+      },
+      "frameRate": {
+        "label": "Taxa de quadros das letras",
+        "desc": "Controla quantas vezes por segundo letras sincronizadas e karaokê são atualizadas. Valores menores reduzem a carga; valores maiores ficam mais suaves.",
+        "unit": " FPS"
+      },
+      "visualCost": {
+        "title": "Custo visual",
+        "subtitle": "Acesso rápido a efeitos que podem aumentar o trabalho da GPU."
+      },
+      "backgroundWork": {
+        "title": "Trabalho em segundo plano",
+        "subtitle": "Controla pré-carregamentos que podem adicionar atividade de CPU, rede ou disco."
+      }
     },
     "syncMode": {
       "title": "Modo de Sincronização",

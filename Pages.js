@@ -1117,14 +1117,24 @@ const useTrackOffsetState = () => {
 	return trackOffset;
 };
 
-// Quantize playback position to ~30 Hz so identical values within a step don't
-// trigger setState. SyncedLyricsPage's renderItems useMemo depends on `position`,
-// so every change there cascades into rebuilding every line's style/className
-// object on every frame, defeating LyricsLineBlock/KaraokeLine's react.memo. With
-// quantization, the value only changes ~30 times/sec instead of 60+, and stays
-// equal across same-step frames so React skips the re-render entirely.
-const POSITION_QUANTIZE_MS = 33;
-const TRACK_POSITION_FPS = 30;
+// Quantize playback position so identical values within a step don't trigger
+// setState. SyncedLyricsPage's renderItems useMemo depends on `position`, so
+// every change there cascades into rebuilding every line's style/className
+// object on every frame, defeating LyricsLineBlock/KaraokeLine's react.memo.
+const DEFAULT_TRACK_POSITION_FPS = 30;
+const MIN_TRACK_POSITION_FPS = 10;
+const MAX_TRACK_POSITION_FPS = 60;
+
+const getTrackPositionFPS = () => {
+	const configuredFPS = Number(CONFIG?.visual?.["performance-frame-rate"]);
+	if (!Number.isFinite(configuredFPS)) return DEFAULT_TRACK_POSITION_FPS;
+	return Math.max(
+		MIN_TRACK_POSITION_FPS,
+		Math.min(MAX_TRACK_POSITION_FPS, Math.round(configuredFPS))
+	);
+};
+
+const getPositionQuantizeMs = () => Math.max(1, Math.round(1000 / getTrackPositionFPS()));
 
 const useLyricsPlaybackPosition = () => {
 	const [position, setPosition] = useState(0);
@@ -1134,7 +1144,8 @@ const useLyricsPlaybackPosition = () => {
 		const newPos = window.Utils?.getSafePlayerProgress?.()
 			?? (Spicetify.Player.getProgress?.() || 0);
 		const delay = CONFIG.visual.delay + trackOffset;
-		const next = Math.round((newPos + delay) / POSITION_QUANTIZE_MS) * POSITION_QUANTIZE_MS;
+		const quantizeMs = getPositionQuantizeMs();
+		const next = Math.round((newPos + delay) / quantizeMs) * quantizeMs;
 		setPosition((prev) => (prev === next ? prev : next));
 	});
 
@@ -1621,7 +1632,7 @@ const buildKaraokeTextRunElements = (timedChars, position, isActive, isComplete,
 		const segmentDirection = getKaraokeTextDirection(segment.text) || textDirection;
 		const gradientDirection = segmentDirection === "rtl" ? "to left" : "to right";
 		const segmentState = fillValue <= 0 ? "pending" : fillValue >= 100 ? "done" : "active";
-		const bounce = segmentState === "active"
+		const bounce = segmentState !== "pending"
 			? getKaraokeBounceValues(position, isActive, segment.startTime, segment.endTime)
 			: KARAOKE_BOUNCE_IDLE;
 		const segmentStyle = {};
@@ -2185,13 +2196,18 @@ const AnimationManager = {
 	timerId: null,
 	callbacks: new Set(),
 	lastTime: 0,
-	targetFPS: TRACK_POSITION_FPS,
+	targetFPS: DEFAULT_TRACK_POSITION_FPS,
 	boundAnimate: null,
+
+	updateFrameInterval() {
+		this.targetFPS = getTrackPositionFPS();
+		this.frameInterval = 1000 / this.targetFPS;
+	},
 
 	start() {
 		if (this.active) return;
 		this.active = true;
-		this.frameInterval = 1000 / this.targetFPS;
+		this.updateFrameInterval();
 		// bind를 한 번만 수행하여 메모리 효율성 개선
 		if (!this.boundAnimate) {
 			this.boundAnimate = this.animate.bind(this);
@@ -2234,6 +2250,7 @@ const AnimationManager = {
 			}
 		});
 		this.lastTime = performance.now();
+		this.updateFrameInterval();
 		this.timerId = setTimeout(this.boundAnimate, document.hidden ? 250 : this.frameInterval);
 	}
 };
@@ -2501,9 +2518,11 @@ const getKaraokeBounceValues = (position, isActive, startTime, endTime) => {
 	}
 
 	const duration = Math.max(1, endTime - startTime);
+	const releaseDuration = Math.max(180, Math.min(420, duration * 1.35));
+	const totalWindow = duration + releaseDuration;
 	const elapsed = position - startTime;
 
-	if (elapsed < 0 || elapsed > duration) {
+	if (elapsed < 0 || elapsed > totalWindow) {
 		return KARAOKE_BOUNCE_IDLE;
 	}
 
@@ -2514,7 +2533,7 @@ const getKaraokeBounceValues = (position, isActive, startTime, endTime) => {
 		const riseProgress = elapsed / riseDuration;
 		waveStrength = 1 - Math.pow(1 - riseProgress, 3);
 	} else {
-		const fallProgress = Math.min(1, (elapsed - riseDuration) / Math.max(1, duration - riseDuration));
+		const fallProgress = Math.min(1, (elapsed - riseDuration) / Math.max(1, totalWindow - riseDuration));
 		waveStrength = Math.pow(1 - fallProgress, 1.75);
 	}
 
@@ -2522,8 +2541,8 @@ const getKaraokeBounceValues = (position, isActive, startTime, endTime) => {
 		return KARAOKE_BOUNCE_IDLE;
 	}
 
-	const offsetY = Math.round((-5 * waveStrength) * 4) / 4;
-	const scale = Math.round((1 + 0.05 * waveStrength) * 1000) / 1000;
+	const offsetY = Math.round((-6 * waveStrength) * 4) / 4;
+	const scale = Math.round((1 + 0.06 * waveStrength) * 1000) / 1000;
 
 	return {
 		offsetY,
@@ -2571,7 +2590,7 @@ const KaraokeLine = react.memo(({ line, position, isActive, globalCharOffset = 0
 			charInfo.endTime
 		);
 		const charState = fillRatio <= 0 ? "pending" : fillRatio >= 1 ? "done" : "active";
-		const bounce = charState === "active"
+		const bounce = charState !== "pending"
 			? getKaraokeBounceValues(
 				position,
 				isActive,
@@ -2720,7 +2739,7 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, contributors, copy
 	return react.createElement(
 		"div",
 		{
-			className: `lyrics-lyricsContainer-SyncedLyricsPage ${isScrolling ? "scrolling-active" : ""}`,
+			className: `lyrics-lyricsContainer-SyncedLyricsPage${isKara ? " is-karaoke" : ""}${isScrolling ? " scrolling-active" : ""}`,
 			ref: containerRefCallback,
 			onClick: handleContainerClick,
 		},
@@ -2996,7 +3015,7 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics = [], provider, contributo
 	return react.createElement(
 		"div",
 		{
-			className: "lyrics-lyricsContainer-UnsyncedLyricsPage",
+			className: `lyrics-lyricsContainer-UnsyncedLyricsPage${isKara ? " is-karaoke" : ""}`,
 			key: lyricsId,
 			ref: pageRef,
 			onClick: handleContainerClick,

@@ -3463,6 +3463,16 @@ const OptionList = ({ type, items, onChange }) => {
     return () => document.removeEventListener("ivLyrics", eventListener);
   }, []);
 
+  useEffect(() => {
+    const configListener = (event) => {
+      if (event.detail?.type !== "config") return;
+      forceUpdate({});
+    };
+
+    window.addEventListener("ivLyrics", configListener);
+    return () => window.removeEventListener("ivLyrics", configListener);
+  }, []);
+
   const renderedItems = (itemList || []).map((item, index) => {
     if (!item || (item.when && !item.when())) {
       return;
@@ -3948,6 +3958,14 @@ const ConfigModal = ({
       name: I18n.t("settings.reduceMotion.label"),
       desc: I18n.t("settings.reduceMotion.desc"),
       i18nKeys: ["tabs.appearance", "sections.motion", "settings.reduceMotion.label", "settings.reduceMotion.desc"]
+    },
+    {
+      section: I18n.t("tabs.performance"),
+      sectionKey: "performance",
+      settingKey: "performance-frame-rate",
+      name: I18n.t("settingsAdvanced.performance.frameRate.label"),
+      desc: I18n.t("settingsAdvanced.performance.frameRate.desc"),
+      i18nKeys: ["tabs.performance", "settingsAdvanced.performance.rendering.title", "settingsAdvanced.performance.frameRate.label", "settingsAdvanced.performance.frameRate.desc"]
     },
     {
       section: I18n.t("tabs.appearance"),
@@ -5006,6 +5024,14 @@ const ConfigModal = ({
         "Background, sync presentation, motion, and text styles"
       ),
     },
+    performance: {
+      label: I18n.t("tabs.performance"),
+      badge: getSettingsText("settingsUi.nav.badges.performance", "FPS"),
+      description: getSettingsText(
+        "settingsUi.nav.performanceDesc",
+        "Frame rate, motion, and visual cost controls"
+      ),
+    },
     lyrics: {
       label: I18n.t("tabs.behavior"),
       badge: getSettingsText("settingsUi.nav.badges.behavior", "Playback"),
@@ -5086,6 +5112,12 @@ const ConfigModal = ({
       label: I18n.t("tabs.appearance"),
       badge: tabMeta.appearance.badge,
       description: tabMeta.appearance.description,
+    },
+    {
+      id: "performance",
+      label: I18n.t("tabs.performance"),
+      badge: tabMeta.performance.badge,
+      description: tabMeta.performance.description,
     },
     {
       id: "lyrics",
@@ -5414,6 +5446,22 @@ const ConfigModal = ({
       dispatchVisualUpdate(name, value);
     };
 
+    react.useEffect(() => {
+      const handleConfigChange = (event) => {
+        if (event.detail?.type !== "config") return;
+        const changedName = event.detail?.name;
+        const isBackgroundModeChange =
+          changedName === "background-mode" ||
+          SETTINGS_BACKGROUND_PRESETS.some((preset) => preset.id === changedName);
+        if (isBackgroundModeChange) {
+          setSelectedMode(getCurrentSettingsBackgroundMode());
+        }
+      };
+
+      window.addEventListener("ivLyrics", handleConfigChange);
+      return () => window.removeEventListener("ivLyrics", handleConfigChange);
+    }, []);
+
     const modeSpecificItems = [];
 
     if (
@@ -5592,6 +5640,42 @@ const ConfigModal = ({
             onChange: handleVisualChange,
           })
         )
+    );
+  };
+
+  const performanceBackgroundKeys = new Set(
+    SETTINGS_BACKGROUND_PRESETS.map((preset) => preset.id).filter((id) => id !== "none")
+  );
+
+  const handlePerformanceSettingChange = (name, value) => {
+    if (performanceBackgroundKeys.has(name)) {
+      if (value) {
+        SETTINGS_BACKGROUND_PRESETS.forEach((preset) => {
+          if (preset.id === "none") return;
+          const isEnabled = preset.id === name;
+          CONFIG.visual[preset.id] = isEnabled;
+          StorageManager.saveConfig(preset.id, isEnabled);
+        });
+        lyricContainerUpdate?.();
+        window.dispatchEvent(
+          new CustomEvent("ivLyrics", {
+            detail: { type: "config", name: "background-mode", value: name },
+          })
+        );
+        return;
+      }
+    }
+
+    CONFIG.visual[name] = value;
+    StorageManager.saveConfig(name, value);
+    if (name === "reduce-motion") {
+      applySettingsMotionClasses();
+    }
+    lyricContainerUpdate?.();
+    window.dispatchEvent(
+      new CustomEvent("ivLyrics", {
+        detail: { type: "config", name, value },
+      })
     );
   };
 
@@ -10483,6 +10567,110 @@ const ConfigModal = ({
               })
             );
           },
+        })
+      ),
+      // 성능 탭
+      react.createElement(
+        "div",
+        {
+          className: `tab-content ${activeTab === "performance" ? "active" : ""}`,
+          "data-tab-id": "performance",
+        },
+        react.createElement(SectionTitle, {
+          title: I18n.t("settingsAdvanced.performance.rendering.title"),
+          subtitle: I18n.t("settingsAdvanced.performance.rendering.subtitle"),
+          sectionKey: "performance-rendering",
+        }),
+        react.createElement(OptionList, {
+          items: [
+            {
+              desc: I18n.t("settingsAdvanced.performance.frameRate.label"),
+              info: I18n.t("settingsAdvanced.performance.frameRate.desc"),
+              key: "performance-frame-rate",
+              type: ConfigSliderRange,
+              defaultValue: Number(CONFIG.visual["performance-frame-rate"] ?? 30),
+              min: 10,
+              max: 60,
+              step: 1,
+              unit: I18n.t("settingsAdvanced.performance.frameRate.unit"),
+            },
+            {
+              desc: I18n.t("settings.reduceMotion.label"),
+              info: I18n.t("settings.reduceMotion.desc"),
+              key: "reduce-motion",
+              defaultValue: CONFIG.visual["reduce-motion"] ?? false,
+              type: ConfigSlider,
+            },
+            {
+              desc: I18n.t("settingsAdvanced.karaokeMode.bounce.label"),
+              info: I18n.t("settingsAdvanced.karaokeMode.bounce.desc"),
+              key: "karaoke-bounce",
+              type: ConfigSlider,
+            },
+          ],
+          onChange: handlePerformanceSettingChange,
+        }),
+        react.createElement(SectionTitle, {
+          title: I18n.t("settingsAdvanced.performance.visualCost.title"),
+          subtitle: I18n.t("settingsAdvanced.performance.visualCost.subtitle"),
+          sectionKey: "performance-visual-cost",
+        }),
+        react.createElement(OptionList, {
+          items: [
+            {
+              desc: I18n.t("settingsAdvanced.syncMode.fadeoutBlur.label"),
+              key: "fade-blur",
+              info: I18n.t("settingsAdvanced.syncMode.fadeoutBlur.desc"),
+              type: ConfigSlider,
+            },
+            {
+              desc: I18n.t("settingsAdvanced.syncMode.highlightMode.label"),
+              key: "highlight-mode",
+              info: I18n.t("settingsAdvanced.syncMode.highlightMode.desc"),
+              type: ConfigSlider,
+            },
+            {
+              desc: I18n.t("settingsAdvanced.textShadow.enabled.label"),
+              info: I18n.t("settingsAdvanced.textShadow.enabled.desc"),
+              key: "text-shadow-enabled",
+              type: ConfigSlider,
+            },
+            {
+              desc: I18n.t("settings.blurGradientBackground.label"),
+              key: "blur-gradient-background",
+              info: I18n.t("settings.blurGradientBackground.desc"),
+              type: ConfigSlider,
+            },
+            {
+              desc: I18n.t("settings.videoBackground.label"),
+              key: "video-background",
+              info: I18n.t("settings.videoBackground.desc"),
+              type: ConfigSlider,
+            },
+          ],
+          onChange: handlePerformanceSettingChange,
+        }),
+        react.createElement(SectionTitle, {
+          title: I18n.t("settingsAdvanced.performance.backgroundWork.title"),
+          subtitle: I18n.t("settingsAdvanced.performance.backgroundWork.subtitle"),
+          sectionKey: "performance-background-work",
+        }),
+        react.createElement(OptionList, {
+          items: [
+            {
+              desc: I18n.t("settingsAdvanced.prefetch.enabled.label"),
+              info: I18n.t("settingsAdvanced.prefetch.enabled.desc"),
+              key: "prefetch-enabled",
+              type: ConfigSlider,
+            },
+            {
+              desc: I18n.t("settingsAdvanced.prefetch.videoEnabled.label"),
+              info: I18n.t("settingsAdvanced.prefetch.videoEnabled.desc"),
+              key: "prefetch-video-enabled",
+              type: ConfigSlider,
+            },
+          ],
+          onChange: handlePerformanceSettingChange,
         })
       ),
       // 가사 탭 (가사 동기화 및 동작)

@@ -1268,6 +1268,10 @@ const CONFIG = {
       "ivLyrics:visual:reduce-motion",
       false
     ),
+    "performance-frame-rate": StorageManager.get(
+      "ivLyrics:visual:performance-frame-rate",
+      30
+    ),
 
     "blur-gradient-background": StorageManager.get(
       "ivLyrics:visual:blur-gradient-background",
@@ -6127,9 +6131,6 @@ class LyricsContainer extends react.Component {
     const textDropShadow = CONFIG.visual["text-shadow-enabled"]
       ? `drop-shadow(0 0 ${CONFIG.visual["text-shadow-blur"]}px ${shadowColor})`
       : "none";
-    const karaokeActiveDropShadow = CONFIG.visual["text-shadow-enabled"]
-      ? `${textDropShadow} drop-shadow(0 0 10px rgba(255, 255, 255, 0.08))`
-      : "drop-shadow(0 0 10px rgba(255, 255, 255, 0.08))";
 
     this.styleVariables = {
       ...this.styleVariables,
@@ -6168,7 +6169,6 @@ class LyricsContainer extends react.Component {
       "--lyrics-line-spacing": `${CONFIG.visual["line-spacing"] || 8}px`,
       "--lyrics-text-shadow": textShadow,
       "--lyrics-text-drop-shadow": textDropShadow,
-      "--lyrics-karaoke-active-drop-shadow": karaokeActiveDropShadow,
       "--lyrics-original-opacity": CONFIG.visual["original-opacity"] / 100,
       "--lyrics-translation-opacity":
         CONFIG.visual["translation-opacity"] / 100,

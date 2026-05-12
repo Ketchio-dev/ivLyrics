@@ -8,6 +8,7 @@ window.LANG_FR = {
   "tabs": {
     "general": "Général",
     "appearance": "Apparence",
+    "performance": "Performances",
     "behavior": "Comportement",
     "advanced": "Avancé",
     "fullscreen": "Plein écran",
@@ -42,6 +43,7 @@ window.LANG_FR = {
       "badges": {
         "workspace": "Base",
         "typography": "Texte",
+        "performance": "FPS",
         "behavior": "Flux",
         "surface": "Vue",
         "providers": "Source",
@@ -49,6 +51,7 @@ window.LANG_FR = {
       },
       "generalDesc": "Langue, overlay bureau et réglages principaux.",
       "appearanceDesc": "Arrière-plans, typographie, animations et composition de l’écran.",
+      "performanceDesc": "Réglages de fréquence d’image, de mouvement et d’effets visuels coûteux.",
       "lyricsDesc": "Synchronisation, traduction, karaoké et traitement des paroles.",
       "fullscreenDesc": "Disposition plein écran et présentation en lecture.",
       "nowplayingDesc": "Disposition, taille et fond des paroles du panneau.",
@@ -740,6 +743,25 @@ window.LANG_FR = {
     "donate": {
       "title": "Offrir un café au développeur",
       "button": "Faire un don"
+    },
+    "performance": {
+      "rendering": {
+        "title": "Fréquence de rendu",
+        "subtitle": "Limite la fréquence d’actualisation des paroles pour réduire la charge GPU et CPU."
+      },
+      "frameRate": {
+        "label": "Fréquence des paroles",
+        "desc": "Contrôle le nombre de mises à jour par seconde des paroles synchronisées et karaoké. Des valeurs plus basses réduisent la charge, des valeurs plus hautes sont plus fluides.",
+        "unit": " FPS"
+      },
+      "visualCost": {
+        "title": "Coût visuel",
+        "subtitle": "Accès rapide aux effets pouvant augmenter le travail du GPU."
+      },
+      "backgroundWork": {
+        "title": "Tâches en arrière-plan",
+        "subtitle": "Contrôle les préchargements pouvant ajouter de l’activité CPU, réseau ou disque."
+      }
     },
     "syncMode": {
       "title": "Mode synchronisation",

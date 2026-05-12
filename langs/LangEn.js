@@ -8,6 +8,7 @@ window.LANG_EN = {
   "tabs": {
     "general": "General",
     "appearance": "Appearance",
+    "performance": "Performance",
     "behavior": "Behavior",
     "advanced": "Advanced",
     "lyricsProviders": "Lyrics Providers",
@@ -42,6 +43,7 @@ window.LANG_EN = {
       "badges": {
         "workspace": "Core",
         "typography": "Text",
+        "performance": "FPS",
         "behavior": "Flow",
         "surface": "View",
         "providers": "Source",
@@ -49,6 +51,7 @@ window.LANG_EN = {
       },
       "generalDesc": "Language, desktop overlay, and core workspace defaults.",
       "appearanceDesc": "Backgrounds, typography, motion, and screen composition.",
+      "performanceDesc": "Frame rate, motion, and visual cost controls.",
       "lyricsDesc": "Sync behavior, translation, karaoke, and lyric processing.",
       "fullscreenDesc": "Fullscreen playback layout and remote-view presentation.",
       "nowplayingDesc": "Panel lyrics layout, scale, and background treatment.",
@@ -740,6 +743,25 @@ window.LANG_EN = {
     "donate": {
       "title": "Buy the developer a coffee",
       "button": "Donate"
+    },
+    "performance": {
+      "rendering": {
+        "title": "Rendering Frame Rate",
+        "subtitle": "Limit lyrics refresh rate to reduce GPU and CPU load."
+      },
+      "frameRate": {
+        "label": "Lyrics Frame Rate",
+        "desc": "Controls how often synced and karaoke lyrics update. Lower values reduce load; higher values feel smoother.",
+        "unit": " FPS"
+      },
+      "visualCost": {
+        "title": "Visual Cost",
+        "subtitle": "Quick access to effects that can increase GPU work."
+      },
+      "backgroundWork": {
+        "title": "Background Work",
+        "subtitle": "Controls preloading that may add CPU, network, or disk activity."
+      }
     },
     "syncMode": {
       "title": "Sync Mode",
