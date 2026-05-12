@@ -1392,6 +1392,10 @@ const Utils = {
         });
   },
 
+  isDiscordUserHash(userHash) {
+    return typeof userHash === "string" && /^\d{15,22}$/.test(userHash.trim());
+  },
+
   setUserHash(userHash) {
     if (!userHash || typeof userHash !== "string") return;
 
@@ -1529,9 +1533,24 @@ const Utils = {
 
   async fetchAccountProfile(options = {}) {
     const includeUserHash = options.includeUserHash !== false;
+    const currentUserHash = this.getUserHash();
+    const authToken = this.getAuthToken();
+
+    if (includeUserHash && this.isDiscordUserHash(currentUserHash) && !authToken) {
+      return {
+        success: true,
+        authenticated: false,
+        linked: false,
+        account: null,
+        nickname: null,
+        userHash: currentUserHash,
+        staleDiscordSession: true,
+      };
+    }
+
     const requestUrl = new URL(`${this.getAccountApiBase()}/profile`);
     if (includeUserHash) {
-      requestUrl.searchParams.set("userHash", this.getUserHash());
+      requestUrl.searchParams.set("userHash", currentUserHash);
     }
 
     const response = await fetch(
@@ -1547,11 +1566,33 @@ const Utils = {
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(
+      const errorMessage =
         data.error ||
           I18n.t("settingsAdvanced.aboutTab.account.loadFailed") ||
-          "Failed to load account information."
-      );
+          "Failed to load account information.";
+
+      if (
+        includeUserHash &&
+        this.isDiscordUserHash(currentUserHash) &&
+        (response.status === 400 || response.status === 401) &&
+        /(?:valid userhash|discord login is required)/i.test(errorMessage)
+      ) {
+        this.clearAuthToken();
+        return {
+          success: true,
+          authenticated: false,
+          linked: false,
+          account: null,
+          nickname: null,
+          userHash: currentUserHash,
+          staleDiscordSession: true,
+        };
+      }
+
+      const error = new Error(errorMessage);
+      error.status = response.status;
+      error.data = data;
+      throw error;
     }
 
     return data;
@@ -1560,18 +1601,30 @@ const Utils = {
   async requireDiscordAuth(message, options = {}) {
     const checkingMessage = options.checkingMessage;
     const showProgress = !!checkingMessage && !!Toast?.progress;
+    const loginRequiredMessage =
+      message || I18n.t("settingsAdvanced.aboutTab.account.loginRequired");
 
     if (showProgress) {
       Toast.progress(checkingMessage, 0);
     }
 
     try {
+      if (!this.getAuthToken()) {
+        throw new Error(loginRequiredMessage);
+      }
+
       const profile = await this.fetchAccountProfile({ includeUserHash: false });
       if (!profile?.authenticated || !profile?.linked || !profile?.account) {
-        throw new Error(message || I18n.t("settingsAdvanced.aboutTab.account.loginRequired"));
+        throw new Error(loginRequiredMessage);
       }
 
       return profile;
+    } catch (error) {
+      if (error?.status === 400 || error?.status === 401 || error?.status === 404) {
+        this.clearAuthToken();
+        throw new Error(loginRequiredMessage);
+      }
+      throw error;
     } finally {
       if (showProgress && Toast?.dismissProgress) {
         Toast.dismissProgress();
@@ -1592,8 +1645,23 @@ const Utils = {
     return text;
   },
 
-  async startDiscordLogin() {
-    const currentUserHash = this.getUserHash();
+  async startDiscordLogin(options = {}) {
+    let currentUserHash = this.getUserHash();
+
+    if (this.isDiscordUserHash(currentUserHash) && !this.getAuthToken()) {
+      currentUserHash = this.resetUserHash();
+      window.SyncDataService?.clearCache?.();
+      window.dispatchEvent(
+        new CustomEvent("ivLyrics:account-changed", {
+          detail: {
+            linked: false,
+            userHash: currentUserHash,
+            staleDiscordSession: true,
+          },
+        })
+      );
+    }
+
     const response = await fetch(`${this.getAccountApiBase()}/discord/start`, {
       method: "POST",
       headers: this.getApiHeaders({
@@ -1604,11 +1672,32 @@ const Utils = {
     const data = await response.json();
 
     if (!response.ok || !data.success || !data.authorizeUrl) {
-      throw new Error(
+      const errorMessage =
         data.error ||
           I18n.t("settingsAdvanced.aboutTab.account.failed") ||
-          "Discord login failed."
-      );
+          "Discord login failed.";
+
+      if (
+        options.retryOnStaleDiscordHash !== false &&
+        response.status === 401 &&
+        this.isDiscordUserHash(currentUserHash) &&
+        /discord login is required.*discord account id/i.test(errorMessage)
+      ) {
+        const nextUserHash = this.resetUserHash();
+        window.SyncDataService?.clearCache?.();
+        window.dispatchEvent(
+          new CustomEvent("ivLyrics:account-changed", {
+            detail: {
+              linked: false,
+              userHash: nextUserHash,
+              staleDiscordSession: true,
+            },
+          })
+        );
+        return this.startDiscordLogin({ ...options, retryOnStaleDiscordHash: false });
+      }
+
+      throw new Error(errorMessage);
     }
 
     window.open(data.authorizeUrl, "_blank", "noopener,noreferrer");

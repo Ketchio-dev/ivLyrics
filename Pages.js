@@ -1539,6 +1539,21 @@ const getKaraokeSegmentFill = (segment, position, isActive, isComplete) => {
 	return Math.max(0, Math.min(100, ((position - startTime) / Math.max(1, endTime - startTime)) * 100));
 };
 
+const buildKaraokeFillOverlay = (text, key, fillDirection = "ltr") => react.createElement(
+	"span",
+	{
+		className: `lyrics-karaoke-fill-overlay${fillDirection === "rtl" ? " is-rtl" : ""}`,
+		"aria-hidden": "true",
+		key,
+	},
+	react.createElement("span", { className: "lyrics-karaoke-fill-overlay-text" }, text)
+);
+
+const buildKaraokeFilledTextChildren = (text, key, fillDirection = "ltr") => [
+	react.createElement("span", { className: "lyrics-karaoke-fill-base", key: `${key}-base` }, text),
+	buildKaraokeFillOverlay(text, `${key}-overlay`, fillDirection),
+];
+
 const buildKaraokeTextRunSegments = (timedChars) => {
 	if (!Array.isArray(timedChars) || timedChars.length === 0) {
 		return [];
@@ -1598,18 +1613,14 @@ const buildKaraokeTextRunElements = (timedChars, position, isActive, isComplete,
 
 		const fillValue = getKaraokeSegmentFill(segment, position, isActive, isComplete);
 		const segmentDirection = getKaraokeTextDirection(segment.text) || textDirection;
-		const gradientDirection = segmentDirection === "rtl" ? "to left" : "to right";
+		const fillDirection = segmentDirection === "rtl" ? "rtl" : "ltr";
 		const segmentState = fillValue <= 0 ? "pending" : fillValue >= 100 ? "done" : "active";
 		const bounce = segmentState === "pending"
 			? { offsetY: 0, scale: 1 }
 			: getKaraokeBounceValues(position, isActive, segment.startTime, segment.endTime);
 		const segmentStyle = {};
 		if (segmentState === "active") {
-			const softEdge = 10;
-			segmentStyle["--karaoke-gradient-direction"] = gradientDirection;
 			segmentStyle["--karaoke-char-fill"] = `${fillValue}%`;
-			segmentStyle["--karaoke-char-fill-soft-start"] = `${Math.max(0, fillValue - softEdge)}%`;
-			segmentStyle["--karaoke-char-fill-soft-end"] = `${Math.min(100, fillValue + softEdge)}%`;
 		}
 		if (bounce.offsetY !== 0 || bounce.scale !== 1) {
 			segmentStyle["--karaoke-bounce-y"] = `${bounce.offsetY}px`;
@@ -1629,7 +1640,9 @@ const buildKaraokeTextRunElements = (timedChars, position, isActive, isComplete,
 				style: segmentStyle,
 				key: `karaoke-text-run-segment-${segment.startIndex}`,
 			},
-			segment.text
+			segmentState === "active"
+				? buildKaraokeFilledTextChildren(segment.text, `karaoke-text-run-fill-${segment.startIndex}`, fillDirection)
+				: segment.text
 		);
 	});
 };
@@ -2530,14 +2543,11 @@ const KaraokeLine = react.memo(({ line, position, isActive, globalCharOffset = 0
 				isActive,
 				charInfo.startTime,
 				charInfo.endTime
-			);
+		);
 		const karaokeStyle = {};
 		if (charState === "active") {
 			const fillValue = Math.max(0, Math.min(100, fillRatio * 100));
-			const softEdge = 16;
 			karaokeStyle["--karaoke-char-fill"] = `${fillValue}%`;
-			karaokeStyle["--karaoke-char-fill-soft-start"] = `${Math.max(0, fillValue - softEdge)}%`;
-			karaokeStyle["--karaoke-char-fill-soft-end"] = `${Math.min(100, fillValue + softEdge)}%`;
 		}
 		if (bounce.offsetY !== 0 || bounce.scale !== 1) {
 			karaokeStyle["--karaoke-bounce-y"] = `${bounce.offsetY}px`;
@@ -2554,7 +2564,9 @@ const KaraokeLine = react.memo(({ line, position, isActive, globalCharOffset = 0
 				style: karaokeStyle,
 				key: `karaoke-char-${index}`,
 			},
-			charInfo.char
+			charState === "active"
+				? buildKaraokeFilledTextChildren(charInfo.char, `karaoke-char-fill-${index}`)
+				: charInfo.char
 		);
 		const reading = furiganaMap.get(index);
 
@@ -2570,7 +2582,13 @@ const KaraokeLine = react.memo(({ line, position, isActive, globalCharOffset = 0
 				key: `karaoke-ruby-${index}`,
 			},
 			charNode,
-			react.createElement("rt", null, reading)
+			react.createElement(
+				"rt",
+				null,
+				charState === "active"
+					? buildKaraokeFilledTextChildren(reading, `karaoke-ruby-fill-${index}`)
+					: reading
+			)
 		);
 	});
 	const lineChildren = useTextRun

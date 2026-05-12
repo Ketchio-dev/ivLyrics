@@ -1576,36 +1576,46 @@
          * @returns {Promise<Object>} - 제출 결과
          */
 	        async function submitSyncData(trackId, provider, syncData, metadata = {}) {
-	            const userHash = getUserHash();
-	            const authToken = Spicetify.LocalStorage.get("ivLyrics:auth-token");
-	                const title = typeof metadata?.title === "string" ? metadata.title.trim() : "";
-	                const artist = typeof metadata?.artist === "string" ? metadata.artist.trim() : "";
-
-	            const profileResponse = await fetch(`${API_BASE}/user/profile?userHash=${encodeURIComponent(userHash)}`, {
-	                cache: 'no-store',
-	                headers: {
-	                    "Cache-Control": "no-cache, no-store, must-revalidate",
-	                    Pragma: "no-cache",
-	                    ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-	                },
-	            });
-	            const profile = await profileResponse.json();
-
-	            if (!profileResponse.ok) {
-	                throw new Error(profile.error || I18n.t('settingsAdvanced.aboutTab.account.loadFailed'));
-	            }
-
-	            if (!profile?.authenticated || !profile?.linked || !profile?.account) {
-	                throw new Error(I18n.t('syncCreator.loginRequired'));
-	            }
+		            const userHash = getUserHash();
+		            const authToken = typeof Utils !== "undefined" && Utils.getAuthToken
+		                ? Utils.getAuthToken()
+		                : Spicetify.LocalStorage.get("ivLyrics:auth-token");
+		                const title = typeof metadata?.title === "string" ? metadata.title.trim() : "";
+		                const artist = typeof metadata?.artist === "string" ? metadata.artist.trim() : "";
 	
-	            const response = await fetch(`${API_BASE}/lyrics/sync-data`, {
-	                method: 'POST',
-	                headers: {
-	                    "Content-Type": "application/json",
-	                    "User-Agent": `spicetify v${Spicetify.Config.version}`,
-	                    ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-	                },
+		            if (typeof Utils !== "undefined" && Utils.requireDiscordAuth) {
+		                await Utils.requireDiscordAuth(I18n.t('syncCreator.loginRequired'));
+		            } else {
+		                const profileResponse = await fetch(`${API_BASE}/user/profile?userHash=${encodeURIComponent(userHash)}`, {
+		                    cache: 'no-store',
+		                    headers: {
+		                        "Cache-Control": "no-cache, no-store, must-revalidate",
+		                        Pragma: "no-cache",
+		                        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+		                    },
+		                });
+		                const profile = await profileResponse.json();
+	
+		                if (!profileResponse.ok) {
+		                    throw new Error(profile.error || I18n.t('settingsAdvanced.aboutTab.account.loadFailed'));
+		                }
+	
+		                if (!profile?.authenticated || !profile?.linked || !profile?.account) {
+		                    throw new Error(I18n.t('syncCreator.loginRequired'));
+		                }
+		            }
+
+		            const submitAuthToken = typeof Utils !== "undefined" && Utils.getAuthToken
+		                ? Utils.getAuthToken()
+		                : authToken;
+		
+		            const response = await fetch(`${API_BASE}/lyrics/sync-data`, {
+		                method: 'POST',
+		                headers: {
+		                    "Content-Type": "application/json",
+		                    "User-Agent": `spicetify v${Spicetify.Config.version}`,
+		                    ...(submitAuthToken ? { Authorization: `Bearer ${submitAuthToken}` } : {}),
+		                },
 	                body: JSON.stringify({
 	                    trackId,
 	                    provider,

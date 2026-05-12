@@ -357,6 +357,12 @@ const NicknameSection = ({ userHash }) => {
 
   const fetchNickname = async () => {
     try {
+      if (Utils.isDiscordUserHash?.(userHash) && !Utils.getAuthToken?.()) {
+        setNickname("");
+        setInputNickname("");
+        return;
+      }
+
       const res = await fetch(
         `${Utils.getAccountApiBase()}/nickname?userHash=${encodeURIComponent(userHash)}`,
         {
