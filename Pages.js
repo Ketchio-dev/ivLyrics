@@ -1542,7 +1542,8 @@ const getKaraokeSegmentFill = (segment, position, isActive, isComplete) => {
 		return 100;
 	}
 
-	return Math.max(0, Math.min(100, ((position - startTime) / Math.max(1, endTime - startTime)) * 100));
+	const raw = Math.max(0, Math.min(100, ((position - startTime) / Math.max(1, endTime - startTime)) * 100));
+	return Math.round(raw / 4) * 4;
 };
 
 const buildKaraokeTextRunSegments = (timedChars) => {
@@ -1952,9 +1953,18 @@ const useSyncedLyricsEngine = ({
 		return buildGlobalCharState(lyrics, position);
 	}, [lyrics, position, isKara]);
 
-	const compactOffset = compact
-		? getCompactSyncedOffset(containerRef.current, activeLineRef.current, isScrolling)
-		: 0;
+	// Was invoked inline on every render — and position updates trigger a render every
+	// frame, so this layout read fired 60 times/sec and forced a synchronous reflow
+	// each time. Now scoped to the events that can actually change the offset:
+	// active line shifts, scrolling state flips, compact mode toggles.
+	const [compactOffset, setCompactOffset] = useState(0);
+	useEffect(() => {
+		if (!compact) {
+			setCompactOffset(0);
+			return;
+		}
+		setCompactOffset(getCompactSyncedOffset(containerRef.current, activeLineRef.current, isScrolling));
+	}, [compact, activeLineIndex, isScrolling]);
 
 	useEffect(() => {
 		const actualIndex = Math.max(0, activeLineIndex - leadingEmptyLines);
@@ -2440,6 +2450,8 @@ const applyKaraokeWhitespaceCompensation = (timedChars) => {
 	return didChange ? compensatedChars : timedChars;
 };
 
+const KARAOKE_FILL_STEPS = 25;
+
 const getKaraokeCharFill = (position, isActive, startTime, endTime) => {
 	if (!isActive) {
 		return 0;
@@ -2450,7 +2462,11 @@ const getKaraokeCharFill = (position, isActive, startTime, endTime) => {
 	if (position >= endTime) {
 		return 1;
 	}
-	return Math.max(0, Math.min(1, (position - startTime) / Math.max(1, endTime - startTime)));
+	const raw = Math.max(0, Math.min(1, (position - startTime) / Math.max(1, endTime - startTime)));
+	// Quantize to 4% steps so per-frame inline-style updates collapse to ~12 changes/sec
+	// instead of 60. React skips DOM writes when the resulting CSS variable string is
+	// unchanged, which removes the matching style recalc + layerize cascade.
+	return Math.round(raw * KARAOKE_FILL_STEPS) / KARAOKE_FILL_STEPS;
 };
 
 const getKaraokeBounceValues = (position, isActive, startTime, endTime) => {
