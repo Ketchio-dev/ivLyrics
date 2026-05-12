@@ -1121,7 +1121,7 @@ const useTrackOffsetState = () => {
 // setState. SyncedLyricsPage's renderItems useMemo depends on `position`, so
 // every change there cascades into rebuilding every line's style/className
 // object on every frame, defeating LyricsLineBlock/KaraokeLine's react.memo.
-const DEFAULT_TRACK_POSITION_FPS = 30;
+const DEFAULT_TRACK_POSITION_FPS = 60;
 const MIN_TRACK_POSITION_FPS = 10;
 const MAX_TRACK_POSITION_FPS = 60;
 
@@ -1612,7 +1612,15 @@ const buildKaraokeTextRunSegments = (timedChars) => {
 	return segments;
 };
 
-const buildKaraokeTextRunElements = (timedChars, position, isActive, isComplete, textDirection) => {
+const buildKaraokeTextRunElements = (
+	timedChars,
+	position,
+	isActive,
+	isComplete,
+	textDirection,
+	globalCharOffset = 0,
+	activeGlobalCharIndex = -1
+) => {
 	const segments = buildKaraokeTextRunSegments(timedChars);
 	const renderSegments = textDirection === "rtl" ? [...segments].reverse() : segments;
 
@@ -1632,7 +1640,9 @@ const buildKaraokeTextRunElements = (timedChars, position, isActive, isComplete,
 		const segmentDirection = getKaraokeTextDirection(segment.text) || textDirection;
 		const gradientDirection = segmentDirection === "rtl" ? "to left" : "to right";
 		const segmentState = fillValue <= 0 ? "pending" : fillValue >= 100 ? "done" : "active";
-		const bounce = getKaraokeBounceValues(position, isActive, segment.startTime, segment.endTime);
+		const segmentCenterIndex = globalCharOffset + segment.startIndex + Math.max(0, segment.text.length - 1) / 2;
+		const bounceAttenuation = getKaraokeBounceAttenuation(segmentCenterIndex, activeGlobalCharIndex);
+		const bounce = getKaraokeBounceValues(position, isActive, segment.startTime, segment.endTime, bounceAttenuation);
 		const segmentStyle = {};
 		if (segmentState === "active") {
 			const softEdge = 10;
@@ -2492,7 +2502,21 @@ const applyKaraokeWhitespaceCompensation = (timedChars) => {
 
 const KARAOKE_FILL_STEPS = 25;
 const KARAOKE_BOUNCE_IDLE = { offsetY: 0, scale: 1, active: false };
+const KARAOKE_BOUNCE_MAX_CHAR_DISTANCE = 3;
 const easeOutCubic = (value) => 1 - Math.pow(1 - Math.max(0, Math.min(1, value)), 3);
+
+const getKaraokeBounceAttenuation = (globalCharIndex, activeGlobalCharIndex) => {
+	if (!Number.isFinite(globalCharIndex) || !Number.isFinite(activeGlobalCharIndex) || activeGlobalCharIndex < 0) {
+		return 1;
+	}
+
+	const distance = Math.abs(globalCharIndex - activeGlobalCharIndex);
+	if (distance > KARAOKE_BOUNCE_MAX_CHAR_DISTANCE) {
+		return 0;
+	}
+
+	return Math.max(0.22, 1 - distance * 0.23);
+};
 
 const getKaraokeCharFill = (position, isActive, startTime, endTime) => {
 	if (!isActive) {
@@ -2511,8 +2535,8 @@ const getKaraokeCharFill = (position, isActive, startTime, endTime) => {
 	return Math.round(raw * KARAOKE_FILL_STEPS) / KARAOKE_FILL_STEPS;
 };
 
-const getKaraokeBounceValues = (position, isActive, startTime, endTime) => {
-	if (!CONFIG.visual["karaoke-bounce"] || !isActive) {
+const getKaraokeBounceValues = (position, isActive, startTime, endTime, attenuation = 1) => {
+	if (!CONFIG.visual["karaoke-bounce"] || !isActive || attenuation <= 0) {
 		return KARAOKE_BOUNCE_IDLE;
 	}
 
@@ -2544,8 +2568,10 @@ const getKaraokeBounceValues = (position, isActive, startTime, endTime) => {
 		return KARAOKE_BOUNCE_IDLE;
 	}
 
-	const offsetY = Math.round((-6 * waveStrength) * 4) / 4;
-	const scale = Math.round((1 + 0.06 * waveStrength) * 1000) / 1000;
+	waveStrength *= Math.max(0, Math.min(1, attenuation));
+
+	const offsetY = Math.round((-6 * waveStrength) * 2) / 2;
+	const scale = Math.round((1 + 0.055 * waveStrength) * 100) / 100;
 
 	return {
 		offsetY,
@@ -2593,11 +2619,14 @@ const KaraokeLine = react.memo(({ line, position, isActive, globalCharOffset = 0
 			charInfo.endTime
 		);
 		const charState = fillRatio <= 0 ? "pending" : fillRatio >= 1 ? "done" : "active";
+		const globalCharIndex = globalCharOffset + index;
+		const bounceAttenuation = getKaraokeBounceAttenuation(globalCharIndex, activeGlobalCharIndex);
 		const bounce = getKaraokeBounceValues(
 			position,
 			isActive,
 			charInfo.startTime,
-			charInfo.endTime
+			charInfo.endTime,
+			bounceAttenuation
 		);
 		const karaokeStyle = {};
 		if (charState === "active") {
@@ -2645,7 +2674,15 @@ const KaraokeLine = react.memo(({ line, position, isActive, globalCharOffset = 0
 		);
 	});
 	const lineChildren = useTextRun
-		? buildKaraokeTextRunElements(timedChars, position, isActive, isComplete, textDirection)
+		? buildKaraokeTextRunElements(
+			timedChars,
+			position,
+			isActive,
+			isComplete,
+			textDirection,
+			globalCharOffset,
+			activeGlobalCharIndex
+		)
 		: wrapByWord
 		? buildKaraokeWordElements(timedChars, charElements)
 		: charElements;

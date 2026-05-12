@@ -10596,7 +10596,7 @@ const ConfigModal = ({
               info: I18n.t("settingsAdvanced.performance.frameRate.desc"),
               key: "performance-frame-rate",
               type: ConfigSliderRange,
-              defaultValue: Number(CONFIG.visual["performance-frame-rate"] ?? 30),
+              defaultValue: Number(CONFIG.visual["performance-frame-rate"] ?? 60),
               min: 10,
               max: 60,
               step: 1,

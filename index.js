@@ -1268,10 +1268,9 @@ const CONFIG = {
       "ivLyrics:visual:reduce-motion",
       false
     ),
-    "performance-frame-rate": StorageManager.get(
-      "ivLyrics:visual:performance-frame-rate",
-      30
-    ),
+    "performance-frame-rate":
+      Number(StorageManager.getItem("ivLyrics:visual:performance-frame-rate")) ||
+      60,
 
     "blur-gradient-background": StorageManager.get(
       "ivLyrics:visual:blur-gradient-background",
@@ -1557,7 +1556,7 @@ const CONFIG = {
     ),
     "karaoke-line-transition": StorageManager.get(
       "ivLyrics:visual:karaoke-line-transition",
-      false
+      true
     ),
     "karaoke-mode-enabled": StorageManager.get(
       "ivLyrics:visual:karaoke-mode-enabled",
