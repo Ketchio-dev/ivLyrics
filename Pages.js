@@ -234,9 +234,11 @@ const SyncCreatorProfileModal = react.memo(({
 	const hasMoreContributions = !!profileData.pagination?.hasMore;
 	const bodyRef = react.useRef(null);
 	const loadMoreLockRef = react.useRef(false);
+	const [failedAvatarUrl, setFailedAvatarUrl] = react.useState(null);
 	const canLike = !!profileData.viewer?.canLike;
 	const liked = !!profileData.viewer?.liked;
 	const isOwnProfile = !!profileData.viewer?.isOwnProfile;
+	const avatarFailed = !!avatarUrl && failedAvatarUrl === avatarUrl;
 	const subtitle = handle || (account?.displayName && account.displayName !== displayName ? account.displayName : null);
 	const likeButtonLabel = likePending ? "..." : liked ? copy.liked : copy.like;
 	const likeButtonTitle = !profileData.viewer?.authenticated && !isOwnProfile
@@ -313,13 +315,17 @@ const SyncCreatorProfileModal = react.memo(({
 		react.createElement(
 			"div",
 			{ className: "lyrics-creator-profile-hero" },
-			avatarUrl
+			avatarUrl && !avatarFailed
 				? react.createElement("img", {
+					key: avatarUrl,
 					className: "lyrics-creator-profile-avatar",
 					src: avatarUrl,
 					alt: displayName,
-					onError: (event) => {
-						event.currentTarget.style.display = "none";
+					onLoad: (event) => {
+						event.currentTarget.style.display = "";
+					},
+					onError: () => {
+						setFailedAvatarUrl(avatarUrl);
 					}
 				})
 				: react.createElement(
