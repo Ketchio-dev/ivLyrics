@@ -976,8 +976,16 @@ div.lyrics-tabBar-headerItemLink {
   unicode-bidi: isolate;
 }
 
+/* done segments stay on the transparent + background-clip:text paint path so the
+   glyph rasterization matches the active segment exactly — without this, the
+   active→done transition visibly thickens because the engine switches text paths.
+   background-color is a single solid value, so there's no per-frame interpolation. */
 .lyrics-karaoke-text-run-segment--done {
-  color: var(--lyrics-color-active);
+  color: transparent;
+  background-color: var(--lyrics-color-active);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .lyrics-karaoke-text-run-segment--active {
@@ -1022,8 +1030,14 @@ div.lyrics-tabBar-headerItemLink {
   vertical-align: baseline;
 }
 
+/* Mirror of --done segment: keep the same paint path as --active to prevent
+   the active→done thickening. Solid background-color, no gradient interpolation. */
 .lyrics-karaoke-char--done {
-  color: var(--lyrics-color-active);
+  color: transparent;
+  background-color: var(--lyrics-color-active);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .lyrics-karaoke-char--active {
@@ -1071,8 +1085,14 @@ div.lyrics-tabBar-headerItemLink {
   text-shadow: none;
 }
 
+/* Same trick on furigana rt: keep transparent + background-clip:text so the
+   ruby text doesn't thicken when crossing into done state. */
 .lyrics-karaoke-ruby--done rt {
-  color: var(--lyrics-color-active);
+  color: transparent;
+  background-color: var(--lyrics-color-active);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .lyrics-karaoke-ruby--active rt {
