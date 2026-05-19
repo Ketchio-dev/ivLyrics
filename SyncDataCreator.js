@@ -2737,9 +2737,9 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 	useEffect(() => { charElementsRef.current = []; }, [currentLineIndex, lyricsText]);
 
 	const getModeStyle = () => {
-		if (mode === 'record') return { background: '#e53935', color: '#fff' };
-		if (mode === 'preview') return { background: '#2196f3', color: '#fff' };
-		return { background: 'var(--spice-misc)', color: 'var(--spice-subtext)' };
+		if (mode === 'record') return { background: 'rgba(229, 57, 53, 0.16)', color: '#ff7a72', borderColor: 'rgba(229, 57, 53, 0.45)' };
+		if (mode === 'preview') return { background: 'rgba(33, 150, 243, 0.16)', color: '#64b5f6', borderColor: 'rgba(33, 150, 243, 0.45)' };
+		return { background: 'rgba(255,255,255,0.06)', color: 'var(--spice-subtext)', borderColor: 'rgba(255,255,255,0.08)' };
 	};
 
 	const getModeLabel = () => {
@@ -2750,60 +2750,226 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 
 	// 스타일
 	const s = {
-		overlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'var(--spice-main, #121212)', zIndex: 'var(--iv-layer-modal, 2147483647)', display: 'flex', flexDirection: 'column' },
-		header: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', padding: '12px 20px', borderBottom: '1px solid var(--spice-misc)', flexShrink: 0 },
-		backBtn: { background: 'var(--spice-misc)', border: 'none', color: 'var(--spice-text)', cursor: 'pointer', padding: '8px 16px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: '600' },
-		title: { fontSize: '16px', fontWeight: '700', margin: 0, color: 'var(--spice-text)' },
-		modeBadge: { padding: '4px 10px', borderRadius: '10px', fontSize: '11px', fontWeight: '600' },
-		submitBtn: { background: 'var(--spice-button)', color: 'var(--spice-button-text, #000)', border: 'none', padding: '10px 20px', borderRadius: '20px', fontWeight: '700', cursor: 'pointer', fontSize: '13px' },
-		trackRow: { display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px', background: 'var(--spice-card)', flexShrink: 0 },
-		albumArt: { width: '48px', height: '48px', borderRadius: '6px', objectFit: 'cover' },
-		trackMeta: { flex: 1 },
-		trackName: { fontSize: '14px', fontWeight: '600', color: 'var(--spice-text)' },
-		artistName: { fontSize: '12px', color: 'var(--spice-subtext)' },
+		overlay: {
+			position: 'fixed', inset: 0,
+			background: 'radial-gradient(140% 90% at 50% -10%, rgba(var(--spice-rgb-button), 0.18) 0%, rgba(16, 17, 22, 0.97) 48%, rgba(8, 9, 12, 0.99) 100%)',
+			color: 'var(--spice-text)',
+			zIndex: 'var(--iv-layer-modal, 2147483647)',
+			display: 'flex', flexDirection: 'column',
+			overflow: 'hidden',
+			fontFamily: 'var(--font-family, inherit)',
+			letterSpacing: '-0.005em'
+		},
+		header: {
+			display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px',
+			padding: '16px 28px',
+			background: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%)',
+			borderBottom: '1px solid rgba(255,255,255,0.07)',
+			backdropFilter: 'blur(24px) saturate(180%)',
+			WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+			flexShrink: 0,
+			position: 'relative', zIndex: 3
+		},
+		backBtn: {
+			background: 'rgba(255,255,255,0.06)',
+			border: '1px solid rgba(255,255,255,0.08)',
+			color: 'var(--spice-text)', cursor: 'pointer',
+			padding: '8px 14px', borderRadius: '999px',
+			display: 'inline-flex', alignItems: 'center', gap: '6px',
+			fontSize: '12px', fontWeight: '600',
+			letterSpacing: '-0.005em'
+		},
+		title: { fontSize: '15px', fontWeight: '700', margin: 0, color: 'var(--spice-text)', letterSpacing: '-0.01em' },
+		modeBadge: {
+			padding: '5px 12px', borderRadius: '999px',
+			fontSize: '10.5px', fontWeight: '700',
+			textTransform: 'uppercase', letterSpacing: '0.06em',
+			border: '1px solid transparent'
+		},
+		submitBtn: {
+			background: 'var(--spice-button)', color: 'var(--spice-button-text, #000)',
+			border: 'none', padding: '10px 22px', borderRadius: '999px',
+			fontWeight: '700', cursor: 'pointer', fontSize: '13px',
+			letterSpacing: '-0.005em',
+			boxShadow: '0 6px 18px rgba(var(--spice-rgb-button), 0.32)'
+		},
+		trackRow: {
+			display: 'flex', alignItems: 'center', gap: '14px',
+			padding: '14px 28px',
+			background: 'linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0.005) 100%)',
+			borderBottom: '1px solid rgba(255,255,255,0.04)',
+			flexShrink: 0
+		},
+		albumArt: {
+			width: '52px', height: '52px', borderRadius: '10px', objectFit: 'cover',
+			boxShadow: '0 8px 24px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.05)'
+		},
+		trackMeta: { flex: 1, minWidth: 0 },
+		trackName: { fontSize: '14px', fontWeight: '700', color: 'var(--spice-text)', letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+		artistName: { fontSize: '12px', color: 'var(--spice-subtext)', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
 		providerRow: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end' },
-		virtualKaraokeBadge: { background: 'rgba(29, 185, 84, 0.18)', color: '#1db954', border: '1px solid rgba(29, 185, 84, 0.35)', borderRadius: '999px', padding: '4px 10px', fontSize: '11px', fontWeight: '700', whiteSpace: 'nowrap' },
-		select: { background: 'var(--spice-card)', color: 'var(--spice-text)', border: '1px solid var(--spice-misc)', borderRadius: '6px', padding: '6px 10px', fontSize: '12px' },
-		loadBtn: { background: 'var(--spice-button)', color: 'var(--spice-button-text, #000)', border: 'none', padding: '6px 12px', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', fontSize: '12px' },
-		candidatePanelHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '10px', gridColumn: '1 / -1' },
-		candidatePanelTitle: { fontSize: '12px', fontWeight: '700', color: 'var(--spice-text)' },
-		candidatePanel: { display: 'grid', gridTemplateColumns: 'minmax(260px, 360px) minmax(0, 1fr)', gap: '12px', padding: '12px 20px', background: 'var(--spice-card)', borderTop: '1px solid var(--spice-misc)', flexShrink: 0 },
+		virtualKaraokeBadge: {
+			background: 'rgba(29, 185, 84, 0.14)', color: '#1db954',
+			border: '1px solid rgba(29, 185, 84, 0.32)',
+			borderRadius: '999px', padding: '5px 11px',
+			fontSize: '10.5px', fontWeight: '700', whiteSpace: 'nowrap',
+			letterSpacing: '0.02em'
+		},
+		select: {
+			background: 'rgba(255,255,255,0.05)', color: 'var(--spice-text)',
+			border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px',
+			padding: '7px 12px', fontSize: '12px', fontWeight: '500',
+			cursor: 'pointer', outline: 'none'
+		},
+		loadBtn: {
+			background: 'rgba(255,255,255,0.08)', color: 'var(--spice-text)',
+			border: '1px solid rgba(255,255,255,0.1)',
+			padding: '7px 14px', borderRadius: '999px',
+			fontWeight: '600', cursor: 'pointer', fontSize: '12px',
+			letterSpacing: '-0.005em'
+		},
+		candidatePanelHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '12px', gridColumn: '1 / -1' },
+		candidatePanelTitle: { fontSize: '12px', fontWeight: '700', color: 'var(--spice-text)', letterSpacing: '0.02em', textTransform: 'uppercase', opacity: 0.8 },
+		candidatePanel: {
+			display: 'grid', gridTemplateColumns: 'minmax(260px, 360px) minmax(0, 1fr)',
+			gap: '14px', padding: '16px 28px',
+			background: 'rgba(255,255,255,0.015)',
+			borderBottom: '1px solid rgba(255,255,255,0.05)',
+			flexShrink: 0
+		},
 		candidateList: { display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '230px', overflowY: 'auto', paddingRight: '4px' },
-		candidateItem: { background: 'var(--spice-main)', border: '1px solid var(--spice-misc)', borderRadius: '10px', padding: '10px 12px', cursor: 'pointer', textAlign: 'left' },
-		candidateItemActive: { border: '1px solid var(--spice-button)', boxShadow: '0 0 0 1px rgba(var(--spice-rgb-button), 0.25)' },
-		candidateItemApplied: { background: 'rgba(var(--spice-rgb-button), 0.12)' },
-		candidateTitle: { fontSize: '13px', fontWeight: '700', color: 'var(--spice-text)' },
-		candidateSubtitle: { fontSize: '11px', color: 'var(--spice-subtext)', marginTop: '2px' },
-		candidateMetaRow: { display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' },
-		candidateBadge: { display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: '999px', fontSize: '10px', fontWeight: '700', background: 'rgba(255,255,255,0.08)', color: 'var(--spice-text)' },
-		candidatePreview: { minHeight: '0', background: 'var(--spice-main)', border: '1px solid var(--spice-misc)', borderRadius: '12px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px' },
+		candidateItem: {
+			background: 'rgba(255,255,255,0.035)',
+			border: '1px solid rgba(255,255,255,0.06)',
+			borderRadius: '12px', padding: '11px 14px',
+			cursor: 'pointer', textAlign: 'left',
+			color: 'var(--spice-text)'
+		},
+		candidateItemActive: {
+			border: '1px solid rgba(var(--spice-rgb-button), 0.65)',
+			background: 'rgba(var(--spice-rgb-button), 0.08)',
+			boxShadow: '0 0 0 3px rgba(var(--spice-rgb-button), 0.12)'
+		},
+		candidateItemApplied: { background: 'rgba(var(--spice-rgb-button), 0.16)', borderColor: 'rgba(var(--spice-rgb-button), 0.4)' },
+		candidateTitle: { fontSize: '13px', fontWeight: '700', color: 'var(--spice-text)', letterSpacing: '-0.005em' },
+		candidateSubtitle: { fontSize: '11px', color: 'var(--spice-subtext)', marginTop: '3px' },
+		candidateMetaRow: { display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '10px' },
+		candidateBadge: {
+			display: 'inline-flex', alignItems: 'center',
+			padding: '3px 9px', borderRadius: '999px',
+			fontSize: '10px', fontWeight: '700',
+			background: 'rgba(255,255,255,0.06)',
+			color: 'var(--spice-text)',
+			letterSpacing: '0.02em', textTransform: 'uppercase'
+		},
+		candidatePreview: {
+			minHeight: '0',
+			background: 'rgba(255,255,255,0.025)',
+			border: '1px solid rgba(255,255,255,0.06)',
+			borderRadius: '14px', padding: '16px 18px',
+			display: 'flex', flexDirection: 'column', gap: '12px'
+		},
 		candidatePreviewHeader: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' },
-		candidatePreviewTitle: { fontSize: '14px', fontWeight: '700', color: 'var(--spice-text)' },
+		candidatePreviewTitle: { fontSize: '14px', fontWeight: '700', color: 'var(--spice-text)', letterSpacing: '-0.01em' },
 		candidatePreviewSubtitle: { fontSize: '11px', color: 'var(--spice-subtext)', marginTop: '3px' },
 		candidatePreviewActions: { display: 'flex', gap: '8px', flexWrap: 'wrap' },
-		candidatePreviewText: { margin: 0, whiteSpace: 'pre-wrap', fontSize: '12px', lineHeight: 1.55, color: 'var(--spice-text)', maxHeight: '180px', overflowY: 'auto' },
-		candidateEmpty: { display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '180px', fontSize: '12px', color: 'var(--spice-subtext)' },
-		secondaryBtn: { background: 'var(--spice-misc)', color: 'var(--spice-text)', border: 'none', padding: '8px 12px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '12px' },
-		characterPronunciationProgress: { display: 'flex', flexDirection: 'column', gap: '4px', width: '220px', maxWidth: 'min(220px, 100%)', padding: '6px 8px', borderRadius: '8px', border: '1px solid rgba(var(--spice-rgb-button), 0.24)', background: 'rgba(var(--spice-rgb-button), 0.08)', boxSizing: 'border-box' },
-		characterPronunciationProgressText: { fontSize: '11px', lineHeight: 1.25, color: 'var(--spice-subtext)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-		characterPronunciationProgressTrack: { width: '100%', height: '4px', borderRadius: '999px', background: 'rgba(255,255,255,0.14)', overflow: 'hidden' },
-		characterPronunciationProgressFill: { height: '100%', borderRadius: '999px', background: 'var(--spice-button)', transition: 'width 160ms ease' },
-		playbackRow: { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', background: 'var(--spice-card)', flexShrink: 0 },
-		playbackTime: { fontSize: '11px', color: 'var(--spice-subtext)', minWidth: '40px', fontVariantNumeric: 'tabular-nums' },
-		playbackBar: { flex: 1, height: '6px', background: 'var(--spice-misc)', borderRadius: '3px', cursor: 'pointer' },
-		playbackFill: { height: '100%', background: 'var(--spice-button)', borderRadius: '3px' },
-		seekBtn: { background: 'var(--spice-misc)', color: 'var(--spice-text)', border: 'none', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' },
-		offsetRow: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '8px 20px', background: 'var(--spice-card)', borderTop: '1px solid var(--spice-misc)', flexShrink: 0 },
-		offsetLabel: { fontSize: '11px', color: 'var(--spice-subtext)' },
-		offsetValue: { fontSize: '11px', color: 'var(--spice-text)', fontWeight: '600', minWidth: '50px', textAlign: 'center' },
-		offsetBtn: { background: 'var(--spice-misc)', color: 'var(--spice-text)', border: 'none', padding: '3px 6px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' },
-		lyricsArea: { flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '16px 20px', overflow: 'hidden' },
-		lineNav: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '16px' },
-		navBtn: { background: 'var(--spice-misc)', color: 'var(--spice-text)', border: 'none', width: '36px', height: '36px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' },
-		lineInfo: { textAlign: 'center' },
-		lineCount: { fontSize: '20px', fontWeight: '700', color: 'var(--spice-text)' },
-		lineStatus: { fontSize: '11px', color: 'var(--spice-subtext)' },
-		lyricsBox: { background: 'var(--spice-card)', borderRadius: '12px', padding: '32px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: mode === 'record' ? 'pointer' : 'default', userSelect: 'none', marginBottom: '12px' },
+		candidatePreviewText: {
+			margin: 0, whiteSpace: 'pre-wrap',
+			fontSize: '12px', lineHeight: 1.6,
+			color: 'var(--spice-text)',
+			maxHeight: '180px', overflowY: 'auto',
+			padding: '10px 12px',
+			background: 'rgba(0,0,0,0.22)',
+			border: '1px solid rgba(255,255,255,0.04)',
+			borderRadius: '10px'
+		},
+		candidateEmpty: { display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '180px', fontSize: '12px', color: 'var(--spice-subtext)', opacity: 0.7 },
+		secondaryBtn: {
+			background: 'rgba(255,255,255,0.06)', color: 'var(--spice-text)',
+			border: '1px solid rgba(255,255,255,0.08)',
+			padding: '8px 14px', borderRadius: '999px',
+			fontWeight: '600', cursor: 'pointer', fontSize: '12px',
+			letterSpacing: '-0.005em'
+		},
+		characterPronunciationProgress: {
+			display: 'flex', flexDirection: 'column', gap: '5px',
+			width: '220px', maxWidth: 'min(220px, 100%)',
+			padding: '8px 12px', borderRadius: '12px',
+			border: '1px solid rgba(var(--spice-rgb-button), 0.28)',
+			background: 'rgba(var(--spice-rgb-button), 0.08)',
+			boxSizing: 'border-box'
+		},
+		characterPronunciationProgressText: { fontSize: '11px', lineHeight: 1.3, color: 'var(--spice-subtext)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+		characterPronunciationProgressTrack: { width: '100%', height: '4px', borderRadius: '999px', background: 'rgba(255,255,255,0.12)', overflow: 'hidden' },
+		characterPronunciationProgressFill: { height: '100%', borderRadius: '999px', background: 'var(--spice-button)', transition: 'width 160ms ease', boxShadow: '0 0 8px rgba(var(--spice-rgb-button), 0.6)' },
+		playbackRow: {
+			display: 'flex', alignItems: 'center', gap: '10px',
+			padding: '12px 28px',
+			background: 'rgba(255,255,255,0.015)',
+			borderBottom: '1px solid rgba(255,255,255,0.04)',
+			flexShrink: 0
+		},
+		playbackTime: { fontSize: '11px', color: 'var(--spice-subtext)', minWidth: '42px', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"', fontWeight: '500' },
+		playbackBar: {
+			flex: 1, height: '6px',
+			background: 'rgba(255,255,255,0.08)',
+			borderRadius: '999px', cursor: 'pointer',
+			overflow: 'hidden', position: 'relative'
+		},
+		playbackFill: { height: '100%', background: 'linear-gradient(90deg, rgba(var(--spice-rgb-button), 0.85), var(--spice-button))', borderRadius: '999px', boxShadow: '0 0 12px rgba(var(--spice-rgb-button), 0.45)' },
+		seekBtn: {
+			background: 'rgba(255,255,255,0.06)', color: 'var(--spice-text)',
+			border: '1px solid rgba(255,255,255,0.08)',
+			padding: '5px 10px', borderRadius: '999px',
+			fontSize: '10.5px', fontWeight: '600', cursor: 'pointer',
+			letterSpacing: '-0.005em', fontVariantNumeric: 'tabular-nums'
+		},
+		offsetRow: {
+			display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+			padding: '10px 28px',
+			background: 'rgba(255,255,255,0.01)',
+			borderBottom: '1px solid rgba(255,255,255,0.04)',
+			flexShrink: 0
+		},
+		offsetLabel: { fontSize: '11px', color: 'var(--spice-subtext)', fontWeight: '600', letterSpacing: '0.02em', textTransform: 'uppercase', opacity: 0.8 },
+		offsetValue: {
+			fontSize: '12px', color: 'var(--spice-text)', fontWeight: '700',
+			minWidth: '64px', textAlign: 'center',
+			padding: '4px 10px', borderRadius: '999px',
+			background: 'rgba(var(--spice-rgb-button), 0.12)',
+			border: '1px solid rgba(var(--spice-rgb-button), 0.25)',
+			fontVariantNumeric: 'tabular-nums'
+		},
+		offsetBtn: {
+			background: 'rgba(255,255,255,0.06)', color: 'var(--spice-text)',
+			border: '1px solid rgba(255,255,255,0.08)',
+			padding: '4px 10px', borderRadius: '999px',
+			fontSize: '10.5px', fontWeight: '600', cursor: 'pointer',
+			fontVariantNumeric: 'tabular-nums'
+		},
+		lyricsArea: { flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '20px 28px', overflow: 'hidden', position: 'relative', zIndex: 1 },
+		lineNav: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', marginBottom: '18px' },
+		navBtn: {
+			background: 'rgba(255,255,255,0.05)', color: 'var(--spice-text)',
+			border: '1px solid rgba(255,255,255,0.08)',
+			width: '40px', height: '40px', borderRadius: '999px',
+			cursor: 'pointer',
+			display: 'flex', alignItems: 'center', justifyContent: 'center',
+			fontSize: '14px', fontWeight: '600'
+		},
+		lineInfo: { textAlign: 'center', minWidth: '120px' },
+		lineCount: { fontSize: '22px', fontWeight: '700', color: 'var(--spice-text)', letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' },
+		lineStatus: { fontSize: '11px', color: 'var(--spice-subtext)', marginTop: '2px', fontWeight: '500' },
+		lyricsBox: {
+			background: 'linear-gradient(180deg, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0.015) 100%)',
+			border: '1px solid rgba(255,255,255,0.06)',
+			borderRadius: '18px',
+			padding: '36px 20px',
+			display: 'flex', flexDirection: 'column', alignItems: 'center',
+			cursor: mode === 'record' ? 'pointer' : 'default',
+			userSelect: 'none', marginBottom: '14px',
+			boxShadow: '0 20px 48px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.04)'
+		},
 		lyricsScroll: { width: '100%', overflowX: 'auto', overflowY: 'hidden', paddingBottom: '28px', display: 'flex', justifyContent: 'center' },
 		lyricsLine: { display: 'inline-flex', flexWrap: 'nowrap', gap: '0px', paddingLeft: '32px', paddingRight: '32px', justifyContent: 'center', alignItems: usePrimaryCharacterPronunciation ? 'flex-start' : 'stretch' },
 		rtlLyricsLine: { display: 'block', width: '100%', paddingLeft: '32px', paddingRight: '32px', textAlign: 'center', direction: 'rtl', unicodeBidi: 'plaintext' },
@@ -2829,35 +2995,132 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		charPlayed: { background: 'var(--spice-button)', color: 'var(--spice-button-text, #000)' },
 		charRecording: { background: 'rgba(255, 152, 0, 0.6)' },
 		charTime: { position: 'absolute', bottom: usePrimaryCharacterPronunciation ? '-18px' : (hasCurrentLineCharacterPronunciation ? '-16px' : '-20px'), left: '50%', transform: 'translateX(-50%)', fontSize: '9px', color: 'var(--spice-subtext)', whiteSpace: 'nowrap' },
-		nextLineBox: { textAlign: 'center', padding: '8px', opacity: 0.6 },
-		nextLineLabel: { fontSize: '10px', color: 'var(--spice-subtext)', marginBottom: '4px', textTransform: 'uppercase' },
-		nextLineText: { fontSize: '14px', color: 'var(--spice-subtext)', lineHeight: 1.7 },
-		hint: { fontSize: '12px', color: 'var(--spice-subtext)', textAlign: 'center', padding: '8px', fontStyle: 'italic' },
-		progressRow: { display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', padding: '6px 20px', fontSize: '12px', color: 'var(--spice-subtext)', flexShrink: 0 },
-		controls: { display: 'flex', flexWrap: 'wrap', gap: '10px', padding: '12px 20px', justifyContent: 'center', borderTop: '1px solid var(--spice-misc)', flexShrink: 0 },
-		ctrlBtn: { background: 'var(--spice-card)', color: 'var(--spice-text)', border: '1px solid var(--spice-misc)', padding: '10px 16px', borderRadius: '10px', fontWeight: '600', cursor: 'pointer', fontSize: '13px' },
-		modeBtn: { border: 'none', padding: '12px 24px', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', fontSize: '14px', minWidth: '100px' },
-		deleteBtn: { background: 'transparent', color: '#f44336', border: '1px solid #f44336', padding: '10px 16px', borderRadius: '10px', fontWeight: '600', cursor: 'pointer', fontSize: '13px' },
-		loading: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '200px', color: 'var(--spice-subtext)' },
-		error: { textAlign: 'center', padding: '40px', color: '#e53935' },
+		nextLineBox: { textAlign: 'center', padding: '10px 8px', opacity: 0.55 },
+		nextLineLabel: { fontSize: '10px', color: 'var(--spice-subtext)', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: '700' },
+		nextLineText: { fontSize: '14px', color: 'var(--spice-subtext)', lineHeight: 1.7, letterSpacing: '-0.005em' },
+		hint: { fontSize: '12px', color: 'var(--spice-subtext)', textAlign: 'center', padding: '10px 8px', fontStyle: 'italic', opacity: 0.8 },
+		progressRow: { display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '14px', padding: '8px 28px', fontSize: '12px', color: 'var(--spice-subtext)', flexShrink: 0, fontWeight: '500', fontVariantNumeric: 'tabular-nums' },
+		controls: {
+			display: 'flex', flexWrap: 'wrap', gap: '10px',
+			padding: '16px 28px',
+			justifyContent: 'center',
+			borderTop: '1px solid rgba(255,255,255,0.06)',
+			background: 'linear-gradient(180deg, rgba(255,255,255,0.005) 0%, rgba(255,255,255,0.025) 100%)',
+			backdropFilter: 'blur(18px) saturate(160%)',
+			WebkitBackdropFilter: 'blur(18px) saturate(160%)',
+			flexShrink: 0
+		},
+		ctrlBtn: {
+			background: 'rgba(255,255,255,0.05)', color: 'var(--spice-text)',
+			border: '1px solid rgba(255,255,255,0.08)',
+			padding: '10px 18px', borderRadius: '999px',
+			fontWeight: '600', cursor: 'pointer', fontSize: '13px',
+			letterSpacing: '-0.005em'
+		},
+		modeBtn: {
+			border: '1px solid transparent',
+			padding: '12px 26px', borderRadius: '999px',
+			fontWeight: '700', cursor: 'pointer', fontSize: '13px',
+			minWidth: '110px', letterSpacing: '-0.005em'
+		},
+		deleteBtn: {
+			background: 'rgba(244, 67, 54, 0.08)',
+			color: '#ff6b60',
+			border: '1px solid rgba(244, 67, 54, 0.45)',
+			padding: '10px 18px', borderRadius: '999px',
+			fontWeight: '600', cursor: 'pointer', fontSize: '13px',
+			letterSpacing: '-0.005em'
+		},
+		loading: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '200px', color: 'var(--spice-subtext)', fontSize: '13px', fontWeight: '500' },
+		error: { textAlign: 'center', padding: '40px', color: '#ff7a72', fontSize: '13px', fontWeight: '500' },
 		// LRCLIB 발행 모달 스타일
-		lrcLibModal: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 'var(--iv-layer-modal, 2147483647)', display: 'flex', alignItems: 'center', justifyContent: 'center' },
-		lrcLibContent: { background: 'var(--spice-card)', borderRadius: '16px', padding: '24px', width: '90%', maxWidth: '600px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', gap: '16px' },
-		lrcLibTitle: { fontSize: '18px', fontWeight: '700', color: 'var(--spice-text)', margin: 0 },
-		lrcLibDesc: { fontSize: '13px', color: 'var(--spice-subtext)', lineHeight: 1.5 },
-		lrcLibTextarea: { width: '100%', height: '300px', background: 'var(--spice-main)', color: 'var(--spice-text)', border: '1px solid var(--spice-misc)', borderRadius: '8px', padding: '12px', fontSize: '14px', fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' },
-		lrcLibBtnRow: { display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap' },
-		lrcLibBtn: { background: 'var(--spice-button)', color: 'var(--spice-button-text, #000)', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '13px' },
-		lrcLibBtnSecondary: { background: 'var(--spice-misc)', color: 'var(--spice-text)', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '13px' },
-		lrcLibBtnCancel: { background: 'transparent', color: 'var(--spice-subtext)', border: '1px solid var(--spice-misc)', padding: '10px 20px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '13px' },
-		lrcLibProgress: { fontSize: '12px', color: 'var(--spice-subtext)', textAlign: 'center', padding: '8px' },
-		publishBtn: { background: '#4caf50', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '13px', marginTop: '12px' },
-		wrongWarning: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 15px', background: 'rgba(255, 152, 0, 0.1)', border: '1px solid rgba(255, 152, 0, 0.3)', borderRadius: '8px', marginBottom: '15px', marginTop: '-5px', fontSize: '13px', gap: '10px' },
-		publishBtnSmall: { background: 'var(--spice-button)', color: 'var(--spice-button-text, #000)', border: 'none', padding: '6px 12px', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', fontSize: '12px', flexShrink: 0 },
+		lrcLibModal: {
+			position: 'fixed', inset: 0,
+			background: 'rgba(0,0,0,0.55)',
+			backdropFilter: 'blur(12px) saturate(160%)',
+			WebkitBackdropFilter: 'blur(12px) saturate(160%)',
+			zIndex: 'var(--iv-layer-modal, 2147483647)',
+			display: 'flex', alignItems: 'center', justifyContent: 'center',
+			padding: '24px'
+		},
+		lrcLibContent: {
+			background: 'rgba(20, 22, 26, 0.96)',
+			backdropFilter: 'blur(40px) saturate(180%)',
+			WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+			border: '1px solid rgba(255,255,255,0.08)',
+			borderRadius: '18px', padding: '26px',
+			width: '90%', maxWidth: '620px', maxHeight: '85vh',
+			display: 'flex', flexDirection: 'column', gap: '14px',
+			boxShadow: '0 24px 64px rgba(0,0,0,0.5)'
+		},
+		lrcLibTitle: { fontSize: '18px', fontWeight: '700', color: 'var(--spice-text)', margin: 0, letterSpacing: '-0.015em' },
+		lrcLibDesc: { fontSize: '13px', color: 'var(--spice-subtext)', lineHeight: 1.55 },
+		lrcLibTextarea: {
+			width: '100%', height: '300px',
+			background: 'rgba(0,0,0,0.28)',
+			color: 'var(--spice-text)',
+			border: '1px solid rgba(255,255,255,0.08)',
+			borderRadius: '12px', padding: '14px',
+			fontSize: '13.5px', fontFamily: 'inherit',
+			resize: 'vertical', boxSizing: 'border-box',
+			lineHeight: 1.55, outline: 'none'
+		},
+		lrcLibBtnRow: { display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap', marginTop: '4px' },
+		lrcLibBtn: {
+			background: 'var(--spice-button)', color: 'var(--spice-button-text, #000)',
+			border: 'none', padding: '11px 22px', borderRadius: '999px',
+			fontWeight: '700', cursor: 'pointer', fontSize: '13px',
+			letterSpacing: '-0.005em',
+			boxShadow: '0 6px 18px rgba(var(--spice-rgb-button), 0.32)'
+		},
+		lrcLibBtnSecondary: {
+			background: 'rgba(255,255,255,0.06)', color: 'var(--spice-text)',
+			border: '1px solid rgba(255,255,255,0.08)',
+			padding: '11px 22px', borderRadius: '999px',
+			fontWeight: '600', cursor: 'pointer', fontSize: '13px'
+		},
+		lrcLibBtnCancel: {
+			background: 'transparent', color: 'var(--spice-subtext)',
+			border: '1px solid rgba(255,255,255,0.12)',
+			padding: '11px 22px', borderRadius: '999px',
+			fontWeight: '600', cursor: 'pointer', fontSize: '13px'
+		},
+		lrcLibProgress: { fontSize: '12px', color: 'var(--spice-subtext)', textAlign: 'center', padding: '8px', fontWeight: '500' },
+		publishBtn: {
+			background: 'linear-gradient(135deg, #4caf50, #43a047)',
+			color: '#fff', border: 'none',
+			padding: '11px 22px', borderRadius: '999px',
+			fontWeight: '700', cursor: 'pointer', fontSize: '13px',
+			marginTop: '12px',
+			boxShadow: '0 6px 18px rgba(76, 175, 80, 0.32)'
+		},
+		wrongWarning: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'rgba(255, 152, 0, 0.08)', border: '1px solid rgba(255, 152, 0, 0.28)', borderRadius: '12px', marginBottom: '12px', fontSize: '13px', gap: '10px' },
+		publishBtnSmall: {
+			background: 'rgba(255, 152, 0, 0.16)', color: '#ffb74d',
+			border: '1px solid rgba(255, 152, 0, 0.32)',
+			padding: '6px 13px', borderRadius: '999px',
+			fontWeight: '700', cursor: 'pointer', fontSize: '11px',
+			flexShrink: 0, letterSpacing: '-0.005em'
+		},
 		// 키보드 단축키 스타일
-		shortcutsContainer: { display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '12px', padding: '12px 16px', background: 'var(--spice-card)', borderRadius: '10px', marginTop: '12px' },
-		shortcutItem: { display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--spice-subtext)' },
-		shortcutKey: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: '24px', height: '22px', padding: '0 6px', background: 'var(--spice-misc)', color: 'var(--spice-text)', borderRadius: '4px', fontSize: '10px', fontWeight: '700', fontFamily: 'monospace', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 2px 0 rgba(0,0,0,0.3)' },
+		shortcutsContainer: {
+			display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '10px 18px',
+			padding: '14px 18px',
+			background: 'rgba(255,255,255,0.02)',
+			border: '1px solid rgba(255,255,255,0.05)',
+			borderRadius: '14px', marginTop: '14px'
+		},
+		shortcutItem: { display: 'inline-flex', alignItems: 'center', gap: '7px', fontSize: '11px', color: 'var(--spice-subtext)', fontWeight: '500' },
+		shortcutKey: {
+			display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+			minWidth: '26px', height: '24px', padding: '0 7px',
+			background: 'linear-gradient(180deg, rgba(255,255,255,0.13) 0%, rgba(255,255,255,0.06) 100%)',
+			color: 'var(--spice-text)', borderRadius: '6px',
+			fontSize: '10.5px', fontWeight: '700',
+			fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+			border: '1px solid rgba(255,255,255,0.14)',
+			boxShadow: '0 2px 0 rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.12)'
+		},
 		shortcutDesc: { color: 'var(--spice-subtext)' },
 	};
 
@@ -2956,7 +3219,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		);
 	};
 
-	return react.createElement('div', { style: s.overlay, ref: containerRef },
+	return react.createElement('div', { className: 'ivlyrics-sync-creator-shell', style: s.overlay, ref: containerRef },
 		// Header - 유저 요청대로 가운데 정렬 (윈도우 컨트롤과 겹치지 않게)
 		react.createElement('div', { style: s.header },
 			react.createElement('button', {
@@ -2990,7 +3253,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			react.createElement('div', { style: s.providerRow },
 				// LRCLIB Upload Button
 				react.createElement('button', {
-					style: { ...s.publishBtnSmall, marginRight: '10px', background: 'rgba(255, 152, 0, 0.8)', color: '#fff', fontSize: '11px', padding: '4px 8px' },
+					style: { ...s.publishBtnSmall, marginRight: '4px' },
 					onClick: () => setShowLrcLibPublish(true),
 					title: I18n.t('syncCreator.lrclib.wrongLyricsWarning')
 				}, I18n.t('syncCreator.lrclib.registerLyrics')),
@@ -3151,9 +3414,16 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			react.createElement('button', { style: s.seekBtn, onClick: () => handleSeekOffset(-3000) }, '-3s'),
 			react.createElement('button', { style: s.seekBtn, onClick: () => handleSeekOffset(-1000) }, '-1s'),
 			react.createElement('span', { style: s.playbackTime }, formatTime(position)),
-			react.createElement('div', { style: s.playbackBar, onClick: handleSeek },
-				react.createElement('div', { style: { ...s.playbackFill, width: `${(position / (Spicetify.Player?.data?.item?.duration?.milliseconds || 1)) * 100}%` } })
-			),
+			(() => {
+				const playbackPercent = (position / (Spicetify.Player?.data?.item?.duration?.milliseconds || 1)) * 100;
+				return react.createElement('div', {
+					style: { ...s.playbackBar, '--iv-progress': `${playbackPercent}%` },
+					'data-iv-progress-bar': 'true',
+					onClick: handleSeek
+				},
+					react.createElement('div', { style: { ...s.playbackFill, width: `${playbackPercent}%` } })
+				);
+			})(),
 			react.createElement('span', { style: s.playbackTime }, formatTime(Spicetify.Player?.data?.item?.duration?.milliseconds || 0)),
 			react.createElement('button', { style: s.seekBtn, onClick: () => handleSeekOffset(1000) }, '+1s'),
 			react.createElement('button', { style: s.seekBtn, onClick: () => handleSeekOffset(3000) }, '+3s')
@@ -3308,13 +3578,30 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 
 			// 기록 모드
 			react.createElement('button', {
-				style: { ...s.modeBtn, background: mode === 'record' ? '#e53935' : 'var(--spice-button)', color: mode === 'record' ? '#fff' : 'var(--spice-button-text, #000)' },
+				style: {
+					...s.modeBtn,
+					background: mode === 'record'
+						? 'linear-gradient(135deg, #ef5350, #e53935)'
+						: 'var(--spice-button)',
+					color: mode === 'record' ? '#fff' : 'var(--spice-button-text, #000)',
+					boxShadow: mode === 'record'
+						? '0 6px 18px rgba(229, 57, 53, 0.42)'
+						: '0 6px 18px rgba(var(--spice-rgb-button), 0.32)'
+				},
 				onClick: () => toggleMode('record')
 			}, mode === 'record' ? I18n.t('syncCreator.stopRecord') : I18n.t('syncCreator.recordMode')),
 
 			// 미리보기 모드
 			react.createElement('button', {
-				style: { ...s.modeBtn, background: mode === 'preview' ? '#2196f3' : 'var(--spice-misc)', color: mode === 'preview' ? '#fff' : 'var(--spice-text)' },
+				style: {
+					...s.modeBtn,
+					background: mode === 'preview'
+						? 'linear-gradient(135deg, #42a5f5, #2196f3)'
+						: 'rgba(255,255,255,0.05)',
+					color: mode === 'preview' ? '#fff' : 'var(--spice-text)',
+					border: mode === 'preview' ? '1px solid transparent' : '1px solid rgba(255,255,255,0.08)',
+					boxShadow: mode === 'preview' ? '0 6px 18px rgba(33, 150, 243, 0.42)' : 'none'
+				},
 				onClick: () => toggleMode('preview'),
 				disabled: !syncData || syncData.lines.length === 0
 			}, mode === 'preview' ? I18n.t('syncCreator.stopPreview') : I18n.t('syncCreator.previewMode')),
@@ -3355,11 +3642,12 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				react.createElement('div', {
 					style: {
 						fontSize: '12px',
-						color: '#ff9800',
-						padding: '10px',
-						background: 'rgba(255, 152, 0, 0.1)',
-						borderRadius: '6px',
-						border: '1px solid rgba(255, 152, 0, 0.3)'
+						color: '#ffb74d',
+						lineHeight: 1.55,
+						padding: '12px 14px',
+						background: 'rgba(255, 152, 0, 0.08)',
+						borderRadius: '10px',
+						border: '1px solid rgba(255, 152, 0, 0.28)'
 					}
 				}, I18n.t('syncCreator.characterPronunciationTokenWarningUsage') || 'Expected usage: about 3-6x more tokens than a normal line-by-line pronunciation request. Actual usage varies by lyrics length, language, and provider retries.'),
 				react.createElement('div', { style: s.lrcLibBtnRow },
@@ -3383,12 +3671,12 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			react.createElement('div', { style: s.lrcLibContent },
 				react.createElement('h3', { style: s.lrcLibTitle }, I18n.t('syncCreator.lrclib.title')),
 				react.createElement('p', { style: s.lrcLibDesc }, I18n.t('syncCreator.lrclib.description')),
-				react.createElement('div', { style: { fontSize: '12px', color: '#ff9800', padding: '10px', background: 'rgba(255, 152, 0, 0.1)', borderRadius: '6px', marginBottom: '8px', border: '1px solid rgba(255, 152, 0, 0.3)' } },
+				react.createElement('div', { style: { fontSize: '12px', color: '#ffb74d', lineHeight: 1.55, padding: '12px 14px', background: 'rgba(255, 152, 0, 0.08)', borderRadius: '10px', border: '1px solid rgba(255, 152, 0, 0.28)' } },
 					I18n.t('syncCreator.lrclib.timeWarning') || '⚠️ LRCLIB은 무분별한 가사 등록을 막기 위해 암호화 토큰 해석 작업을 요구합니다. 이 과정은 컴퓨터 성능에 따라 약 5분 정도 소요될 수 있습니다.'
 				),
-				react.createElement('div', { style: { fontSize: '12px', color: 'var(--spice-subtext)', padding: '8px', background: 'var(--spice-main)', borderRadius: '6px' } },
-					react.createElement('div', null, `${I18n.t('syncCreator.lrclib.trackInfo')}:`),
-					react.createElement('div', { style: { fontWeight: '600', color: 'var(--spice-text)' } }, `${trackName} - ${artistName}`)
+				react.createElement('div', { style: { fontSize: '12px', color: 'var(--spice-subtext)', padding: '10px 12px', background: 'rgba(0,0,0,0.22)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px' } },
+					react.createElement('div', { style: { textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: '10.5px', fontWeight: '700', marginBottom: '4px', opacity: 0.8 } }, `${I18n.t('syncCreator.lrclib.trackInfo')}`),
+					react.createElement('div', { style: { fontWeight: '600', color: 'var(--spice-text)', fontSize: '13px' } }, `${trackName} - ${artistName}`)
 				),
 				react.createElement('textarea', {
 					style: s.lrcLibTextarea,
@@ -3400,7 +3688,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				lrcLibPublishProgress && react.createElement('div', { style: s.lrcLibProgress }, lrcLibPublishProgress),
 				react.createElement('div', { style: s.lrcLibBtnRow },
 					react.createElement('button', {
-						style: { ...s.lrcLibBtnCancel, ...(isPublishingToLrcLib ? { background: '#f44336', color: '#fff', borderColor: '#f44336' } : {}) },
+						style: { ...s.lrcLibBtnCancel, ...(isPublishingToLrcLib ? { background: 'rgba(244, 67, 54, 0.14)', color: '#ff7a72', borderColor: 'rgba(244, 67, 54, 0.45)' } : {}) },
 						onClick: isPublishingToLrcLib ? cancelLrcLibPublish : () => { setShowLrcLibPublish(false); setManualLyricsInput(''); }
 					}, isPublishingToLrcLib ? (I18n.t('syncCreator.lrclib.cancelPublish') || '등록 취소') : I18n.t('cancel')),
 					react.createElement('button', {
