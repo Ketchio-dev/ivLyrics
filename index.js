@@ -2943,6 +2943,8 @@ class LyricsContainer extends react.Component {
       lyricsEditError: "",
     };
     this.currentTrackUri = "";
+    this._lyricsFetchSeq = 0;
+    this._activeLyricsFetchSeq = 0;
     this.nextTrackUri = "";
     this._cleanupFloatingMenuOutsideClick = null;
     this.availableModes = [];
@@ -4005,6 +4007,10 @@ class LyricsContainer extends react.Component {
       }
     }
 
+    if (this.currentTrackUri !== uri) {
+      return;
+    }
+
     this.setState({
       colors: {
         background: Utils.convertIntToRGB(vibrant),
@@ -4018,6 +4024,10 @@ class LyricsContainer extends react.Component {
     const audio = await Spicetify.CosmosAsync.get(
       `https://api.spotify.com/v1/audio-features/${uri.split(":")[2]}`
     );
+    if (this.currentTrackUri !== uri) {
+      return;
+    }
+
     let tempo = audio.tempo;
 
     const MIN_TEMPO = 60;
@@ -4054,6 +4064,8 @@ class LyricsContainer extends react.Component {
   }
 
   async fetchLyrics(track, mode = -1, refresh = false) {
+    let isLatestLyricsRequest = () => true;
+
     try {
       const info = this.infoFromTrack(track);
       if (!info) {
@@ -4061,13 +4073,26 @@ class LyricsContainer extends react.Component {
         return;
       }
 
+      const requestSeq = ++this._lyricsFetchSeq;
+      const requestUri = info.uri;
+      this._activeLyricsFetchSeq = requestSeq;
+      isLatestLyricsRequest = () =>
+        this._activeLyricsFetchSeq === requestSeq &&
+        this.currentTrackUri === requestUri;
+
       // 트랙별 언어 오버라이드 로드 (IndexedDB)
+      let trackLanguageOverride = null;
       try {
-        this.trackLanguageOverride = await TrackLanguageDB.getLanguage(info.uri);
+        trackLanguageOverride = await TrackLanguageDB.getLanguage(info.uri);
       } catch (e) {
         console.warn("[ivLyrics] Failed to load track language override:", e);
-        this.trackLanguageOverride = null;
+        trackLanguageOverride = null;
       }
+
+      if (!isLatestLyricsRequest()) {
+        return;
+      }
+      this.trackLanguageOverride = trackLanguageOverride;
 
       // keep artist/title for prompts
       this.setState({ artist: info.artist, title: info.title, coverUrl: info.image, translatedMetadata: null });
@@ -4095,7 +4120,7 @@ class LyricsContainer extends react.Component {
         (mode === -1 && CACHE[info.uri]) ||
         CACHE[info.uri]?.[CONFIG.modes?.[mode]]
       ) {
-        tempState = { provider: "", contributors: null, ...CACHE[info.uri], isCached };
+        tempState = { provider: "", contributors: null, ...CACHE[info.uri], isLoading: false, isCached };
         const cachedMode = CACHE[info.uri]?.mode;
         if (typeof cachedMode === "number" && cachedMode !== -1) {
           tempState = { ...tempState, mode: cachedMode };
@@ -4109,6 +4134,9 @@ class LyricsContainer extends react.Component {
         // 마켓플레이스 에드온 로드 대기
         if (window.MarketplaceManager?.readyPromise) {
           await window.MarketplaceManager.readyPromise;
+          if (!isLatestLyricsRequest()) {
+            return;
+          }
         }
 
         // LyricsService Extension을 통해 가사 로드 (LyricsAddonManager 사용)
@@ -4125,7 +4153,7 @@ class LyricsContainer extends react.Component {
 
         // In case user skips tracks too fast and multiple callbacks
         // set wrong lyrics to current track.
-        if (resp.uri === this.currentTrackUri) {
+        if (resp.uri === this.currentTrackUri && isLatestLyricsRequest()) {
           tempState = { provider: "", contributors: null, ...resp, isLoading: false, isCached };
         } else {
           return;
@@ -4175,6 +4203,10 @@ class LyricsContainer extends react.Component {
 
       const initialLyricsForMode = this.resolveLyricsForMode(tempState, finalMode);
 
+      if (!isLatestLyricsRequest()) {
+        return;
+      }
+
       // if song changed one time
       if (tempState.uri !== this.state.uri || refresh) {
         // Detect language from the new lyrics data
@@ -4211,6 +4243,10 @@ class LyricsContainer extends react.Component {
         currentLyrics: initialLyricsForMode || [],
       });
     } catch (error) {
+      if (!isLatestLyricsRequest()) {
+        return;
+      }
+
       this.setState({
         error: `Failed to fetch lyrics: ${error.message}`,
         isLoading: false,

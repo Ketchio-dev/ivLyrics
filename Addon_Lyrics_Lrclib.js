@@ -653,51 +653,71 @@
         return null;
     }
 
-    async function getTrackMetadataForAcceptLanguage(uri, acceptLanguage) {
-        const lookupEntity = Spicetify.GraphQL?.Definitions?.lookupEntity;
-        const graphQLRequest = Spicetify.GraphQL?.Request;
-        const originalFetch = window.fetch;
+    let lrclibMetadataLookupQueue = Promise.resolve();
 
-        if (!uri || !lookupEntity || typeof graphQLRequest !== 'function' || typeof originalFetch !== 'function') {
-            return null;
-        }
+    async function withLrclibMetadataLookupLock(task) {
+        const previous = lrclibMetadataLookupQueue.catch(() => {});
+        let release;
+        lrclibMetadataLookupQueue = new Promise(resolve => {
+            release = resolve;
+        });
 
-        window.fetch = async (input, init = {}) => {
-            const url = typeof input === 'string' ? input : input?.url || '';
-            const body = typeof init?.body === 'string' ? init.body : '';
-            const isLookupEntityRequest = /graphql|pathfinder/i.test(url) && /lookupEntity/.test(body);
-
-            if (!isLookupEntityRequest) {
-                return originalFetch(input, init);
-            }
-
-            const headers = new Headers(init?.headers || {});
-            headers.set('accept-language', acceptLanguage);
-
-            return originalFetch(input, {
-                ...init,
-                headers
-            });
-        };
+        await previous;
 
         try {
-            const response = await graphQLRequest(lookupEntity, { uri });
-            const track = response?.data?.lookup?.[0]?.data;
+            return await task();
+        } finally {
+            release();
+        }
+    }
 
-            if (track?.__typename !== 'Track') {
+    async function getTrackMetadataForAcceptLanguage(uri, acceptLanguage) {
+        return withLrclibMetadataLookupLock(async () => {
+            const lookupEntity = Spicetify.GraphQL?.Definitions?.lookupEntity;
+            const graphQLRequest = Spicetify.GraphQL?.Request;
+            const originalFetch = window.fetch;
+
+            if (!uri || !lookupEntity || typeof graphQLRequest !== 'function' || typeof originalFetch !== 'function') {
                 return null;
             }
 
-            return {
-                title: track?.name?.trim?.() || '',
-                artist: track?.artists?.items?.map(item => item?.profile?.name).filter(Boolean).join(', ') || ''
+            window.fetch = async (input, init = {}) => {
+                const url = typeof input === 'string' ? input : input?.url || '';
+                const body = typeof init?.body === 'string' ? init.body : '';
+                const isLookupEntityRequest = /graphql|pathfinder/i.test(url) && /lookupEntity/.test(body);
+
+                if (!isLookupEntityRequest) {
+                    return originalFetch(input, init);
+                }
+
+                const headers = new Headers(init?.headers || {});
+                headers.set('accept-language', acceptLanguage);
+
+                return originalFetch(input, {
+                    ...init,
+                    headers
+                });
             };
-        } catch (error) {
-            window.__ivLyricsDebugLog?.(`[LR-DEBUG] 영어 메타데이터 조회 실패: ${error?.message || error}`);
-            return null;
-        } finally {
-            window.fetch = originalFetch;
-        }
+
+            try {
+                const response = await graphQLRequest(lookupEntity, { uri });
+                const track = response?.data?.lookup?.[0]?.data;
+
+                if (track?.__typename !== 'Track') {
+                    return null;
+                }
+
+                return {
+                    title: track?.name?.trim?.() || '',
+                    artist: track?.artists?.items?.map(item => item?.profile?.name).filter(Boolean).join(', ') || ''
+                };
+            } catch (error) {
+                window.__ivLyricsDebugLog?.(`[LR-DEBUG] 영어 메타데이터 조회 실패: ${error?.message || error}`);
+                return null;
+            } finally {
+                window.fetch = originalFetch;
+            }
+        });
     }
 
     function parsePlainLyrics(plainLyrics) {
@@ -2078,7 +2098,7 @@
                     return result;
                 }
 
-                if (body.durationDiff > LRCLIB_DURATION_TOLERANCE_SEC) {
+                if (body.durationDiff > LRCLIB_DURATION_TOLERANCE_SEC && !body.syncLineExactMatch) {
                     result.error = `No LRCLIB results within ±${LRCLIB_DURATION_TOLERANCE_SEC}s`;
                     logDebug('Failed', {
                         error: result.error,
