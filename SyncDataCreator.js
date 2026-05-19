@@ -541,6 +541,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 	const [isCharacterPronunciationPrimary, setIsCharacterPronunciationPrimary] = useState(false);
 	const [isGeneratingCharacterPronunciations, setIsGeneratingCharacterPronunciations] = useState(false);
 	const [characterPronunciationProgress, setCharacterPronunciationProgress] = useState(null);
+	const [showCharacterPronunciationConsent, setShowCharacterPronunciationConsent] = useState(false);
 	const [mode, setMode] = useState('idle');
 	const [position, setPosition] = useState(0);
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -930,7 +931,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		return () => window.removeEventListener('furigana-ready', handleFuriganaReady);
 	}, []);
 
-	const handleCharacterPronunciationToggle = useCallback(async () => {
+	const handleCharacterPronunciationToggle = useCallback(async (options = {}) => {
 		if (characterPronunciations) {
 			setShowCharacterPronunciations(value => !value);
 			return;
@@ -942,6 +943,11 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 
 		if (typeof window.AIAddonManager?.generateCharacterPronunciation !== 'function') {
 			Toast.error(I18n.t('syncCreator.characterPronunciationNoProvider') || '문자별 발음을 지원하는 AI 제공자가 없습니다.');
+			return;
+		}
+
+		if (options?.skipConsent !== true) {
+			setShowCharacterPronunciationConsent(true);
 			return;
 		}
 
@@ -3331,6 +3337,44 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			// 현재 줄 삭제
 			isCurrentLineSynced && react.createElement('button', { style: s.deleteBtn, onClick: deleteCurrentLineSync },
 				I18n.t('syncCreator.deleteLine')
+			)
+		),
+
+		// AI character pronunciation token usage modal
+		showCharacterPronunciationConsent && react.createElement('div', {
+			style: s.lrcLibModal,
+			onClick: (e) => e.target === e.currentTarget && setShowCharacterPronunciationConsent(false)
+		},
+			react.createElement('div', { style: s.lrcLibContent },
+				react.createElement('h3', { style: s.lrcLibTitle },
+					I18n.t('syncCreator.characterPronunciationTokenWarningTitle') || 'AI character pronunciation token usage'
+				),
+				react.createElement('p', { style: s.lrcLibDesc },
+					I18n.t('syncCreator.characterPronunciationTokenWarningBody') || 'This feature generates pronunciation aligned to each character for karaoke sync, so it uses more AI tokens than ordinary pronunciation generation.'
+				),
+				react.createElement('div', {
+					style: {
+						fontSize: '12px',
+						color: '#ff9800',
+						padding: '10px',
+						background: 'rgba(255, 152, 0, 0.1)',
+						borderRadius: '6px',
+						border: '1px solid rgba(255, 152, 0, 0.3)'
+					}
+				}, I18n.t('syncCreator.characterPronunciationTokenWarningUsage') || 'Expected usage: about 3-6x more tokens than a normal line-by-line pronunciation request. Actual usage varies by lyrics length, language, and provider retries.'),
+				react.createElement('div', { style: s.lrcLibBtnRow },
+					react.createElement('button', {
+						style: s.lrcLibBtnCancel,
+						onClick: () => setShowCharacterPronunciationConsent(false)
+					}, I18n.t('syncCreator.characterPronunciationTokenWarningCancel') || I18n.t('cancel') || 'Cancel'),
+					react.createElement('button', {
+						style: s.lrcLibBtn,
+						onClick: () => {
+							setShowCharacterPronunciationConsent(false);
+							handleCharacterPronunciationToggle({ skipConsent: true });
+						}
+					}, I18n.t('syncCreator.characterPronunciationTokenWarningConfirm') || 'I understand and generate')
+				)
 			)
 		),
 
