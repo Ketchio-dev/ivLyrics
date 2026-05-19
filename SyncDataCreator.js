@@ -4,6 +4,8 @@
 
 const SYNC_CREATOR_RTL_STRONG_CHAR_REGEX = /[\u0590-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFC]/u;
 const SYNC_CREATOR_LTR_STRONG_CHAR_REGEX = /[A-Za-z\u00C0-\u02AF\u0370-\u052F\u1E00-\u1EFF]/u;
+const SYNC_CREATOR_JAPANESE_KANA_REGEX = /[\u3040-\u30ff\uff66-\uff9f]/u;
+const SYNC_CREATOR_KANJI_REGEX = /[\u3400-\u4dbf\u4e00-\u9fff]/u;
 
 const getSyncCreatorTextDirection = (text) => {
 	const normalizedText = typeof text === 'string' ? text : '';
@@ -359,6 +361,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 	const [error, setError] = useState(null);
 	const [currentLineIndex, setCurrentLineIndex] = useState(0);
 	const [syncData, setSyncData] = useState(null);
+	const [furiganaRevision, setFuriganaRevision] = useState(0);
 	const [mode, setMode] = useState('idle');
 	const [position, setPosition] = useState(0);
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -593,6 +596,58 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		[currentLineChars]
 	);
 
+	const lyricsLanguage = useMemo(() => {
+		if (!lyricsLines.length) return null;
+
+		const lyricObjects = lyricsLines.map(text => ({ text }));
+		const detected = window.LyricsService?.detectLanguage?.(lyricObjects)
+			|| Utils?.detectLanguage?.(lyricObjects)
+			|| null;
+
+		if (detected) return detected;
+		return SYNC_CREATOR_JAPANESE_KANA_REGEX.test(`${lyricsLines.join('\n')} ${trackName} ${artistName}`) ? 'ja' : null;
+	}, [lyricsLines, trackName, artistName]);
+	const shouldShowSyncCreatorFurigana = useMemo(() => {
+		if (lyricsLanguage !== 'ja') return false;
+		if (!lyricsLines.some(line => SYNC_CREATOR_KANJI_REGEX.test(line))) return false;
+		return typeof window.FuriganaConverter?.convertToFurigana === 'function';
+	}, [lyricsLanguage, lyricsLines, furiganaRevision]);
+	const getSyncCreatorFuriganaMap = useCallback((lineText) => {
+		if (!shouldShowSyncCreatorFurigana || !lineText || !SYNC_CREATOR_KANJI_REGEX.test(lineText)) {
+			return new Map();
+		}
+
+		try {
+			const converted = window.FuriganaConverter.convertToFurigana(lineText);
+			if (!converted || converted === lineText || !converted.includes('<ruby>')) {
+				return new Map();
+			}
+			return Utils?.parseFuriganaMapping?.(converted) || new Map();
+		} catch (e) {
+			return new Map();
+		}
+	}, [shouldShowSyncCreatorFurigana, furiganaRevision]);
+	const getSyncCreatorFuriganaReact = useCallback((lineText) => {
+		if (!shouldShowSyncCreatorFurigana || !lineText || !SYNC_CREATOR_KANJI_REGEX.test(lineText)) {
+			return lineText;
+		}
+
+		try {
+			const converted = window.FuriganaConverter.convertToFurigana(lineText);
+			if (!converted || converted === lineText || !converted.includes('<ruby>')) {
+				return lineText;
+			}
+			return Utils?.rubyTextToReact?.(converted) || lineText;
+		} catch (e) {
+			return lineText;
+		}
+	}, [shouldShowSyncCreatorFurigana, furiganaRevision]);
+	const currentLineFuriganaMap = useMemo(
+		() => getSyncCreatorFuriganaMap(currentLineText),
+		[getSyncCreatorFuriganaMap, currentLineText]
+	);
+	const hasCurrentLineFurigana = currentLineFuriganaMap.size > 0;
+
 	const completedLines = useMemo(() => {
 		if (!syncData || !syncData.lines) return 0;
 		return syncData.lines.length;
@@ -607,6 +662,17 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 
 	// Visibility tracking for robust lock handling
 	const isVisibleRef = useRef(false);
+
+	useEffect(() => {
+		const handleFuriganaReady = () => setFuriganaRevision(value => value + 1);
+
+		window.addEventListener('furigana-ready', handleFuriganaReady);
+		if (typeof window.FuriganaConverter?.init === 'function' && !window.FuriganaConverter?.isAvailable?.()) {
+			window.FuriganaConverter.init().then(handleFuriganaReady).catch(() => {});
+		}
+
+		return () => window.removeEventListener('furigana-ready', handleFuriganaReady);
+	}, []);
 
 	// Visibility Observer
 	useEffect(() => {
@@ -2406,14 +2472,16 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		lyricsLine: { display: 'inline-flex', flexWrap: 'nowrap', gap: '0px', paddingLeft: '32px', paddingRight: '32px', justifyContent: 'center' },
 		rtlLyricsLine: { display: 'block', width: '100%', paddingLeft: '32px', paddingRight: '32px', textAlign: 'center', direction: 'rtl', unicodeBidi: 'plaintext' },
 		rtlTextRun: { display: 'inline-block', maxWidth: '100%', padding: '10px 1px', fontSize: '32px', fontWeight: '600', lineHeight: 1.45, letterSpacing: 0, whiteSpace: 'pre', cursor: mode === 'record' ? 'pointer' : 'default', color: 'transparent', WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent' },
-		charSpan: { padding: '10px 1px', borderRadius: '4px', cursor: mode === 'record' ? 'pointer' : 'default', position: 'relative', fontSize: '32px', fontWeight: '600', minWidth: '6px', textAlign: 'center', flexShrink: 0, color: 'var(--spice-text)', letterSpacing: '-1px' },
+		charSpan: { padding: hasCurrentLineFurigana ? '18px 1px 10px' : '10px 1px', borderRadius: '4px', cursor: mode === 'record' ? 'pointer' : 'default', position: 'relative', fontSize: '32px', fontWeight: '600', minWidth: '6px', textAlign: 'center', flexShrink: 0, color: 'var(--spice-text)', letterSpacing: '-1px', lineHeight: 1.15 },
+		charRuby: { rubyPosition: 'over', lineHeight: 1.15 },
+		charRubyText: { fontSize: `${Number(window.CONFIG?.visual?.["furigana-font-size"]) || 11}px`, fontWeight: window.CONFIG?.visual?.["furigana-font-weight"] || '500', color: 'inherit', opacity: (Number(window.CONFIG?.visual?.["furigana-opacity"]) || 80) / 100, lineHeight: 1, letterSpacing: 0 },
 		charSynced: { background: 'rgba(var(--spice-rgb-button), 0.2)' },
 		charPlayed: { background: 'var(--spice-button)', color: 'var(--spice-button-text, #000)' },
 		charRecording: { background: 'rgba(255, 152, 0, 0.6)' },
 		charTime: { position: 'absolute', bottom: '-20px', left: '50%', transform: 'translateX(-50%)', fontSize: '9px', color: 'var(--spice-subtext)', whiteSpace: 'nowrap' },
 		nextLineBox: { textAlign: 'center', padding: '8px', opacity: 0.6 },
 		nextLineLabel: { fontSize: '10px', color: 'var(--spice-subtext)', marginBottom: '4px', textTransform: 'uppercase' },
-		nextLineText: { fontSize: '14px', color: 'var(--spice-subtext)' },
+		nextLineText: { fontSize: '14px', color: 'var(--spice-subtext)', lineHeight: 1.7 },
 		hint: { fontSize: '12px', color: 'var(--spice-subtext)', textAlign: 'center', padding: '8px', fontStyle: 'italic' },
 		progressRow: { display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', padding: '6px 20px', fontSize: '12px', color: 'var(--spice-subtext)', flexShrink: 0 },
 		controls: { display: 'flex', flexWrap: 'wrap', gap: '10px', padding: '12px 20px', justifyContent: 'center', borderTop: '1px solid var(--spice-misc)', flexShrink: 0 },
@@ -2673,13 +2741,19 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 							const previewIdx = getPreviewCharIndex(currentLineIndex);
 							const isPlayed = isSynced && previewIdx >= i;
 							const charTime = getCharSyncTime(currentLineIndex, i);
+							const furigana = currentLineFuriganaMap.get(i);
 
 							let style = { ...s.charSpan };
 							if (isRec) style = { ...style, ...s.charRecording };
 							else if (isSynced) style = isPlayed ? { ...style, ...s.charPlayed } : { ...style, ...s.charSynced };
 
 							return react.createElement('span', { key: i, style, ref: (el) => { charElementsRef.current[i] = el; }, 'data-char-index': i },
-								char === ' ' ? '\u00A0' : char,
+								furigana
+									? react.createElement('ruby', { style: s.charRuby },
+										char === ' ' ? '\u00A0' : char,
+										react.createElement('rt', { style: s.charRubyText }, furigana)
+									)
+									: (char === ' ' ? '\u00A0' : char),
 								isSynced && charTime !== null && react.createElement('span', { style: s.charTime }, formatSeconds(charTime))
 							);
 						})
@@ -2695,7 +2769,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 							direction: getSyncCreatorTextDirection(lyricsLines[currentLineIndex + 1]),
 							unicodeBidi: 'plaintext'
 						}
-					}, lyricsLines[currentLineIndex + 1])
+					}, getSyncCreatorFuriganaReact(lyricsLines[currentLineIndex + 1]))
 				),
 
 				mode === 'record' && react.createElement('div', { style: s.hint }, I18n.t('syncCreator.dragHint')),
