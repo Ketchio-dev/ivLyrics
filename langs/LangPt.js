@@ -788,6 +788,70 @@ window.LANG_PT = {
         "desc": "Ajusta a transparência das letras inativas (mais baixo é mais escuro)"
       }
     },
+    "instrumentalBreak": {
+      "title": "Marcador instrumental",
+      "subtitle": "Substitui lacunas longas vazias ou só com notas por um ícone",
+      "icon": {
+        "label": "Design do ícone",
+        "desc": "Escolha a animação para lacunas de letra com mais de 0,5 segundo",
+        "options": {
+          "equalizer": "01 Equalizador",
+          "dotWave": "02 Onda de pontos",
+          "ripples": "03 Ondulações",
+          "orbit": "04 Órbita",
+          "diamonds": "05 Diamantes",
+          "scan": "06 Varredura",
+          "arcs": "07 Arcos",
+          "signal": "08 Sinal",
+          "pulseDot": "09 Ponto pulsante",
+          "stack": "10 Pilha",
+          "spark": "11 Faísca",
+          "splitBars": "12 Barras divididas",
+          "metronome": "13 Metrônomo",
+          "vinyl": "14 Vinil",
+          "beat": "15 Batida",
+          "reels": "16 Bobinas",
+          "triangle": "17 Triângulo",
+          "morph": "18 Morph",
+          "strings": "19 Cordas",
+          "piano": "20 Piano",
+          "bloom": "21 Florescer",
+          "speaker": "22 Alto-falante",
+          "crossfade": "23 Crossfade"
+        }
+      },
+      "showLabel": {
+        "label": "Mostrar rótulo de texto",
+        "desc": "Mostra Introdução, Pausa ou Final ao lado do ícone conforme a posição da letra"
+      },
+      "labelStyle": {
+        "fontFamily": {
+          "label": "Fonte do rótulo",
+          "desc": "Selecione a fonte do rótulo de Introdução, Pausa ou Final"
+        },
+        "fontSize": {
+          "label": "Tamanho do rótulo",
+          "desc": "Tamanho da fonte do rótulo de texto"
+        },
+        "fontWeight": {
+          "label": "Peso do rótulo",
+          "desc": "Peso da fonte do rótulo de texto"
+        },
+        "opacity": {
+          "label": "Opacidade do rótulo",
+          "desc": "Opacidade do rótulo de texto"
+        }
+      },
+      "speed": {
+        "label": "Velocidade da animação",
+        "desc": "Ajusta a velocidade da animação do ícone"
+      },
+      "labels": {
+        "prelude": "Introdução",
+        "break": "Pausa",
+        "postlude": "Final"
+      }
+    },
     "livePreview": {
       "title": "Pré-visualização em Tempo Real",
       "subtitle": "Verifique o estilo configurado instantaneamente",

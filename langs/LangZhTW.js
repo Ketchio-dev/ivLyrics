@@ -788,6 +788,70 @@ window.LANG_ZH_TW = {
         "desc": "調整非使用中歌詞的透明度 (越低越暗)"
       }
     },
+    "instrumentalBreak": {
+      "title": "器樂段標記",
+      "subtitle": "用圖示取代較長的空白或僅含音符的歌詞段",
+      "icon": {
+        "label": "圖示樣式",
+        "desc": "選擇在超過 0.5 秒的空白/音符歌詞段中顯示的動畫",
+        "options": {
+          "equalizer": "01 等化器",
+          "dotWave": "02 點波",
+          "ripples": "03 漣漪",
+          "orbit": "04 軌道",
+          "diamonds": "05 菱形",
+          "scan": "06 掃描",
+          "arcs": "07 弧線",
+          "signal": "08 訊號",
+          "pulseDot": "09 脈衝點",
+          "stack": "10 堆疊",
+          "spark": "11 火花",
+          "splitBars": "12 分段條",
+          "metronome": "13 節拍器",
+          "vinyl": "14 黑膠",
+          "beat": "15 節拍",
+          "reels": "16 捲軸",
+          "triangle": "17 三角形",
+          "morph": "18 變形",
+          "strings": "19 弦線",
+          "piano": "20 鋼琴",
+          "bloom": "21 綻放",
+          "speaker": "22 喇叭",
+          "crossfade": "23 交叉淡化"
+        }
+      },
+      "showLabel": {
+        "label": "顯示文字標籤",
+        "desc": "根據歌詞位置在圖示旁顯示前奏、間奏或尾奏"
+      },
+      "labelStyle": {
+        "fontFamily": {
+          "label": "文字標籤字體",
+          "desc": "選擇前奏、間奏或尾奏標籤使用的字體"
+        },
+        "fontSize": {
+          "label": "文字標籤大小",
+          "desc": "文字標籤的字體大小"
+        },
+        "fontWeight": {
+          "label": "文字標籤字重",
+          "desc": "文字標籤的字體粗細"
+        },
+        "opacity": {
+          "label": "文字標籤不透明度",
+          "desc": "文字標籤的不透明度"
+        }
+      },
+      "speed": {
+        "label": "動畫速度",
+        "desc": "調整圖示動畫速度"
+      },
+      "labels": {
+        "prelude": "前奏",
+        "break": "間奏",
+        "postlude": "尾奏"
+      }
+    },
     "livePreview": {
       "title": "即時預覽",
       "subtitle": "即時確認設定的樣式",

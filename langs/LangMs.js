@@ -788,6 +788,70 @@ window.LANG_MS = {
         "desc": "Laraskan ketelusan lirik tidak aktif (nilai rendah menjadikannya lebih pudar)"
       }
     },
+    "instrumentalBreak": {
+      "title": "Penanda instrumental",
+      "subtitle": "Gantikan ruang lirik kosong atau hanya nota yang panjang dengan ikon",
+      "icon": {
+        "label": "Reka bentuk ikon",
+        "desc": "Pilih animasi untuk ruang lirik lebih daripada 0.5 saat",
+        "options": {
+          "equalizer": "01 Equalizer",
+          "dotWave": "02 Gelombang titik",
+          "ripples": "03 Riak",
+          "orbit": "04 Orbit",
+          "diamonds": "05 Berlian",
+          "scan": "06 Imbas",
+          "arcs": "07 Lengkok",
+          "signal": "08 Isyarat",
+          "pulseDot": "09 Titik nadi",
+          "stack": "10 Tindanan",
+          "spark": "11 Percikan",
+          "splitBars": "12 Bar terpisah",
+          "metronome": "13 Metronom",
+          "vinyl": "14 Vinil",
+          "beat": "15 Rentak",
+          "reels": "16 Gelendong",
+          "triangle": "17 Segi tiga",
+          "morph": "18 Morph",
+          "strings": "19 Tali",
+          "piano": "20 Piano",
+          "bloom": "21 Mekar",
+          "speaker": "22 Pembesar suara",
+          "crossfade": "23 Crossfade"
+        }
+      },
+      "showLabel": {
+        "label": "Tunjukkan label teks",
+        "desc": "Memaparkan Intro, Jeda atau Outro di sebelah ikon berdasarkan kedudukan lirik"
+      },
+      "labelStyle": {
+        "fontFamily": {
+          "label": "Fon label teks",
+          "desc": "Pilih fon untuk label Intro, Jeda atau Outro"
+        },
+        "fontSize": {
+          "label": "Saiz label teks",
+          "desc": "Saiz fon untuk label teks"
+        },
+        "fontWeight": {
+          "label": "Berat label teks",
+          "desc": "Berat fon untuk label teks"
+        },
+        "opacity": {
+          "label": "Kelegapan label teks",
+          "desc": "Kelegapan untuk label teks"
+        }
+      },
+      "speed": {
+        "label": "Kelajuan animasi",
+        "desc": "Laraskan kelajuan animasi ikon"
+      },
+      "labels": {
+        "prelude": "Intro",
+        "break": "Jeda",
+        "postlude": "Outro"
+      }
+    },
     "livePreview": {
       "title": "Pratonton Langsung",
       "subtitle": "Semak gaya yang dikonfigurasikan serta-merta",

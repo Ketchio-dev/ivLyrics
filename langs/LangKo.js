@@ -788,6 +788,70 @@ window.LANG_KO = {
         "desc": "비활성 가사의 투명도를 조절합니다 (낮을수록 희미함)"
       }
     },
+    "instrumentalBreak": {
+      "title": "간주 표시",
+      "subtitle": "긴 공백 또는 음표만 있는 가사 구간을 아이콘으로 대체합니다",
+      "icon": {
+        "label": "아이콘 도안",
+        "desc": "0.5초보다 긴 공백/음표 가사 구간에 표시할 애니메이션을 선택합니다",
+        "options": {
+          "equalizer": "01 이퀄라이저",
+          "dotWave": "02 점 웨이브",
+          "ripples": "03 물결",
+          "orbit": "04 궤도",
+          "diamonds": "05 다이아몬드",
+          "scan": "06 스캔",
+          "arcs": "07 아크",
+          "signal": "08 신호",
+          "pulseDot": "09 펄스 점",
+          "stack": "10 스택",
+          "spark": "11 스파크",
+          "splitBars": "12 분할 막대",
+          "metronome": "13 메트로놈",
+          "vinyl": "14 바이닐",
+          "beat": "15 비트",
+          "reels": "16 릴",
+          "triangle": "17 삼각형",
+          "morph": "18 모프",
+          "strings": "19 현",
+          "piano": "20 피아노",
+          "bloom": "21 블룸",
+          "speaker": "22 스피커",
+          "crossfade": "23 크로스페이드"
+        }
+      },
+      "showLabel": {
+        "label": "문자 라벨 표시",
+        "desc": "가사 위치에 따라 전주, 간주, 후주 라벨을 아이콘 옆에 표시합니다"
+      },
+      "labelStyle": {
+        "fontFamily": {
+          "label": "문자 라벨 글꼴",
+          "desc": "전주, 간주, 후주 라벨에 사용할 글꼴을 선택합니다"
+        },
+        "fontSize": {
+          "label": "문자 라벨 크기",
+          "desc": "문자 라벨의 글자 크기입니다"
+        },
+        "fontWeight": {
+          "label": "문자 라벨 굵기",
+          "desc": "문자 라벨의 글자 굵기입니다"
+        },
+        "opacity": {
+          "label": "문자 라벨 투명도",
+          "desc": "문자 라벨의 투명도입니다"
+        }
+      },
+      "speed": {
+        "label": "애니메이션 속도",
+        "desc": "아이콘 애니메이션 속도를 조절합니다"
+      },
+      "labels": {
+        "prelude": "전주",
+        "break": "간주",
+        "postlude": "후주"
+      }
+    },
     "livePreview": {
       "title": "실시간 미리보기",
       "subtitle": "설정한 스타일을 즉시 확인하세요",

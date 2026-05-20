@@ -244,6 +244,32 @@ body.${PANEL_ACTIVE_BODY_CLASS} [data-testid="lyrics-npv-section"] {
 }
 
 /* 가사 라인 */
+@keyframes lyricsBreakBarPulse { 0%, 100% { transform: scaleY(0.32); opacity: 0.42; } 50% { transform: scaleY(1); opacity: 1; } }
+@keyframes lyricsBreakDotWave { 0%, 100% { transform: translateY(0.15em) scale(0.7); opacity: 0.38; } 50% { transform: translateY(-0.15em) scale(1); opacity: 1; } }
+@keyframes lyricsBreakRingBreathe { 0% { transform: scale(0.35); opacity: 0; } 45% { opacity: 0.9; } 100% { transform: scale(1.3); opacity: 0; } }
+@keyframes lyricsBreakOrbitOne { from { transform: rotate(0deg) translateX(0.42em); } to { transform: rotate(360deg) translateX(0.42em); } }
+@keyframes lyricsBreakOrbitTwo { from { transform: rotate(120deg) translateX(0.42em); } to { transform: rotate(480deg) translateX(0.42em); } }
+@keyframes lyricsBreakOrbitThree { from { transform: rotate(240deg) translateX(0.42em); } to { transform: rotate(600deg) translateX(0.42em); } }
+@keyframes lyricsBreakDiamondStep { 0%, 100% { opacity: 0.35; transform: rotate(45deg) scale(0.72); } 50% { opacity: 1; transform: rotate(45deg) scale(1.05); } }
+@keyframes lyricsBreakScanMove { from { transform: translateX(0); } to { transform: translateX(2em); } }
+@keyframes lyricsBreakArcSpin { to { transform: rotate(360deg); } }
+@keyframes lyricsBreakSignalFlow { 0% { opacity: 0.48; stroke-dashoffset: 0; } 45% { opacity: 1; } 100% { opacity: 0.48; stroke-dashoffset: -48; } }
+@keyframes lyricsBreakDotPulse { 0% { transform: scale(0.25); opacity: 0.8; } 100% { transform: scale(1.75); opacity: 0; } }
+@keyframes lyricsBreakStackShift { 0%, 100% { opacity: 0.38; transform: scaleX(0.6); } 50% { opacity: 1; transform: scaleX(1); } }
+@keyframes lyricsBreakSparkRotate { to { transform: rotate(360deg); } }
+@keyframes lyricsBreakSplitBar { 0%, 100% { transform: scaleY(0.24); opacity: 0.36; } 50% { transform: scaleY(1); opacity: 1; } }
+@keyframes lyricsBreakMetronome { from { transform: rotate(-24deg); } to { transform: rotate(24deg); } }
+@keyframes lyricsBreakSpin { to { transform: rotate(360deg); } }
+@keyframes lyricsBreakBeatHit { 0% { transform: scale(0.5); opacity: 0.5; } 9% { transform: scale(1.28); opacity: 1; } 45% { transform: scale(0.82); opacity: 0.7; } 100% { transform: scale(0.5); opacity: 0.5; } }
+@keyframes lyricsBreakTrianglePulse { 0%, 100% { transform: scale(0.7); opacity: 0.45; } 50% { transform: scale(1.1); opacity: 1; } }
+@keyframes lyricsBreakMorphShape { 0%, 100% { border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%; transform: rotate(0deg); } 25% { border-radius: 70% 30% 50% 50% / 30% 70% 30% 70%; transform: rotate(90deg); } 50% { border-radius: 50% 50% 30% 70% / 70% 30% 70% 30%; transform: rotate(180deg); } 75% { border-radius: 30% 70% 70% 30% / 50% 50% 50% 50%; transform: rotate(270deg); } }
+@keyframes lyricsBreakStringPluck { 0% { transform: translateY(0); opacity: 0.4; } 4% { transform: translateY(-0.08em); opacity: 1; } 9% { transform: translateY(0.06em); } 14% { transform: translateY(-0.04em); } 19% { transform: translateY(0.03em); opacity: 0.75; } 28%, 100% { transform: translateY(0); opacity: 0.4; } }
+@keyframes lyricsBreakKeyPress { 0%, 35%, 100% { transform: translateY(0); opacity: 0.55; } 5% { transform: translateY(0.12em); opacity: 1; } 20% { transform: translateY(0); opacity: 0.85; } }
+@keyframes lyricsBreakBloomPulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+@keyframes lyricsBreakSpeakerRing { 0%, 100% { transform: scale(0.9); opacity: 0.4; } 18% { transform: scale(1.05); opacity: 1; } }
+@keyframes lyricsBreakSpeakerCenter { 0%, 100% { transform: scale(0.68); } 18% { transform: scale(1.2); } }
+@keyframes lyricsBreakCrossfadeBreathe { 0%, 100% { transform: scale(0.55); } 50% { transform: scale(1); } }
+
 .ivlyrics-panel-line {
   display: flex !important;
   flex-direction: column !important;
@@ -274,6 +300,105 @@ body.${PANEL_ACTIVE_BODY_CLASS} [data-testid="lyrics-npv-section"] {
 }
 
 /* 1. 발음 (Phonetic) - 아래에 작게 */
+.ivlyrics-panel-line-interlude {
+  display: inline-flex !important;
+  align-items: center !important;
+  max-width: 100% !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+  font-family: var(--ivlyrics-panel-original-font) !important;
+  line-height: 1.35 !important;
+  white-space: nowrap !important;
+}
+
+.ivlyrics-panel-line.active .ivlyrics-panel-line-interlude {
+  color: #ffffff !important;
+}
+
+.lyrics-break-indicator { display: inline-flex; align-items: center; gap: 0.3em; max-width: 100%; color: currentColor; vertical-align: middle; white-space: nowrap; }
+.lyrics-break-icon { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 1.16em; height: 1.16em; min-width: 18px; min-height: 18px; flex: 0 0 auto; overflow: visible; color: currentColor; }
+.lyrics-break-icon span, .lyrics-break-icon svg { flex: 0 0 auto; }
+.lyrics-break-label { font-family: var(--break-label-font-family, var(--ivlyrics-panel-original-font, inherit)); font-size: var(--break-label-font-size, 0.7em); font-weight: var(--break-label-font-weight, 800); line-height: 1; letter-spacing: 0; opacity: var(--break-label-opacity, 0.74); }
+.lyrics-break-icon-equalizer, .lyrics-break-icon-dotWave, .lyrics-break-icon-diamonds, .lyrics-break-icon-splitBars, .lyrics-break-icon-reels, .lyrics-break-icon-piano { display: inline-flex; }
+.lyrics-break-icon-equalizer, .lyrics-break-icon-splitBars { align-items: center; gap: 0.09em; }
+.lyrics-break-icon-equalizer span, .lyrics-break-icon-splitBars span { display: block; width: 0.11em; min-width: 2px; height: 0.76em; border-radius: 999px; background: currentColor; transform: scaleY(0.4); transform-origin: center; }
+.lyrics-break-icon-equalizer span { animation: lyricsBreakBarPulse var(--break-duration, 1100ms) ease-in-out infinite; }
+.lyrics-break-icon-equalizer span:nth-child(2) { animation-delay: calc(var(--break-duration, 1100ms) * -0.18); }
+.lyrics-break-icon-equalizer span:nth-child(3) { animation-delay: calc(var(--break-duration, 1100ms) * -0.36); }
+.lyrics-break-icon-equalizer span:nth-child(4) { animation-delay: calc(var(--break-duration, 1100ms) * -0.54); }
+.lyrics-break-icon-dotWave { align-items: center; gap: 0.1em; }
+.lyrics-break-icon-dotWave span { width: 0.14em; height: 0.14em; border-radius: 50%; background: currentColor; animation: lyricsBreakDotWave var(--break-duration-fast, 790ms) ease-in-out infinite; }
+.lyrics-break-icon-dotWave span:nth-child(2) { animation-delay: calc(var(--break-duration-fast, 790ms) * 0.1); }
+.lyrics-break-icon-dotWave span:nth-child(3) { animation-delay: calc(var(--break-duration-fast, 790ms) * 0.2); }
+.lyrics-break-icon-dotWave span:nth-child(4) { animation-delay: calc(var(--break-duration-fast, 790ms) * 0.3); }
+.lyrics-break-icon-dotWave span:nth-child(5) { animation-delay: calc(var(--break-duration-fast, 790ms) * 0.4); }
+.lyrics-break-icon-ripples::before, .lyrics-break-icon-ripples::after, .lyrics-break-icon-ripples span { content: ""; position: absolute; inset: 0.28em; border: 0.055em solid currentColor; border-radius: 50%; animation: lyricsBreakRingBreathe var(--break-duration-slow, 1815ms) ease-in-out infinite; }
+.lyrics-break-icon-ripples::after { animation-delay: calc(var(--break-duration-slow, 1815ms) * -0.33); }
+.lyrics-break-icon-ripples span { animation-delay: calc(var(--break-duration-slow, 1815ms) * -0.66); }
+.lyrics-break-icon-orbit::before, .lyrics-break-icon-orbit::after, .lyrics-break-icon-orbit span { content: ""; position: absolute; top: 50%; left: 50%; width: 0.14em; height: 0.14em; margin: -0.07em; border-radius: 50%; background: currentColor; transform-origin: center; }
+.lyrics-break-icon-orbit::before { animation: lyricsBreakOrbitOne var(--break-duration-slow, 1815ms) linear infinite; }
+.lyrics-break-icon-orbit::after { animation: lyricsBreakOrbitTwo var(--break-duration-slow, 1815ms) linear infinite; }
+.lyrics-break-icon-orbit span { animation: lyricsBreakOrbitThree var(--break-duration-slow, 1815ms) linear infinite; }
+.lyrics-break-icon-diamonds { align-items: center; gap: 0.17em; }
+.lyrics-break-icon-diamonds span { width: 0.2em; height: 0.2em; background: currentColor; transform: rotate(45deg) scale(0.72); animation: lyricsBreakDiamondStep var(--break-duration, 1100ms) ease-in-out infinite; }
+.lyrics-break-icon-diamonds span:nth-child(2) { animation-delay: calc(var(--break-duration, 1100ms) * 0.13); }
+.lyrics-break-icon-diamonds span:nth-child(3) { animation-delay: calc(var(--break-duration, 1100ms) * 0.25); }
+.lyrics-break-icon-scan { width: 1.22em; height: 0.5em; border-left: 0.06em solid currentColor; border-right: 0.06em solid currentColor; overflow: hidden; }
+.lyrics-break-icon-scan::before { content: ""; position: absolute; top: calc(50% - 0.05em); left: -0.76em; width: 0.72em; height: 0.1em; border-radius: 999px; background: currentColor; box-shadow: 0.32em 0 0 currentColor, 0.64em 0 0 currentColor; animation: lyricsBreakScanMove var(--break-duration, 1100ms) ease-in-out infinite; }
+.lyrics-break-icon-arcs::before, .lyrics-break-icon-arcs::after { content: ""; position: absolute; inset: 0.16em; border: 0.07em solid transparent; border-top-color: currentColor; border-right-color: currentColor; border-radius: 50%; animation: lyricsBreakArcSpin var(--break-duration-slow, 1815ms) linear infinite; }
+.lyrics-break-icon-arcs::after { inset: 0.34em; border-width: 0.055em; border-top-color: transparent; border-right-color: currentColor; border-bottom-color: currentColor; animation-direction: reverse; animation-duration: var(--break-duration, 1100ms); }
+.lyrics-break-icon-signal { width: 1.32em; height: 0.52em; overflow: visible; }
+.lyrics-break-icon-signal svg { display: block; width: 1.32em; height: 0.52em; fill: none; stroke: currentColor; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+.lyrics-break-icon-signal path { stroke-dasharray: 18 14; animation: lyricsBreakSignalFlow var(--break-duration-slow, 1815ms) linear infinite; }
+.lyrics-break-icon-pulseDot::before, .lyrics-break-icon-pulseDot::after { content: ""; position: absolute; inset: 0.4em; border-radius: 50%; background: currentColor; }
+.lyrics-break-icon-pulseDot::after { inset: 0.26em; background: transparent; border: 0.04em solid currentColor; animation: lyricsBreakDotPulse var(--break-duration, 1100ms) ease-out infinite; }
+.lyrics-break-icon-stack { display: grid; place-items: center; gap: 0.08em; }
+.lyrics-break-icon-stack span { display: block; width: 0.78em; height: 0.09em; border-radius: 999px; background: currentColor; animation: lyricsBreakStackShift var(--break-duration, 1100ms) ease-in-out infinite; }
+.lyrics-break-icon-stack span:nth-child(2) { width: 0.52em; animation-delay: calc(var(--break-duration, 1100ms) * -0.17); }
+.lyrics-break-icon-stack span:nth-child(3) { width: 0.92em; animation-delay: calc(var(--break-duration, 1100ms) * -0.34); }
+.lyrics-break-icon-spark { animation: lyricsBreakSparkRotate var(--break-duration-xslow, 4180ms) linear infinite; }
+.lyrics-break-icon-spark span { position: absolute; top: 50%; left: 50%; width: 0.1em; height: 0.1em; margin: -0.05em; border-radius: 50%; background: currentColor; transform: rotate(calc(var(--i) * 45deg)) translateX(0.42em) scale(calc(0.45 + var(--i) * 0.06)); opacity: calc(0.22 + var(--i) * 0.08); }
+.lyrics-break-icon-splitBars span { animation: lyricsBreakSplitBar var(--break-duration, 1100ms) ease-in-out infinite; }
+.lyrics-break-icon-splitBars span:nth-child(1), .lyrics-break-icon-splitBars span:nth-child(4) { animation-delay: calc(var(--break-duration, 1100ms) * -0.22); }
+.lyrics-break-icon-splitBars span:nth-child(2), .lyrics-break-icon-splitBars span:nth-child(3) { animation-delay: calc(var(--break-duration, 1100ms) * -0.06); }
+.lyrics-break-icon-metronome::before { content: ""; position: absolute; left: calc(50% - 0.05em); bottom: 0.2em; width: 0.1em; height: 0.76em; border-radius: 999px; background: currentColor; transform-origin: bottom center; animation: lyricsBreakMetronome var(--break-duration-fast, 790ms) ease-in-out infinite alternate; }
+.lyrics-break-icon-metronome::after { content: ""; position: absolute; left: calc(50% - 0.25em); bottom: 0.14em; width: 0.5em; height: 0.07em; border-radius: 999px; background: currentColor; opacity: 0.55; }
+.lyrics-break-icon-vinyl { border: 0.04em solid currentColor; border-radius: 50%; animation: lyricsBreakSpin var(--break-duration-xslow, 4180ms) linear infinite; }
+.lyrics-break-icon-vinyl::before { content: ""; position: absolute; inset: 0.22em; border: 0.025em solid currentColor; border-radius: 50%; opacity: 0.45; }
+.lyrics-break-icon-vinyl::after { content: ""; position: absolute; inset: 0.47em; border-radius: 50%; background: currentColor; }
+.lyrics-break-icon-vinyl > span { position: absolute; top: 0.08em; left: 50%; width: 0.08em; height: 0.08em; margin-left: -0.04em; border-radius: 50%; background: currentColor; }
+.lyrics-break-icon-beat { width: 0.68em; height: 0.68em; border-radius: 50%; background: currentColor; animation: lyricsBreakBeatHit var(--break-duration-fast, 790ms) cubic-bezier(0.18, 0.9, 0.36, 1) infinite; }
+.lyrics-break-icon-reels { align-items: center; gap: 0.2em; }
+.lyrics-break-icon-reels span { position: relative; width: 0.42em; height: 0.42em; border: 0.04em solid currentColor; border-radius: 50%; animation: lyricsBreakSpin var(--break-duration-slow, 1815ms) linear infinite; }
+.lyrics-break-icon-reels span:nth-child(2) { animation-direction: reverse; }
+.lyrics-break-icon-reels span::before, .lyrics-break-icon-reels span::after { content: ""; position: absolute; top: 50%; left: 50%; background: currentColor; }
+.lyrics-break-icon-reels span::before { width: 0.3em; height: 0.035em; margin: -0.0175em 0 0 -0.15em; }
+.lyrics-break-icon-reels span::after { width: 0.035em; height: 0.3em; margin: -0.15em 0 0 -0.0175em; }
+.lyrics-break-icon-triangle::before { content: ""; width: 0; height: 0; border-left: 0.56em solid currentColor; border-top: 0.34em solid transparent; border-bottom: 0.34em solid transparent; animation: lyricsBreakTrianglePulse var(--break-duration, 1100ms) ease-in-out infinite; }
+.lyrics-break-icon-morph { width: 0.88em; height: 0.88em; background: currentColor; border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%; animation: lyricsBreakMorphShape var(--break-duration-xslow, 4180ms) ease-in-out infinite; }
+.lyrics-break-icon-strings { display: flex; flex-direction: column; gap: 0.13em; }
+.lyrics-break-icon-strings span { display: block; width: 1em; height: 0.035em; border-radius: 999px; background: currentColor; animation: lyricsBreakStringPluck var(--break-duration-slow, 1815ms) ease-out infinite; }
+.lyrics-break-icon-strings span:nth-child(2) { animation-delay: calc(var(--break-duration-slow, 1815ms) * 0.05); }
+.lyrics-break-icon-strings span:nth-child(3) { animation-delay: calc(var(--break-duration-slow, 1815ms) * 0.1); }
+.lyrics-break-icon-strings span:nth-child(4) { animation-delay: calc(var(--break-duration-slow, 1815ms) * 0.15); }
+.lyrics-break-icon-piano { align-items: center; gap: 0.08em; }
+.lyrics-break-icon-piano span { display: block; width: 0.12em; height: 0.76em; border-radius: 0 0 0.04em 0.04em; background: currentColor; animation: lyricsBreakKeyPress var(--break-duration-slow, 1815ms) ease-in-out infinite; }
+.lyrics-break-icon-piano span:nth-child(2) { animation-delay: calc(var(--break-duration-slow, 1815ms) * 0.45); }
+.lyrics-break-icon-piano span:nth-child(3) { animation-delay: calc(var(--break-duration-slow, 1815ms) * 0.14); }
+.lyrics-break-icon-piano span:nth-child(4) { animation-delay: calc(var(--break-duration-slow, 1815ms) * 0.68); }
+.lyrics-break-icon-piano span:nth-child(5) { animation-delay: calc(var(--break-duration-slow, 1815ms) * 0.28); }
+.lyrics-break-icon-bloom span { position: absolute; top: 50%; left: 50%; width: 0.2em; height: 0.2em; margin: -0.1em; border-radius: 50%; background: currentColor; animation: lyricsBreakBloomPulse var(--break-duration-slow, 1815ms) ease-in-out infinite; }
+.lyrics-break-icon-bloom span:nth-child(1) { transform: translateX(-0.32em); }
+.lyrics-break-icon-bloom span:nth-child(2) { transform: translateX(0.32em); animation-delay: calc(var(--break-duration-slow, 1815ms) * 0.25); }
+.lyrics-break-icon-bloom span:nth-child(3) { transform: translateY(-0.32em); animation-delay: calc(var(--break-duration-slow, 1815ms) * 0.13); }
+.lyrics-break-icon-bloom span:nth-child(4) { transform: translateY(0.32em); animation-delay: calc(var(--break-duration-slow, 1815ms) * 0.38); }
+.lyrics-break-icon-speaker { border: 0.04em solid currentColor; border-radius: 50%; }
+.lyrics-break-icon-speaker::before { content: ""; position: absolute; inset: 0.22em; border: 0.04em solid currentColor; border-radius: 50%; animation: lyricsBreakSpeakerRing var(--break-duration-fast, 790ms) cubic-bezier(0.2, 0.85, 0.4, 1) infinite; }
+.lyrics-break-icon-speaker::after { content: ""; position: absolute; inset: 0.44em; border-radius: 50%; background: currentColor; animation: lyricsBreakSpeakerCenter var(--break-duration-fast, 790ms) cubic-bezier(0.2, 0.85, 0.4, 1) infinite; }
+.lyrics-break-icon-crossfade::before, .lyrics-break-icon-crossfade::after { content: ""; position: absolute; top: 50%; width: 0.5em; height: 0.5em; margin-top: -0.25em; border-radius: 50%; background: currentColor; opacity: 0.55; animation: lyricsBreakCrossfadeBreathe var(--break-duration-slow, 1815ms) ease-in-out infinite; }
+.lyrics-break-icon-crossfade::before { left: 0.24em; }
+.lyrics-break-icon-crossfade::after { right: 0.24em; animation-delay: calc(var(--break-duration-slow, 1815ms) * -0.5); }
+.ivlyrics-panel-line:not(.active) .lyrics-break-icon, .ivlyrics-panel-line:not(.active) .lyrics-break-icon *, .ivlyrics-panel-line:not(.active) .lyrics-break-icon::before, .ivlyrics-panel-line:not(.active) .lyrics-break-icon::after, .ivlyrics-panel-line:not(.active) .lyrics-break-icon *::before, .ivlyrics-panel-line:not(.active) .lyrics-break-icon *::after { animation-play-state: paused !important; }
+
 .ivlyrics-panel-line-phonetic {
   font-size: calc(var(--ivlyrics-panel-phonetic-size, 13px) * var(--ivlyrics-font-scale, 1)) !important;
   font-weight: 400 !important;
@@ -665,6 +790,150 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
         return [];
     };
 
+    const INTERLUDE_MIN_DURATION_MS = 500;
+    const INTERLUDE_MARKER_REGEX = /^[\s\u00A0\u200B-\u200D\uFEFF\u2669-\u266C]+$/;
+    const INSTRUMENTAL_BREAK_ICON_DESIGNS = new Set([
+        "equalizer",
+        "dotWave",
+        "ripples",
+        "orbit",
+        "diamonds",
+        "scan",
+        "arcs",
+        "signal",
+        "pulseDot",
+        "stack",
+        "spark",
+        "splitBars",
+        "metronome",
+        "vinyl",
+        "beat",
+        "reels",
+        "triangle",
+        "morph",
+        "strings",
+        "piano",
+        "bloom",
+        "speaker",
+        "crossfade",
+    ]);
+
+    const getInstrumentalBreakSettings = () => {
+        const configuredIcon = CONFIG?.visual?.["instrumental-break-icon"] || "equalizer";
+        const speed = Number(CONFIG?.visual?.["instrumental-break-animation-speed"] ?? 100);
+        const safeSpeed = Number.isFinite(speed) ? Math.max(50, Math.min(200, speed)) : 100;
+        const duration = Math.round(1100 * (100 / safeSpeed));
+        const labelFontFamily = CONFIG?.visual?.["instrumental-break-label-font-family"] ||
+            CONFIG?.visual?.["panel-lyrics-original-font"] ||
+            CONFIG?.visual?.["original-font-family"] ||
+            "var(--ivlyrics-panel-original-font, var(--font-family))";
+        const getLabelNumber = (settingKey, panelKey, originalKey, fallback, min, max) => {
+            const settingValue = CONFIG?.visual?.[settingKey];
+            const fallbackValue = settingValue !== undefined && settingValue !== null && settingValue !== ""
+                ? settingValue
+                : (CONFIG?.visual?.[panelKey] || CONFIG?.visual?.[originalKey]);
+            const numericValue = Number(fallbackValue);
+            const safeValue = Number.isFinite(numericValue) ? numericValue : fallback;
+
+            return Math.max(min, Math.min(max, safeValue));
+        };
+
+        return {
+            icon: INSTRUMENTAL_BREAK_ICON_DESIGNS.has(configuredIcon) ? configuredIcon : "equalizer",
+            showLabel: CONFIG?.visual?.["instrumental-break-show-label"] === true,
+            style: {
+                "--break-duration": `${duration}ms`,
+                "--break-duration-fast": `${Math.round(duration * 0.72)}ms`,
+                "--break-duration-slow": `${Math.round(duration * 1.65)}ms`,
+                "--break-duration-xslow": `${Math.round(duration * 3.8)}ms`,
+                "--break-label-font-family": labelFontFamily,
+                "--break-label-font-size": `${getLabelNumber("instrumental-break-label-font-size", "panel-lyrics-original-size", "original-font-size", 18, 12, 128)}px`,
+                "--break-label-font-weight": getLabelNumber("instrumental-break-label-font-weight", "original-font-weight", "original-font-weight", 400, 100, 900),
+                "--break-label-opacity": getLabelNumber("instrumental-break-label-opacity", "original-opacity", "original-opacity", 100, 0, 100) / 100,
+            },
+        };
+    };
+
+    const getInstrumentalBreakKind = (lineIndex, lineCount) => {
+        if (lineIndex === 0) return "prelude";
+        if (lineIndex === Math.max(0, lineCount - 1)) return "postlude";
+        return "break";
+    };
+
+    const getInstrumentalBreakLabel = (kind) => {
+        const key = kind === "prelude"
+            ? "settingsAdvanced.instrumentalBreak.labels.prelude"
+            : kind === "postlude"
+                ? "settingsAdvanced.instrumentalBreak.labels.postlude"
+                : "settingsAdvanced.instrumentalBreak.labels.break";
+
+        return I18n.t(key) || (kind === "prelude" ? "Intro" : kind === "postlude" ? "Outro" : "Break");
+    };
+
+    const getPlainLyricText = (value) => {
+        if (value === null || value === undefined) return '';
+        if (typeof value === 'string') return value;
+        if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+        if (Array.isArray(value)) return value.map(getPlainLyricText).join('');
+
+        if (typeof value === 'object') {
+            if (value.props?.children !== undefined) return getPlainLyricText(value.props.children);
+            if (typeof value.originalText === 'string') return value.originalText;
+            if (typeof value.text === 'string') return value.text;
+            if (typeof value.word === 'string') return value.word;
+            if (Array.isArray(value.syllables)) return value.syllables.map(getPlainLyricText).join('');
+            if (Array.isArray(value.vocals?.lead?.syllables)) {
+                const lead = value.vocals.lead.syllables.map(getPlainLyricText).join('');
+                const background = Array.isArray(value.vocals.background)
+                    ? value.vocals.background
+                        .flatMap(entry => Array.isArray(entry?.syllables) ? entry.syllables : [])
+                        .map(getPlainLyricText)
+                        .join('')
+                    : '';
+                return lead || background;
+            }
+        }
+
+        return '';
+    };
+
+    const getInterludeCandidateText = (line) => {
+        if (!line) return '';
+        if (line.originalText !== undefined) return getPlainLyricText(line.originalText);
+        if (line.text !== undefined) return getPlainLyricText(line.text);
+        return getPlainLyricText(line);
+    };
+
+    const isInterludeMarkerText = (text) => {
+        const normalized = String(text ?? '')
+            .replace(/&nbsp;/gi, ' ')
+            .replace(/<[^>]+>/g, '')
+            .trim();
+
+        return !normalized || INTERLUDE_MARKER_REGEX.test(normalized);
+    };
+
+    const toFiniteTime = (value) => {
+        const numeric = Number(value);
+        return Number.isFinite(numeric) ? numeric : null;
+    };
+
+    const getInterludeInfo = (line, lineIndex = -1, lineCount = 0) => {
+        const startTime = toFiniteTime(line?.startTime);
+        if (startTime === null || !isInterludeMarkerText(getInterludeCandidateText(line))) {
+            return { isInterlude: false, durationMs: 0 };
+        }
+
+        const endTime = toFiniteTime(line?.endTime);
+        const durationMs = endTime !== null && endTime > startTime ? endTime - startTime : 0;
+
+        return {
+            isInterlude: durationMs > INTERLUDE_MIN_DURATION_MS,
+            durationMs,
+            kind: getInstrumentalBreakKind(lineIndex, lineCount)
+        };
+    };
+
     // ============================================
     // 노래방 단어 컴포넌트 (개별 syllable)
     // DOM 직접 조작으로 리렌더링 없이 하이라이트
@@ -763,6 +1032,78 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
             prevProps.translation === nextProps.translation;
     });
 
+    const createBreakIconChildren = (icon) => {
+        const span = (key, props = {}) => react.createElement("span", { key, ...props });
+
+        switch (icon) {
+            case "dotWave":
+                return [0, 1, 2, 3, 4].map((index) => span(index));
+            case "ripples":
+            case "orbit":
+            case "vinyl":
+                return span("main");
+            case "diamonds":
+            case "stack":
+                return [0, 1, 2].map((index) => span(index));
+            case "signal":
+                return react.createElement(
+                    "svg",
+                    { viewBox: "0 0 112 32", "aria-hidden": "true" },
+                    react.createElement("path", {
+                        d: "M2 18 H20 L26 9 L34 25 L43 14 L50 18 H68 L74 9 L82 25 L91 14 L98 18 H110",
+                    })
+                );
+            case "spark":
+                return [0, 1, 2, 3, 4, 5, 6, 7].map((index) => span(index, { style: { "--i": index } }));
+            case "splitBars":
+            case "strings":
+                return [0, 1, 2, 3].map((index) => span(index));
+            case "reels":
+                return [0, 1].map((index) => span(index));
+            case "piano":
+                return [0, 1, 2, 3, 4].map((index) => span(index));
+            case "bloom":
+                return [0, 1, 2, 3].map((index) => span(index));
+            case "scan":
+            case "arcs":
+            case "pulseDot":
+            case "metronome":
+            case "beat":
+            case "triangle":
+            case "morph":
+            case "speaker":
+            case "crossfade":
+                return null;
+            case "equalizer":
+            default:
+                return [0, 1, 2, 3].map((index) => span(index));
+        }
+    };
+
+    const InterludeLine = memo(({ durationMs, kind, lineClass, settingsRevision = 0 }) => {
+        const settings = getInstrumentalBreakSettings();
+        const label = getInstrumentalBreakLabel(kind || "break");
+
+        return react.createElement("div", { className: `${lineClass} interlude` },
+            react.createElement("div", {
+                className: `ivlyrics-panel-line-interlude lyrics-break-indicator lyrics-break-kind-${kind || "break"}`,
+                "aria-label": settings.showLabel ? label : undefined,
+                "aria-hidden": settings.showLabel ? undefined : "true",
+                style: settings.style
+            },
+                react.createElement("span", {
+                    className: `lyrics-break-icon lyrics-break-icon-${settings.icon}`
+                }, createBreakIconChildren(settings.icon)),
+                settings.showLabel && react.createElement("span", { className: "lyrics-break-label" }, label)
+            )
+        );
+    }, (prevProps, nextProps) => {
+        return prevProps.lineClass === nextProps.lineClass &&
+            prevProps.durationMs === nextProps.durationMs &&
+            prevProps.kind === nextProps.kind &&
+            prevProps.settingsRevision === nextProps.settingsRevision;
+    });
+
     // ============================================
     // 일반 가사 라인 컴포넌트
     // ============================================
@@ -790,13 +1131,30 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
     // 가사 라인 컴포넌트 (Apple Music 스타일)
     // 노래방 가사와 일반 가사 모두 지원
     // ============================================
-    const LyricLine = memo(({ line, isActive, isPast, isFuture, translation, phonetic, isPlaceholder }) => {
+    const LyricLine = memo(({ line, lineIndex, lineCount, isActive, isPast, isFuture, translation, phonetic, isPlaceholder, instrumentalBreakRevision = 0 }) => {
         const lineClass = `ivlyrics-panel-line ${isActive ? 'active' : ''} ${isPast ? 'past' : ''} ${isFuture ? 'future' : ''} ${isPlaceholder ? 'placeholder' : ''}`;
+        const interludeInfo = isPlaceholder ? { isInterlude: false, durationMs: 0 } : getInterludeInfo(line, lineIndex, lineCount);
 
         // 노래방 가사인지 확인
         const syllables = useMemo(() => getSyllablesFromLine(line), [line]);
         const isKaraoke = syllables.length > 0;
         const displayText = line.originalText || line.text || '';
+
+        if (interludeInfo.isInterlude) {
+            if (!isActive) {
+                return react.createElement("div", {
+                    className: `${lineClass} interlude`,
+                    "aria-hidden": "true"
+                });
+            }
+
+            return react.createElement(InterludeLine, {
+                durationMs: interludeInfo.durationMs,
+                kind: interludeInfo.kind || "break",
+                lineClass,
+                settingsRevision: instrumentalBreakRevision
+            });
+        }
 
         // 노래방 가사인 경우
         if (isKaraoke) {
@@ -825,6 +1183,9 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
             prevProps.isPlaceholder === nextProps.isPlaceholder &&
             prevProps.translation === nextProps.translation &&
             prevProps.phonetic === nextProps.phonetic &&
+            prevProps.lineIndex === nextProps.lineIndex &&
+            prevProps.lineCount === nextProps.lineCount &&
+            prevProps.instrumentalBreakRevision === nextProps.instrumentalBreakRevision &&
             prevProps.line === nextProps.line;
     });
 
@@ -841,6 +1202,7 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
         const [isEnabled, setIsEnabled] = useState(getStorageValue(STORAGE_KEY, DEFAULT_ENABLED));
         const [numLines, setNumLines] = useState(parseInt(getStorageValue(PANEL_LINES_KEY, DEFAULT_LINES), 10));
         const [fontScale, setFontScale] = useState(parseInt(getStorageValue(FONT_SCALE_KEY, DEFAULT_FONT_SCALE), 10));
+        const [instrumentalBreakRevision, setInstrumentalBreakRevision] = useState(0);
         const containerRef = useRef(null);
         const scrollRef = useRef(null);
         const lastTrackUri = useRef(null);
@@ -925,6 +1287,9 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
                         lyricsData = lyricsData.map((line, idx, arr) => {
                             if (!line.endTime && idx < arr.length - 1) {
                                 return { ...line, endTime: arr[idx + 1].startTime };
+                            }
+                            if (!line.endTime && idx === arr.length - 1 && trackInfo.duration > line.startTime) {
+                                return { ...line, endTime: trackInfo.duration };
                             }
                             return line;
                         });
@@ -1154,6 +1519,22 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
                 }
                 if (event.detail?.name === 'pseudo-karaoke-render-advance') {
                     setPseudoKaraokeAdvanceMs(Number(event.detail.value) || 0);
+                }
+                if (event.detail?.name === 'instrumental-break-icon' ||
+                    event.detail?.name === 'instrumental-break-show-label' ||
+                    event.detail?.name === 'instrumental-break-label-font-family' ||
+                    event.detail?.name === 'instrumental-break-label-font-size' ||
+                    event.detail?.name === 'instrumental-break-label-font-weight' ||
+                    event.detail?.name === 'instrumental-break-label-opacity' ||
+                    event.detail?.name === 'instrumental-break-animation-speed' ||
+                    event.detail?.name === 'panel-lyrics-original-font' ||
+                    event.detail?.name === 'panel-lyrics-original-size' ||
+                    event.detail?.name === 'original-font-family' ||
+                    event.detail?.name === 'original-font-size' ||
+                    event.detail?.name === 'original-font-weight' ||
+                    event.detail?.name === 'original-opacity' ||
+                    event.detail?.name === 'original-letter-spacing') {
+                    setInstrumentalBreakRevision((revision) => revision + 1);
                 }
                 // 새로운 설정들 처리 - CSS 변수 업데이트
                 if (event.detail?.name === 'panel-lyrics-width' ||
@@ -1471,6 +1852,8 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
                     lines.push({
                         index: `placeholder-${offset}`,
                         line: { text: '\u00A0' }, // non-breaking space
+                        lineIndex: -1,
+                        lineCount: lyrics.length,
                         originalText: '\u00A0',
                         phonetic: '',
                         translation: '',
@@ -1489,6 +1872,8 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
                     lines.push({
                         index: i,
                         line: line, // 노래방 가사용 전체 line 객체
+                        lineIndex: i,
+                        lineCount: lyrics.length,
                         originalText: originalText,
                         phonetic: phonetic,
                         translation: translation,
@@ -1552,12 +1937,15 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
                     react.createElement(LyricLine, {
                         key: `${visLine.index}-${idx}`,
                         line: visLine.line,
+                        lineIndex: visLine.lineIndex,
+                        lineCount: visLine.lineCount,
                         isActive: visLine.isActive,
                         isPast: visLine.isPast,
                         isFuture: visLine.isFuture,
                         translation: visLine.translation,
                         phonetic: visLine.phonetic,
-                        isPlaceholder: visLine.isPlaceholder
+                        isPlaceholder: visLine.isPlaceholder,
+                        instrumentalBreakRevision
                     })
                 )
             )

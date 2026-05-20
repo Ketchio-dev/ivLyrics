@@ -788,6 +788,70 @@ window.LANG_FR = {
         "desc": "Ajuste la transparence des paroles inactives (plus bas = plus sombre)"
       }
     },
+    "instrumentalBreak": {
+      "title": "Repère instrumental",
+      "subtitle": "Remplace les longs blancs ou lignes de notes seules par une icône",
+      "icon": {
+        "label": "Style d'icône",
+        "desc": "Choisissez l'animation affichée pour les blancs de paroles de plus de 0,5 seconde",
+        "options": {
+          "equalizer": "01 Égaliseur",
+          "dotWave": "02 Onde de points",
+          "ripples": "03 Ondes",
+          "orbit": "04 Orbite",
+          "diamonds": "05 Diamants",
+          "scan": "06 Balayage",
+          "arcs": "07 Arcs",
+          "signal": "08 Signal",
+          "pulseDot": "09 Point pulsé",
+          "stack": "10 Pile",
+          "spark": "11 Étincelle",
+          "splitBars": "12 Barres séparées",
+          "metronome": "13 Métronome",
+          "vinyl": "14 Vinyle",
+          "beat": "15 Battement",
+          "reels": "16 Bobines",
+          "triangle": "17 Triangle",
+          "morph": "18 Morphing",
+          "strings": "19 Cordes",
+          "piano": "20 Piano",
+          "bloom": "21 Éclosion",
+          "speaker": "22 Haut-parleur",
+          "crossfade": "23 Fondu enchaîné"
+        }
+      },
+      "showLabel": {
+        "label": "Afficher le libellé",
+        "desc": "Affiche Intro, Pont ou Outro à côté de l'icône selon la position des paroles"
+      },
+      "labelStyle": {
+        "fontFamily": {
+          "label": "Police du libellé",
+          "desc": "Sélectionnez la police du libellé Intro, Pont ou Outro"
+        },
+        "fontSize": {
+          "label": "Taille du libellé",
+          "desc": "Taille de police du libellé"
+        },
+        "fontWeight": {
+          "label": "Graisse du libellé",
+          "desc": "Graisse de police du libellé"
+        },
+        "opacity": {
+          "label": "Opacité du libellé",
+          "desc": "Opacité du libellé"
+        }
+      },
+      "speed": {
+        "label": "Vitesse d'animation",
+        "desc": "Ajuste la vitesse de l'animation de l'icône"
+      },
+      "labels": {
+        "prelude": "Intro",
+        "break": "Pont",
+        "postlude": "Outro"
+      }
+    },
     "livePreview": {
       "title": "Aperçu en direct",
       "subtitle": "Vérifiez vos styles instantanément",

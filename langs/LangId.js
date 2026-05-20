@@ -788,6 +788,70 @@ window.LANG_ID = {
         "desc": "Mengatur transparansi lirik tidak aktif (semakin rendah semakin redup)"
       }
     },
+    "instrumentalBreak": {
+      "title": "Penanda instrumental",
+      "subtitle": "Ganti jeda lirik kosong atau hanya not yang panjang dengan ikon",
+      "icon": {
+        "label": "Desain ikon",
+        "desc": "Pilih animasi untuk jeda lirik lebih dari 0,5 detik",
+        "options": {
+          "equalizer": "01 Equalizer",
+          "dotWave": "02 Gelombang titik",
+          "ripples": "03 Riak",
+          "orbit": "04 Orbit",
+          "diamonds": "05 Berlian",
+          "scan": "06 Pindai",
+          "arcs": "07 Busur",
+          "signal": "08 Sinyal",
+          "pulseDot": "09 Titik pulsa",
+          "stack": "10 Tumpukan",
+          "spark": "11 Percikan",
+          "splitBars": "12 Batang terpisah",
+          "metronome": "13 Metronom",
+          "vinyl": "14 Vinyl",
+          "beat": "15 Ketukan",
+          "reels": "16 Reel",
+          "triangle": "17 Segitiga",
+          "morph": "18 Morph",
+          "strings": "19 Senar",
+          "piano": "20 Piano",
+          "bloom": "21 Mekar",
+          "speaker": "22 Speaker",
+          "crossfade": "23 Crossfade"
+        }
+      },
+      "showLabel": {
+        "label": "Tampilkan label teks",
+        "desc": "Menampilkan Intro, Jeda, atau Outro di samping ikon berdasarkan posisi lirik"
+      },
+      "labelStyle": {
+        "fontFamily": {
+          "label": "Font label teks",
+          "desc": "Pilih font untuk label Intro, Jeda, atau Outro"
+        },
+        "fontSize": {
+          "label": "Ukuran label teks",
+          "desc": "Ukuran font untuk label teks"
+        },
+        "fontWeight": {
+          "label": "Ketebalan label teks",
+          "desc": "Ketebalan font untuk label teks"
+        },
+        "opacity": {
+          "label": "Opasitas label teks",
+          "desc": "Opasitas untuk label teks"
+        }
+      },
+      "speed": {
+        "label": "Kecepatan animasi",
+        "desc": "Sesuaikan kecepatan animasi ikon"
+      },
+      "labels": {
+        "prelude": "Intro",
+        "break": "Jeda",
+        "postlude": "Outro"
+      }
+    },
     "livePreview": {
       "title": "Pratinjau Langsung",
       "subtitle": "Lihat gaya yang diatur secara instan",

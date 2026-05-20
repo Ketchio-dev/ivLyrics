@@ -788,6 +788,70 @@ window.LANG_SV = {
         "desc": "Justera transparensen för inaktiva sångtexter (nedre är svagare)"
       }
     },
+    "instrumentalBreak": {
+      "title": "Instrumentmarkör",
+      "subtitle": "Ersätter långa tomma rader eller rader med bara noter med en ikon",
+      "icon": {
+        "label": "Ikondesign",
+        "desc": "Välj animation för textluckor längre än 0,5 sekunder",
+        "options": {
+          "equalizer": "01 Equalizer",
+          "dotWave": "02 Punktvåg",
+          "ripples": "03 Ringar",
+          "orbit": "04 Omloppsbana",
+          "diamonds": "05 Diamanter",
+          "scan": "06 Skanning",
+          "arcs": "07 Bågar",
+          "signal": "08 Signal",
+          "pulseDot": "09 Pulspunkt",
+          "stack": "10 Stapel",
+          "spark": "11 Gnista",
+          "splitBars": "12 Delade staplar",
+          "metronome": "13 Metronom",
+          "vinyl": "14 Vinyl",
+          "beat": "15 Beat",
+          "reels": "16 Rullar",
+          "triangle": "17 Triangel",
+          "morph": "18 Morph",
+          "strings": "19 Strängar",
+          "piano": "20 Piano",
+          "bloom": "21 Blomning",
+          "speaker": "22 Högtalare",
+          "crossfade": "23 Crossfade"
+        }
+      },
+      "showLabel": {
+        "label": "Visa textetikett",
+        "desc": "Visar Intro, Paus eller Outro bredvid ikonen baserat på textradens position"
+      },
+      "labelStyle": {
+        "fontFamily": {
+          "label": "Textetikettens typsnitt",
+          "desc": "Välj typsnitt för etiketten Intro, Paus eller Outro"
+        },
+        "fontSize": {
+          "label": "Textetikettens storlek",
+          "desc": "Textetikettens teckenstorlek"
+        },
+        "fontWeight": {
+          "label": "Textetikettens vikt",
+          "desc": "Textetikettens teckenvikt"
+        },
+        "opacity": {
+          "label": "Textetikettens opacitet",
+          "desc": "Textetikettens opacitet"
+        }
+      },
+      "speed": {
+        "label": "Animationshastighet",
+        "desc": "Justerar ikonens animationshastighet"
+      },
+      "labels": {
+        "prelude": "Intro",
+        "break": "Paus",
+        "postlude": "Outro"
+      }
+    },
     "livePreview": {
       "title": "Live Preview",
       "subtitle": "Se omedelbart dina stilförändringar",

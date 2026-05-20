@@ -788,6 +788,70 @@ window.LANG_VI = {
         "desc": "Điều chỉnh độ trong suốt của lời không hoạt động (càng thấp càng mờ)"
       }
     },
+    "instrumentalBreak": {
+      "title": "Dấu đoạn nhạc",
+      "subtitle": "Thay khoảng trống lời dài hoặc dòng chỉ có nốt bằng biểu tượng",
+      "icon": {
+        "label": "Kiểu biểu tượng",
+        "desc": "Chọn hoạt ảnh cho khoảng trống lời dài hơn 0,5 giây",
+        "options": {
+          "equalizer": "01 Bộ cân bằng",
+          "dotWave": "02 Sóng chấm",
+          "ripples": "03 Gợn sóng",
+          "orbit": "04 Quỹ đạo",
+          "diamonds": "05 Kim cương",
+          "scan": "06 Quét",
+          "arcs": "07 Cung",
+          "signal": "08 Tín hiệu",
+          "pulseDot": "09 Chấm nhịp",
+          "stack": "10 Xếp lớp",
+          "spark": "11 Tia sáng",
+          "splitBars": "12 Thanh tách",
+          "metronome": "13 Máy đếm nhịp",
+          "vinyl": "14 Đĩa than",
+          "beat": "15 Nhịp",
+          "reels": "16 Cuộn",
+          "triangle": "17 Tam giác",
+          "morph": "18 Biến hình",
+          "strings": "19 Dây đàn",
+          "piano": "20 Piano",
+          "bloom": "21 Nở",
+          "speaker": "22 Loa",
+          "crossfade": "23 Crossfade"
+        }
+      },
+      "showLabel": {
+        "label": "Hiển thị nhãn chữ",
+        "desc": "Hiển thị Dạo đầu, Nghỉ nhạc hoặc Dạo cuối cạnh biểu tượng theo vị trí lời"
+      },
+      "labelStyle": {
+        "fontFamily": {
+          "label": "Phông nhãn chữ",
+          "desc": "Chọn phông cho nhãn Dạo đầu, Nghỉ nhạc hoặc Dạo cuối"
+        },
+        "fontSize": {
+          "label": "Cỡ nhãn chữ",
+          "desc": "Cỡ chữ của nhãn"
+        },
+        "fontWeight": {
+          "label": "Độ đậm nhãn chữ",
+          "desc": "Độ đậm phông của nhãn chữ"
+        },
+        "opacity": {
+          "label": "Độ mờ nhãn chữ",
+          "desc": "Độ mờ của nhãn chữ"
+        }
+      },
+      "speed": {
+        "label": "Tốc độ hoạt ảnh",
+        "desc": "Điều chỉnh tốc độ hoạt ảnh của biểu tượng"
+      },
+      "labels": {
+        "prelude": "Dạo đầu",
+        "break": "Nghỉ nhạc",
+        "postlude": "Dạo cuối"
+      }
+    },
     "livePreview": {
       "title": "Xem trước trực tiếp",
       "subtitle": "Kiểm tra kiểu dáng đã cài đặt ngay lập tức",

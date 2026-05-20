@@ -788,6 +788,70 @@ window.LANG_ES = {
         "desc": "Ajusta la transparencia de las letras inactivas (más bajo es más tenue)"
       }
     },
+    "instrumentalBreak": {
+      "title": "Marcador instrumental",
+      "subtitle": "Sustituye los huecos largos vacíos o solo con notas por un icono",
+      "icon": {
+        "label": "Diseño del icono",
+        "desc": "Elige la animación para huecos de letra de más de 0,5 segundos",
+        "options": {
+          "equalizer": "01 Ecualizador",
+          "dotWave": "02 Onda de puntos",
+          "ripples": "03 Ondas",
+          "orbit": "04 Órbita",
+          "diamonds": "05 Diamantes",
+          "scan": "06 Escaneo",
+          "arcs": "07 Arcos",
+          "signal": "08 Señal",
+          "pulseDot": "09 Punto pulsante",
+          "stack": "10 Pila",
+          "spark": "11 Destello",
+          "splitBars": "12 Barras divididas",
+          "metronome": "13 Metrónomo",
+          "vinyl": "14 Vinilo",
+          "beat": "15 Pulso",
+          "reels": "16 Bobinas",
+          "triangle": "17 Triángulo",
+          "morph": "18 Forma cambiante",
+          "strings": "19 Cuerdas",
+          "piano": "20 Piano",
+          "bloom": "21 Floración",
+          "speaker": "22 Altavoz",
+          "crossfade": "23 Fundido cruzado"
+        }
+      },
+      "showLabel": {
+        "label": "Mostrar etiqueta de texto",
+        "desc": "Muestra Intro, Pausa o Outro junto al icono según la posición de la letra"
+      },
+      "labelStyle": {
+        "fontFamily": {
+          "label": "Fuente de la etiqueta",
+          "desc": "Selecciona la fuente de la etiqueta de intro, pausa u outro"
+        },
+        "fontSize": {
+          "label": "Tamaño de la etiqueta",
+          "desc": "Tamaño de fuente de la etiqueta de texto"
+        },
+        "fontWeight": {
+          "label": "Grosor de la etiqueta",
+          "desc": "Grosor de fuente de la etiqueta de texto"
+        },
+        "opacity": {
+          "label": "Opacidad de la etiqueta",
+          "desc": "Opacidad de la etiqueta de texto"
+        }
+      },
+      "speed": {
+        "label": "Velocidad de animación",
+        "desc": "Ajusta la velocidad de la animación del icono"
+      },
+      "labels": {
+        "prelude": "Intro",
+        "break": "Pausa",
+        "postlude": "Outro"
+      }
+    },
     "livePreview": {
       "title": "Vista previa en vivo",
       "subtitle": "Verifica tu estilo al instante",

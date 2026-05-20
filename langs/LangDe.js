@@ -788,6 +788,70 @@ window.LANG_DE = {
         "desc": "Passt die Transparenz inaktiver Texte an (niedriger = blasser)"
       }
     },
+    "instrumentalBreak": {
+      "title": "Instrumental-Markierung",
+      "subtitle": "Ersetzt lange leere oder reine Notenzeilen durch ein Symbol",
+      "icon": {
+        "label": "Symbol-Design",
+        "desc": "Wählen Sie die Animation für Lyrics-Lücken über 0,5 Sekunden",
+        "options": {
+          "equalizer": "01 Equalizer",
+          "dotWave": "02 Punktwelle",
+          "ripples": "03 Wellen",
+          "orbit": "04 Umlauf",
+          "diamonds": "05 Diamanten",
+          "scan": "06 Scan",
+          "arcs": "07 Bögen",
+          "signal": "08 Signal",
+          "pulseDot": "09 Puls-Punkt",
+          "stack": "10 Stapel",
+          "spark": "11 Funke",
+          "splitBars": "12 Geteilte Balken",
+          "metronome": "13 Metronom",
+          "vinyl": "14 Vinyl",
+          "beat": "15 Beat",
+          "reels": "16 Spulen",
+          "triangle": "17 Dreieck",
+          "morph": "18 Morph",
+          "strings": "19 Saiten",
+          "piano": "20 Klavier",
+          "bloom": "21 Blüte",
+          "speaker": "22 Lautsprecher",
+          "crossfade": "23 Überblenden"
+        }
+      },
+      "showLabel": {
+        "label": "Textlabel anzeigen",
+        "desc": "Zeigt je nach Position Intro, Pause oder Outro neben dem Symbol"
+      },
+      "labelStyle": {
+        "fontFamily": {
+          "label": "Textlabel-Schrift",
+          "desc": "Wählen Sie die Schrift für das Intro-, Pause- oder Outro-Label"
+        },
+        "fontSize": {
+          "label": "Textlabel-Größe",
+          "desc": "Schriftgröße des Textlabels"
+        },
+        "fontWeight": {
+          "label": "Textlabel-Stärke",
+          "desc": "Schriftstärke des Textlabels"
+        },
+        "opacity": {
+          "label": "Textlabel-Deckkraft",
+          "desc": "Deckkraft des Textlabels"
+        }
+      },
+      "speed": {
+        "label": "Animationsgeschwindigkeit",
+        "desc": "Passt die Geschwindigkeit der Symbolanimation an"
+      },
+      "labels": {
+        "prelude": "Intro",
+        "break": "Pause",
+        "postlude": "Outro"
+      }
+    },
     "livePreview": {
       "title": "Live-Vorschau",
       "subtitle": "Überprüfen Sie Ihren Stil sofort",

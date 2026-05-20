@@ -788,6 +788,70 @@ window.LANG_EN = {
         "desc": "Adjust transparency of inactive lyrics (Lower is dimmer)"
       }
     },
+    "instrumentalBreak": {
+      "title": "Instrumental Marker",
+      "subtitle": "Replace long blank or note-only lyric gaps with an icon",
+      "icon": {
+        "label": "Icon Design",
+        "desc": "Choose the animation shown for lyric gaps longer than 0.5 seconds",
+        "options": {
+          "equalizer": "01 Equalizer",
+          "dotWave": "02 Dot Wave",
+          "ripples": "03 Ripples",
+          "orbit": "04 Orbit",
+          "diamonds": "05 Diamonds",
+          "scan": "06 Scan",
+          "arcs": "07 Arcs",
+          "signal": "08 Signal",
+          "pulseDot": "09 Pulse Dot",
+          "stack": "10 Stack",
+          "spark": "11 Spark",
+          "splitBars": "12 Split Bars",
+          "metronome": "13 Metronome",
+          "vinyl": "14 Vinyl",
+          "beat": "15 Beat",
+          "reels": "16 Reels",
+          "triangle": "17 Triangle",
+          "morph": "18 Morph",
+          "strings": "19 Strings",
+          "piano": "20 Piano",
+          "bloom": "21 Bloom",
+          "speaker": "22 Speaker",
+          "crossfade": "23 Crossfade"
+        }
+      },
+      "showLabel": {
+        "label": "Show Text Label",
+        "desc": "Show Intro, Break, or Outro next to the icon based on lyric position"
+      },
+      "labelStyle": {
+        "fontFamily": {
+          "label": "Text Label Font",
+          "desc": "Select the font for the Intro, Break, or Outro label"
+        },
+        "fontSize": {
+          "label": "Text Label Size",
+          "desc": "Font size for the text label"
+        },
+        "fontWeight": {
+          "label": "Text Label Weight",
+          "desc": "Font weight for the text label"
+        },
+        "opacity": {
+          "label": "Text Label Opacity",
+          "desc": "Opacity for the text label"
+        }
+      },
+      "speed": {
+        "label": "Animation Speed",
+        "desc": "Adjust the icon animation speed"
+      },
+      "labels": {
+        "prelude": "Intro",
+        "break": "Break",
+        "postlude": "Outro"
+      }
+    },
     "livePreview": {
       "title": "Live Preview",
       "subtitle": "Instantly see your style changes",

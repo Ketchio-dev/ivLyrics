@@ -972,10 +972,9 @@ const CreditFooter = react.memo(({ provider, contributors }) => {
 });
 window.CreditFooter = CreditFooter;
 
-// Optimized IdlingIndicator with memoization and performance improvements
-const IdlingIndicator = react.memo(({ isActive = false, progress = 0, delay = 0 }) => {
+const IdlingIndicator = react.memo(({ isActive = false, delay = 0, durationMs = 0, settingsRevision = 0 }) => {
 	const className = useMemo(() =>
-		`lyrics-idling-indicator ${!isActive ? "lyrics-idling-indicator-hidden" : ""} lyrics-lyricsContainer-LyricsLine lyrics-lyricsContainer-LyricsLine-active`,
+		`lyrics-idling-indicator ${!isActive ? "lyrics-idling-indicator-hidden" : ""} lyrics-lyricsContainer-LyricsLine ${isActive ? "lyrics-lyricsContainer-LyricsLine-active" : ""} lyrics-lyricsContainer-LyricsLine-interlude`,
 		[isActive]
 	);
 
@@ -985,19 +984,22 @@ const IdlingIndicator = react.memo(({ isActive = false, progress = 0, delay = 0 
 		"--indicator-delay": `${delay}ms`,
 	}), [delay]);
 
-	// Memoize circle states to avoid unnecessary re-renders
-	const circleStates = useMemo(() => [
-		progress >= 0.05 ? "active" : "",
-		progress >= 0.33 ? "active" : "",
-		progress >= 0.66 ? "active" : ""
-	], [progress]);
+	if (durationMs <= INTERLUDE_MIN_DURATION_MS) {
+		return null;
+	}
 
 	return react.createElement(
 		"div",
 		{ className, style },
-		react.createElement("div", { className: `lyrics-idling-indicator__circle ${circleStates[0]}` }),
-		react.createElement("div", { className: `lyrics-idling-indicator__circle ${circleStates[1]}` }),
-		react.createElement("div", { className: `lyrics-idling-indicator__circle ${circleStates[2]}` })
+		react.createElement(
+			"p",
+			{ className: "lyrics-lyricsContainer-LyricsLine-interludeMain" },
+			react.createElement(InterludeIndicator, {
+				durationMs,
+				kind: "prelude",
+				settingsRevision,
+			})
+		)
 	);
 });
 
@@ -1327,6 +1329,272 @@ const getCopyableText = (value) => {
 
 	return safeRenderText(value) || "";
 };
+
+const INTERLUDE_MIN_DURATION_MS = 500;
+const INTERLUDE_MARKER_REGEX = /^[\s\u00A0\u200B-\u200D\uFEFF\u2669-\u266C]+$/;
+const INSTRUMENTAL_BREAK_ICON_DESIGNS = new Set([
+	"equalizer",
+	"dotWave",
+	"ripples",
+	"orbit",
+	"diamonds",
+	"scan",
+	"arcs",
+	"signal",
+	"pulseDot",
+	"stack",
+	"spark",
+	"splitBars",
+	"metronome",
+	"vinyl",
+	"beat",
+	"reels",
+	"triangle",
+	"morph",
+	"strings",
+	"piano",
+	"bloom",
+	"speaker",
+	"crossfade",
+]);
+
+const getInstrumentalBreakSettings = () => {
+	const configuredIcon = CONFIG?.visual?.["instrumental-break-icon"] || "equalizer";
+	const speed = Number(CONFIG?.visual?.["instrumental-break-animation-speed"] ?? 100);
+	const safeSpeed = Number.isFinite(speed) ? Math.max(50, Math.min(200, speed)) : 100;
+	const duration = Math.round(1100 * (100 / safeSpeed));
+	const labelFontFamily = CONFIG?.visual?.["instrumental-break-label-font-family"] ||
+		CONFIG?.visual?.["original-font-family"] ||
+		"var(--lyrics-original-font-family, var(--font-family))";
+	const getLabelNumber = (settingKey, originalKey, fallback, min, max) => {
+		const settingValue = CONFIG?.visual?.[settingKey];
+		const fallbackValue = settingValue !== undefined && settingValue !== null && settingValue !== ""
+			? settingValue
+			: CONFIG?.visual?.[originalKey];
+		const numericValue = Number(fallbackValue);
+		const safeValue = Number.isFinite(numericValue) ? numericValue : fallback;
+
+		return Math.max(min, Math.min(max, safeValue));
+	};
+
+	return {
+		icon: INSTRUMENTAL_BREAK_ICON_DESIGNS.has(configuredIcon) ? configuredIcon : "equalizer",
+		showLabel: CONFIG?.visual?.["instrumental-break-show-label"] === true,
+		style: {
+			"--break-duration": `${duration}ms`,
+			"--break-duration-fast": `${Math.round(duration * 0.72)}ms`,
+			"--break-duration-slow": `${Math.round(duration * 1.65)}ms`,
+			"--break-duration-xslow": `${Math.round(duration * 3.8)}ms`,
+			"--break-label-font-family": labelFontFamily,
+			"--break-label-font-size": `${getLabelNumber("instrumental-break-label-font-size", "original-font-size", 32, 12, 128)}px`,
+			"--break-label-font-weight": getLabelNumber("instrumental-break-label-font-weight", "original-font-weight", 400, 100, 900),
+			"--break-label-opacity": getLabelNumber("instrumental-break-label-opacity", "original-opacity", 100, 0, 100) / 100,
+		},
+	};
+};
+
+const getInstrumentalBreakKind = (lineIndex, lineCount) => {
+	if (lineIndex === 0) {
+		return "prelude";
+	}
+	if (lineIndex === Math.max(0, lineCount - 1)) {
+		return "postlude";
+	}
+	return "break";
+};
+
+const getInstrumentalBreakLabel = (kind) => {
+	const key = kind === "prelude"
+		? "settingsAdvanced.instrumentalBreak.labels.prelude"
+		: kind === "postlude"
+			? "settingsAdvanced.instrumentalBreak.labels.postlude"
+			: "settingsAdvanced.instrumentalBreak.labels.break";
+
+	return I18n.t(key) || (kind === "prelude" ? "Intro" : kind === "postlude" ? "Outro" : "Break");
+};
+
+const getPlainLyricText = (value) => {
+	if (value === null || value === undefined) {
+		return "";
+	}
+
+	if (typeof value === "string") {
+		return value;
+	}
+
+	if (typeof value === "number" || typeof value === "boolean") {
+		return String(value);
+	}
+
+	if (Array.isArray(value)) {
+		return value.map(getPlainLyricText).join("");
+	}
+
+	if (typeof value === "object") {
+		if (value.props?.children !== undefined) {
+			return getPlainLyricText(value.props.children);
+		}
+
+		if (typeof value.originalText === "string") {
+			return value.originalText;
+		}
+
+		if (typeof value.text === "string") {
+			return value.text;
+		}
+
+		if (typeof value.word === "string") {
+			return value.word;
+		}
+
+		if (Array.isArray(value.syllables)) {
+			return value.syllables.map(getPlainLyricText).join("");
+		}
+
+		if (Array.isArray(value.vocals?.lead?.syllables)) {
+			const lead = value.vocals.lead.syllables.map(getPlainLyricText).join("");
+			const background = Array.isArray(value.vocals.background)
+				? value.vocals.background
+					.flatMap((entry) => Array.isArray(entry?.syllables) ? entry.syllables : [])
+					.map(getPlainLyricText)
+					.join("")
+				: "";
+			return lead || background;
+		}
+	}
+
+	return "";
+};
+
+const getInterludeCandidateText = (line) => {
+	if (!line) {
+		return "";
+	}
+
+	if (line.originalText !== undefined) {
+		return getPlainLyricText(line.originalText);
+	}
+
+	if (line.text !== undefined) {
+		return getPlainLyricText(line.text);
+	}
+
+	return getPlainLyricText(line);
+};
+
+const isInterludeMarkerText = (text) => {
+	const normalized = String(text ?? "")
+		.replace(/&nbsp;/gi, " ")
+		.replace(/<[^>]+>/g, "")
+		.trim();
+
+	return !normalized || INTERLUDE_MARKER_REGEX.test(normalized);
+};
+
+const toFiniteTime = (value) => {
+	const numeric = Number(value);
+	return Number.isFinite(numeric) ? numeric : null;
+};
+
+const getCurrentTrackDurationMs = () => {
+	if (typeof Spicetify === "undefined") {
+		return null;
+	}
+
+	return toFiniteTime(Spicetify.Player?.data?.item?.duration?.milliseconds);
+};
+
+const getInterludeInfo = (line, nextLine = null, lineIndex = -1, lineCount = 0) => {
+	const startTime = toFiniteTime(line?.startTime);
+	if (startTime === null || !isInterludeMarkerText(getInterludeCandidateText(line))) {
+		return { isInterlude: false, durationMs: 0 };
+	}
+
+	const directEndTime = toFiniteTime(line?.endTime);
+	const nextStartTime = toFiniteTime(nextLine?.startTime);
+	const trackEndTime = lineIndex === Math.max(0, lineCount - 1) ? getCurrentTrackDurationMs() : null;
+	const endTime = directEndTime !== null && directEndTime > startTime
+		? directEndTime
+		: (nextStartTime !== null && nextStartTime > startTime
+			? nextStartTime
+			: (trackEndTime !== null && trackEndTime > startTime ? trackEndTime : null));
+	const durationMs = endTime !== null ? endTime - startTime : 0;
+
+	return {
+		isInterlude: durationMs > INTERLUDE_MIN_DURATION_MS,
+		durationMs,
+		kind: getInstrumentalBreakKind(lineIndex, lineCount),
+	};
+};
+
+const createBreakIconChildren = (icon) => {
+	const span = (key, props = {}) => react.createElement("span", { key, ...props });
+
+	switch (icon) {
+		case "dotWave":
+			return [0, 1, 2, 3, 4].map((index) => span(index));
+		case "ripples":
+		case "orbit":
+		case "vinyl":
+			return span("main");
+		case "diamonds":
+		case "stack":
+			return [0, 1, 2].map((index) => span(index));
+		case "signal":
+			return react.createElement(
+				"svg",
+				{ viewBox: "0 0 112 32", "aria-hidden": "true" },
+				react.createElement("path", {
+					d: "M2 18 H20 L26 9 L34 25 L43 14 L50 18 H68 L74 9 L82 25 L91 14 L98 18 H110",
+				})
+			);
+		case "spark":
+			return [0, 1, 2, 3, 4, 5, 6, 7].map((index) => span(index, { style: { "--i": index } }));
+		case "splitBars":
+		case "strings":
+			return [0, 1, 2, 3].map((index) => span(index));
+		case "reels":
+			return [0, 1].map((index) => span(index));
+		case "piano":
+			return [0, 1, 2, 3, 4].map((index) => span(index));
+		case "bloom":
+			return [0, 1, 2, 3].map((index) => span(index));
+		case "scan":
+		case "arcs":
+		case "pulseDot":
+		case "metronome":
+		case "beat":
+		case "triangle":
+		case "morph":
+		case "speaker":
+		case "crossfade":
+			return null;
+		case "equalizer":
+		default:
+			return [0, 1, 2, 3].map((index) => span(index));
+	}
+};
+
+const InterludeIndicator = react.memo(({ durationMs = 0, kind = "break", settingsRevision = 0 }) => {
+	const settings = getInstrumentalBreakSettings();
+	const label = getInstrumentalBreakLabel(kind);
+
+	return react.createElement(
+		"span",
+		{
+			className: `lyrics-break-indicator lyrics-break-kind-${kind}`,
+			"aria-label": settings.showLabel ? label : undefined,
+			"aria-hidden": settings.showLabel ? undefined : "true",
+			style: settings.style,
+		},
+		react.createElement(
+			"span",
+			{ className: `lyrics-break-icon lyrics-break-icon-${settings.icon}` },
+			createBreakIconChildren(settings.icon)
+		),
+		settings.showLabel && react.createElement("span", { className: "lyrics-break-label" }, label)
+	);
+});
 
 const copyLyricText = (text, successMessageKey, failureMessageKey) => {
 	const copyText = getCopyableText(text);
@@ -1687,8 +1955,9 @@ const getPseudoKaraokeRenderAdvance = (karaokeSource) => {
 };
 
 const buildPreparedSyncedLyrics = (lyrics, isKara) =>
-	lyrics.map((line) => ({
+	lyrics.map((line, index, allLines) => ({
 		...line,
+		interludeInfo: getInterludeInfo(line, allLines[index + 1], index, allLines.length),
 		...buildLyricDisplayState(
 			isKara,
 			line,
@@ -1756,6 +2025,8 @@ const LyricsLineBlock = react.memo(({
 	line = null,
 	position = 0,
 	isActive = false,
+	isCurrentLine = isActive,
+	settingsRevision = 0,
 	globalCharOffset = 0,
 	activeGlobalCharIndex = -1,
 	mainCopyText = null,
@@ -1773,6 +2044,12 @@ const LyricsLineBlock = react.memo(({
 		originalText,
 		text2: subText2,
 	});
+	const interludeInfo = mainLine?.interludeInfo || getInterludeInfo(mainLine);
+	const shouldRenderInterlude = interludeInfo.isInterlude;
+	const shouldShowInterlude = shouldRenderInterlude && isCurrentLine;
+	const lineClassName = shouldRenderInterlude
+		? `${className} lyrics-lyricsContainer-LyricsLine-interlude`
+		: className;
 
 	const mainProps = {
 		onContextMenu: createCopyHandler(
@@ -1782,7 +2059,9 @@ const LyricsLineBlock = react.memo(({
 		),
 	};
 
-	if (typeof mainText === "string" && !isKara && mainText) {
+	if (shouldRenderInterlude) {
+		mainProps.className = "lyrics-lyricsContainer-LyricsLine-interludeMain";
+	} else if (typeof mainText === "string" && !isKara && mainText) {
 		mainProps.dangerouslySetInnerHTML = { __html: Utils.rubyTextToHTML(mainText) };
 	}
 
@@ -1796,7 +2075,7 @@ const LyricsLineBlock = react.memo(({
 	return react.createElement(
 		"div",
 		{
-			className,
+			className: lineClassName,
 			style,
 			dir,
 			ref: lineRef,
@@ -1805,24 +2084,30 @@ const LyricsLineBlock = react.memo(({
 		react.createElement(
 			"p",
 			mainProps,
-			renderLyricMainContent({
-				isKara,
-				mainText,
-				line: mainLine,
-				position: isKara ? position : 0,
-				isActive,
-				globalCharOffset,
-				activeGlobalCharIndex,
-			})
+			shouldRenderInterlude
+				? (shouldShowInterlude ? react.createElement(InterludeIndicator, {
+					durationMs: interludeInfo.durationMs,
+					kind: interludeInfo.kind || "break",
+					settingsRevision,
+				}) : "\u00A0")
+				: renderLyricMainContent({
+					isKara,
+					mainText,
+					line: mainLine,
+					position: isKara ? position : 0,
+					isActive,
+					globalCharOffset,
+					activeGlobalCharIndex,
+				})
 		),
-		renderLyricSubLine(
+		!shouldRenderInterlude && renderLyricSubLine(
 			"lyrics-lyricsContainer-LyricsLine-phonetic",
 			subText,
 			subCopyText
 				? createCopyHandler(subCopyText, subCopySuccessKey, subCopyFailureKey)
 				: null
 		),
-		renderLyricSubLine(
+		!shouldRenderInterlude && renderLyricSubLine(
 			"lyrics-lyricsContainer-LyricsLine-translation",
 			subText2,
 			subText2CopyText
@@ -1832,7 +2117,7 @@ const LyricsLineBlock = react.memo(({
 	);
 });
 
-const renderLyricsItems = ({ items, isKara, position = 0, activeLineRef = null }) => {
+const renderLyricsItems = ({ items, isKara, position = 0, activeLineRef = null, settingsRevision = 0 }) => {
 	const karaokePosition = isKara ? position : 0;
 
 	return items.map((item) => {
@@ -1840,8 +2125,9 @@ const renderLyricsItems = ({ items, isKara, position = 0, activeLineRef = null }
 			return react.createElement(IdlingIndicator, {
 				key: item.key,
 				isActive: item.isActive,
-				progress: item.progress,
 				delay: item.delay,
+				durationMs: item.durationMs,
+				settingsRevision,
 			});
 		}
 
@@ -1862,6 +2148,8 @@ const renderLyricsItems = ({ items, isKara, position = 0, activeLineRef = null }
 			// per-frame re-render of every inactive line.
 			position: item.karaokeActive ? karaokePosition : 0,
 			isActive: item.karaokeActive,
+			isCurrentLine: item.isActiveLine,
+			settingsRevision,
 			globalCharOffset: item.globalCharOffset,
 			activeGlobalCharIndex: item.activeGlobalCharIndex,
 		});
@@ -1874,6 +2162,7 @@ const SyncedLyricsScrollView = react.memo(({
 	activeLyricIndex = 0,
 	isKara = false,
 	activeLineRef = null,
+	settingsRevision = 0,
 	globalCharOffsets = [],
 	activeGlobalCharIndex = -1,
 }) => {
@@ -1888,9 +2177,11 @@ const SyncedLyricsScrollView = react.memo(({
 		},
 		...lyrics.map((line, index) => {
 			const { text, startTime, originalText, text2 } = line;
+			const interludeInfo = getInterludeInfo(line, lyrics[index + 1], index, lyrics.length);
+			const renderLine = interludeInfo.isInterlude ? { ...line, interludeInfo } : line;
 			const { mainText, subText, subText2, hasSubLine } = buildLyricDisplayState(
 				isKara,
-				line,
+				renderLine,
 				text,
 				originalText,
 				text2
@@ -1910,11 +2201,13 @@ const SyncedLyricsScrollView = react.memo(({
 				subText2,
 				originalText,
 				isKara,
-				line,
+				line: renderLine,
 				// See the matching note in renderLyricsItems: only the active line
 				// receives the live position so memo can skip the others.
 				position: isActiveLine ? position : 0,
 				isActive: isActiveLine,
+				isCurrentLine: isActiveLine,
+				settingsRevision,
 				globalCharOffset: globalCharOffsets[index] || 0,
 				activeGlobalCharIndex,
 			});
@@ -2098,8 +2391,8 @@ const useSyncedLyricsEngine = ({
 					return {
 						type: "indicator",
 						key: `compact-idling-${lineNumber}`,
-						progress: position / firstLyricStartTime,
 						delay: firstLyricStartTime / 3,
+						durationMs: firstLyricStartTime,
 						isActive: true,
 					};
 				}
@@ -2110,8 +2403,8 @@ const useSyncedLyricsEngine = ({
 				return {
 					type: "indicator",
 					key: `expanded-idling-${lineNumber}`,
-					progress: position / nextStartTime,
 					delay: nextStartTime / 3,
+					durationMs: nextStartTime,
 					isActive: activeLineIndex === 0,
 				};
 			}
@@ -2697,7 +2990,7 @@ const KaraokeLine = react.memo(({ line, position, isActive, globalCharOffset = 0
 	);
 });
 
-const SyncedLyricsPage = react.memo(({ lyrics = [], provider, contributors, copyright, isKara, karaokeSource = null }) => {
+const SyncedLyricsPage = react.memo(({ lyrics = [], provider, contributors, copyright, isKara, karaokeSource = null, reRenderLyricsPage = null }) => {
 	const position = useLyricsPlaybackPosition();
 	const karaokePosition = isKara ? position + getPseudoKaraokeRenderAdvance(karaokeSource) : position;
 	const karaokeLineTransitionClass = isKara && CONFIG.visual["karaoke-line-transition"]
@@ -2798,6 +3091,7 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, contributors, copy
 				isKara,
 				position: karaokePosition,
 				activeLineRef: compactActiveLineEle,
+				settingsRevision: reRenderLyricsPage,
 			})
 		)
 	);
@@ -3030,7 +3324,7 @@ function isInViewport(element) {
 	);
 }
 
-const SyncedExpandedLyricsPage = react.memo(({ lyrics = [], provider, contributors, copyright, isKara, karaokeSource = null }) => {
+const SyncedExpandedLyricsPage = react.memo(({ lyrics = [], provider, contributors, copyright, isKara, karaokeSource = null, reRenderLyricsPage = null }) => {
 	const position = useLyricsPlaybackPosition();
 	const karaokePosition = isKara ? position + getPseudoKaraokeRenderAdvance(karaokeSource) : position;
 	const karaokeLineTransitionClass = isKara && CONFIG.visual["karaoke-line-transition"]
@@ -3072,6 +3366,7 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics = [], provider, contributo
 			isKara,
 			position: karaokePosition,
 			activeLineRef,
+			settingsRevision: reRenderLyricsPage,
 		}),
 		react.createElement("p", {
 			className: "lyrics-lyricsContainer-LyricsUnsyncedPadding",

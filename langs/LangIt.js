@@ -788,6 +788,70 @@ window.LANG_IT = {
         "desc": "Regola la trasparenza del testo inattivo (più basso è più tenue)"
       }
     },
+    "instrumentalBreak": {
+      "title": "Indicatore strumentale",
+      "subtitle": "Sostituisce i lunghi spazi vuoti o le righe solo con note con un'icona",
+      "icon": {
+        "label": "Design icona",
+        "desc": "Scegli l'animazione per pause del testo superiori a 0,5 secondi",
+        "options": {
+          "equalizer": "01 Equalizzatore",
+          "dotWave": "02 Onda di punti",
+          "ripples": "03 Increspature",
+          "orbit": "04 Orbita",
+          "diamonds": "05 Diamanti",
+          "scan": "06 Scansione",
+          "arcs": "07 Archi",
+          "signal": "08 Segnale",
+          "pulseDot": "09 Punto pulsante",
+          "stack": "10 Pila",
+          "spark": "11 Scintilla",
+          "splitBars": "12 Barre divise",
+          "metronome": "13 Metronomo",
+          "vinyl": "14 Vinile",
+          "beat": "15 Battito",
+          "reels": "16 Bobine",
+          "triangle": "17 Triangolo",
+          "morph": "18 Morph",
+          "strings": "19 Corde",
+          "piano": "20 Pianoforte",
+          "bloom": "21 Fioritura",
+          "speaker": "22 Altoparlante",
+          "crossfade": "23 Dissolvenza incrociata"
+        }
+      },
+      "showLabel": {
+        "label": "Mostra etichetta",
+        "desc": "Mostra Intro, Pausa o Outro accanto all'icona in base alla posizione del testo"
+      },
+      "labelStyle": {
+        "fontFamily": {
+          "label": "Font etichetta",
+          "desc": "Seleziona il font per l'etichetta Intro, Pausa o Outro"
+        },
+        "fontSize": {
+          "label": "Dimensione etichetta",
+          "desc": "Dimensione del font dell'etichetta"
+        },
+        "fontWeight": {
+          "label": "Peso etichetta",
+          "desc": "Peso del font dell'etichetta"
+        },
+        "opacity": {
+          "label": "Opacità etichetta",
+          "desc": "Opacità dell'etichetta"
+        }
+      },
+      "speed": {
+        "label": "Velocità animazione",
+        "desc": "Regola la velocità dell'animazione dell'icona"
+      },
+      "labels": {
+        "prelude": "Intro",
+        "break": "Pausa",
+        "postlude": "Outro"
+      }
+    },
     "livePreview": {
       "title": "Anteprima in tempo reale",
       "subtitle": "Verifica immediatamente lo stile impostato",

@@ -1324,6 +1324,28 @@ const CONFIG = {
     "performance-frame-rate":
       Number(StorageManager.getItem("ivLyrics:visual:performance-frame-rate")) ||
       60,
+    "instrumental-break-icon":
+      StorageManager.getItem("ivLyrics:visual:instrumental-break-icon") ||
+      "equalizer",
+    "instrumental-break-show-label": StorageManager.get(
+      "ivLyrics:visual:instrumental-break-show-label",
+      false
+    ),
+    "instrumental-break-label-font-family":
+      StorageManager.getItem("ivLyrics:visual:instrumental-break-label-font-family") ||
+      "",
+    "instrumental-break-label-font-size":
+      StorageManager.getItem("ivLyrics:visual:instrumental-break-label-font-size") ||
+      "",
+    "instrumental-break-label-font-weight":
+      StorageManager.getItem("ivLyrics:visual:instrumental-break-label-font-weight") ||
+      "",
+    "instrumental-break-label-opacity":
+      StorageManager.getItem("ivLyrics:visual:instrumental-break-label-opacity") ||
+      "",
+    "instrumental-break-animation-speed":
+      Number(StorageManager.getItem("ivLyrics:visual:instrumental-break-animation-speed")) ||
+      100,
 
     "blur-gradient-background": StorageManager.get(
       "ivLyrics:visual:blur-gradient-background",
@@ -6795,6 +6817,7 @@ class LyricsContainer extends react.Component {
   addFonts(CONFIG.visual["original-font-family"]);
   addFonts(CONFIG.visual["phonetic-font-family"]);
   addFonts(CONFIG.visual["translation-font-family"]);
+  addFonts(CONFIG.visual["instrumental-break-label-font-family"]);
 
   // Google Fonts 로드
   fontsToLoad.forEach((font) => {

@@ -2841,6 +2841,188 @@ const ConfigSelection = ({
   );
 };
 
+const createInstrumentalBreakPreviewChildren = (icon) => {
+  const span = (key, props = {}) => react.createElement("span", { key, ...props });
+
+  switch (icon) {
+    case "dotWave":
+      return [0, 1, 2, 3, 4].map((index) => span(index));
+    case "ripples":
+    case "orbit":
+    case "vinyl":
+      return span("main");
+    case "diamonds":
+    case "stack":
+      return [0, 1, 2].map((index) => span(index));
+    case "signal":
+      return react.createElement(
+        "svg",
+        { viewBox: "0 0 112 32", "aria-hidden": "true" },
+        react.createElement("path", {
+          d: "M2 18 H20 L26 9 L34 25 L43 14 L50 18 H68 L74 9 L82 25 L91 14 L98 18 H110",
+        })
+      );
+    case "spark":
+      return [0, 1, 2, 3, 4, 5, 6, 7].map((index) => span(index, { style: { "--i": index } }));
+    case "splitBars":
+    case "strings":
+      return [0, 1, 2, 3].map((index) => span(index));
+    case "reels":
+      return [0, 1].map((index) => span(index));
+    case "piano":
+      return [0, 1, 2, 3, 4].map((index) => span(index));
+    case "bloom":
+      return [0, 1, 2, 3].map((index) => span(index));
+    case "scan":
+    case "arcs":
+    case "pulseDot":
+    case "metronome":
+    case "beat":
+    case "triangle":
+    case "morph":
+    case "speaker":
+    case "crossfade":
+      return null;
+    case "equalizer":
+    default:
+      return [0, 1, 2, 3].map((index) => span(index));
+  }
+};
+
+const getInstrumentalBreakPreviewStyle = () => {
+  const speed = Number(CONFIG?.visual?.["instrumental-break-animation-speed"] ?? 100);
+  const safeSpeed = Number.isFinite(speed) ? Math.max(50, Math.min(200, speed)) : 100;
+  const duration = Math.round(1100 * (100 / safeSpeed));
+
+  return {
+    "--break-duration": `${duration}ms`,
+    "--break-duration-fast": `${Math.round(duration * 0.72)}ms`,
+    "--break-duration-slow": `${Math.round(duration * 1.65)}ms`,
+    "--break-duration-xslow": `${Math.round(duration * 3.8)}ms`,
+  };
+};
+
+const getInstrumentalBreakLabelStyleDefault = (settingSuffix, originalKey, fallbackValue) => {
+  const settingValue = CONFIG?.visual?.[`instrumental-break-label-${settingSuffix}`];
+  if (settingValue !== undefined && settingValue !== null && settingValue !== "") {
+    return settingValue;
+  }
+
+  const originalValue = CONFIG?.visual?.[originalKey];
+  return originalValue !== undefined && originalValue !== null && originalValue !== ""
+    ? originalValue
+    : fallbackValue;
+};
+
+const InstrumentalBreakIconPreview = ({ icon }) => {
+  return react.createElement(
+    "span",
+    {
+      className: `lyrics-break-icon lyrics-break-icon-${icon}`,
+      style: getInstrumentalBreakPreviewStyle(),
+      "aria-hidden": "true",
+    },
+    createInstrumentalBreakPreviewChildren(icon)
+  );
+};
+
+const ConfigInstrumentalBreakIconPicker = ({
+  name,
+  settingKey,
+  info,
+  defaultValue,
+  options = {},
+  disabled,
+  onChange = () => { },
+}) => {
+  const optionKeys = useMemo(() => Object.keys(options), [options]);
+  const fallbackValue = optionKeys.includes("equalizer") ? "equalizer" : optionKeys[0];
+  const normalizeValue = useCallback(
+    (value) => optionKeys.includes(value) ? value : fallbackValue,
+    [optionKeys, fallbackValue]
+  );
+  const [value, setValue] = useState(normalizeValue(defaultValue));
+
+  useEffect(() => {
+    setValue(normalizeValue(defaultValue));
+  }, [defaultValue, normalizeValue]);
+
+  const handleSelect = useCallback(
+    (nextValue) => {
+      if (disabled || !optionKeys.includes(nextValue)) return;
+      setValue(nextValue);
+      onChange(settingKey || name, nextValue);
+    },
+    [disabled, optionKeys, onChange, settingKey, name]
+  );
+
+  if (!optionKeys.length) return null;
+
+  const selectedLabel = options[value] || value;
+
+  return react.createElement(
+    "div",
+    {
+      className: "setting-row instrumental-break-picker-row",
+      "data-setting-key": settingKey,
+      style: disabled ? { opacity: 0.5, pointerEvents: "none" } : {},
+    },
+    react.createElement(
+      "div",
+      { className: "setting-row-content" },
+      react.createElement(
+        "div",
+        { className: "setting-row-left" },
+        react.createElement("div", { className: "setting-name" }, name),
+        info && react.createElement("div", {
+          className: "setting-description",
+          dangerouslySetInnerHTML: { __html: info },
+        })
+      ),
+      react.createElement(
+        "div",
+        { className: "setting-row-right instrumental-break-picker-control" },
+        react.createElement(
+          "div",
+          { className: "instrumental-break-selected-preview" },
+          react.createElement(
+            "span",
+            { className: "instrumental-break-selected-stage" },
+            react.createElement(InstrumentalBreakIconPreview, { icon: value })
+          ),
+          react.createElement("span", { className: "instrumental-break-selected-label" }, selectedLabel)
+        ),
+        react.createElement(
+          "div",
+          { className: "instrumental-break-preview-grid" },
+          ...optionKeys.map((key) => {
+            const isSelected = key === value;
+
+            return react.createElement(
+              "button",
+              {
+                key,
+                type: "button",
+                className: `instrumental-break-preview-option${isSelected ? " active" : ""}`,
+                onClick: () => handleSelect(key),
+                "aria-pressed": isSelected,
+                "aria-label": options[key] || key,
+                title: options[key] || key,
+              },
+              react.createElement(
+                "span",
+                { className: "instrumental-break-option-stage" },
+                react.createElement(InstrumentalBreakIconPreview, { icon: key })
+              ),
+              react.createElement("span", { className: "instrumental-break-option-label" }, options[key] || key)
+            );
+          })
+        )
+      )
+    )
+  );
+};
+
 const ConfigInput = ({ name, settingKey, defaultValue, onChange = () => { }, inputType = "text" }) => {
   const [value, setValue] = useState(defaultValue);
 
@@ -2910,6 +3092,7 @@ const ConfigFontSelector = ({
   info,
   settingKey,
   defaultValue,
+  disabled,
   onChange = () => { },
 }) => {
   // 커스텀 폰트 여부 판단: defaultValue가 존재하고, 문자열이며, 비어있지 않고, Google Fonts에 없는 경우만 true
@@ -2957,6 +3140,7 @@ const ConfigFontSelector = ({
   }, [defaultValue]);
 
   const handleFontChange = (event) => {
+    if (disabled) return;
     const font = event.target.value;
     setSelectedFont(font);
     if (!useCustomFont) {
@@ -2965,6 +3149,7 @@ const ConfigFontSelector = ({
   };
 
   const handleCustomFontChange = (event) => {
+    if (disabled) return;
     const font = event.target.value;
     setCustomFont(font);
     if (useCustomFont) {
@@ -2973,6 +3158,7 @@ const ConfigFontSelector = ({
   };
 
   const handleCheckboxChange = () => {
+    if (disabled) return;
     const newUseCustom = !useCustomFont;
     setUseCustomFont(newUseCustom);
     if (newUseCustom) {
@@ -2991,6 +3177,7 @@ const ConfigFontSelector = ({
         type: "text",
         value: customFont,
         onChange: handleCustomFontChange,
+        disabled,
         placeholder: I18n.t("settings.fontPlaceholder") || "폰트명 입력 (예: Arial, 맑은 고딕)",
       })
       : react.createElement(
@@ -2999,6 +3186,7 @@ const ConfigFontSelector = ({
           className: "config-font-selector-control config-select",
           value: selectedFont,
           onChange: handleFontChange,
+          disabled,
         },
         GOOGLE_FONTS.map((font) =>
           react.createElement("option", { key: font, value: font }, font)
@@ -3011,6 +3199,7 @@ const ConfigFontSelector = ({
         icon: Spicetify.SVGIcons.edit,
         active: useCustomFont,
         onClick: handleCheckboxChange,
+        disabled,
       })
     )
   );
@@ -3019,7 +3208,10 @@ const ConfigFontSelector = ({
   if (name) {
     return react.createElement(
       "div",
-      { className: "setting-row" },
+      {
+        className: "setting-row",
+        style: disabled ? { opacity: 0.5, pointerEvents: "none" } : {},
+      },
       react.createElement(
         "div",
         { className: "setting-row-content" },
@@ -3045,6 +3237,36 @@ const ConfigFontSelector = ({
   }
 
   return fontSelector;
+};
+
+const loadGoogleFontFamily = (fontFamily) => {
+  if (!fontFamily) return;
+
+  const fonts = fontFamily.split(",").map((font) => font.trim().replace(/['"]/g, ""));
+  fonts.forEach((font) => {
+    if (!font || !GOOGLE_FONTS.includes(font)) return;
+
+    const fontId = font.replace(/ /g, "-").toLowerCase();
+    const linkId = `ivLyrics-google-font-${fontId}`;
+    let link = document.getElementById(linkId);
+
+    if (!link) {
+      link = document.createElement("link");
+      link.id = linkId;
+      link.rel = "stylesheet";
+      document.head.appendChild(link);
+    }
+
+    if (font === "Pretendard Variable") {
+      link.href =
+        "https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css";
+    } else {
+      link.href = `https://fonts.googleapis.com/css2?family=${font.replace(
+        / /g,
+        "+"
+      )}:wght@100;200;300;400;500;600;700;800;900&display=swap`;
+    }
+  });
 };
 
 // NowPlaying 패널 가사 미리보기 컴포넌트
@@ -3517,6 +3739,7 @@ const OptionList = ({ type, items, onChange }) => {
       item.type === ConfigInfo ||
       item.type === ConfigKeyList ||
       item.type === ConfigFontSelector ||
+      item.type === ConfigInstrumentalBreakIconPicker ||
       item.type === VideoHelperToggle ||
       item.type === LyricsHelperToggle
     ) {
@@ -4676,6 +4899,9 @@ const ConfigModal = ({
       `[ivLyrics] Translation font from CONFIG: ${translationFont}`
     );
     loadFont(translationFont, "ivLyrics-google-font-translation");
+
+    const instrumentalBreakLabelFont = CONFIG.visual["instrumental-break-label-font-family"];
+    loadFont(instrumentalBreakLabelFont, "ivLyrics-google-font-instrumental-label");
   }, []);
 
   // 외관 탭으로 전환될 때 미리보기 폰트 강제 업데이트
@@ -6764,6 +6990,117 @@ const ConfigModal = ({
 #${APP_NAME}-config-container .setting-row-right > * {
     min-width: 0;
     max-width: 100%;
+}
+
+#${APP_NAME}-config-container .instrumental-break-picker-row .setting-row-content {
+    grid-template-columns: minmax(180px, 280px) minmax(0, 1fr);
+    align-items: start;
+}
+
+#${APP_NAME}-config-container .instrumental-break-picker-control {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 10px;
+    width: 100%;
+}
+
+#${APP_NAME}-config-container .instrumental-break-selected-preview {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 58px;
+    padding: 10px 12px;
+    border: 1px solid var(--glass-border-light);
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.055);
+    color: var(--text-primary);
+}
+
+#${APP_NAME}-config-container .instrumental-break-selected-stage,
+#${APP_NAME}-config-container .instrumental-break-option-stage {
+    display: grid;
+    place-items: center;
+    color: var(--text-primary);
+}
+
+#${APP_NAME}-config-container .instrumental-break-selected-stage {
+    width: 40px;
+    height: 40px;
+    font-size: 28px;
+}
+
+#${APP_NAME}-config-container .instrumental-break-selected-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+#${APP_NAME}-config-container .instrumental-break-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+    gap: 8px;
+    width: 100%;
+}
+
+#${APP_NAME}-config-container .instrumental-break-preview-option {
+    min-width: 0;
+    min-height: 76px;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    background: var(--glass-bg-hover);
+    color: var(--text-secondary);
+    display: grid;
+    grid-template-rows: 34px auto;
+    align-items: center;
+    justify-items: center;
+    gap: 6px;
+    padding: 8px 6px;
+    cursor: pointer;
+    transition:
+        background var(--transition-fast),
+        border-color var(--transition-fast),
+        color var(--transition-fast),
+        transform var(--transition-fast),
+        box-shadow var(--transition-fast);
+}
+
+#${APP_NAME}-config-container .instrumental-break-preview-option:hover {
+    background: var(--glass-bg-active);
+    border-color: var(--glass-border-light);
+    color: var(--text-primary);
+    transform: translateY(-1px);
+}
+
+#${APP_NAME}-config-container .instrumental-break-preview-option.active {
+    background: var(--accent-primary-light);
+    border-color: var(--accent-primary);
+    color: var(--text-primary);
+    box-shadow: 0 0 0 1px var(--accent-primary-light), var(--shadow-glow);
+}
+
+#${APP_NAME}-config-container .instrumental-break-option-stage {
+    width: 34px;
+    height: 34px;
+    font-size: 24px;
+}
+
+#${APP_NAME}-config-container .instrumental-break-option-label {
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: currentColor;
 }
 
 /* 슬라이더 컨트롤 */
@@ -9327,6 +9664,10 @@ const ConfigModal = ({
         gap: 14px;
     }
 
+    #${APP_NAME}-config-container .instrumental-break-picker-row .setting-row-content {
+        grid-template-columns: 1fr;
+    }
+
     #${APP_NAME}-config-container .setting-row-right {
         width: 100%;
         max-width: none;
@@ -9777,6 +10118,126 @@ const ConfigModal = ({
               },
             });
             window.dispatchEvent(configChange);
+          },
+        }),
+        react.createElement(SectionTitle, {
+          title: I18n.t("settingsAdvanced.instrumentalBreak.title") || "Instrumental Marker",
+          subtitle: I18n.t("settingsAdvanced.instrumentalBreak.subtitle") || "Replace long blank or note-only lyric gaps with an icon",
+          sectionKey: "instrumental-break",
+        }),
+        react.createElement(OptionList, {
+          items: [
+            {
+              desc: I18n.t("settingsAdvanced.instrumentalBreak.icon.label") || "Icon Design",
+              key: "instrumental-break-icon",
+              info: I18n.t("settingsAdvanced.instrumentalBreak.icon.desc") || "Choose the animation shown for instrumental gaps longer than 0.5 seconds",
+              type: ConfigInstrumentalBreakIconPicker,
+              options: {
+                equalizer: I18n.t("settingsAdvanced.instrumentalBreak.icon.options.equalizer") || "01 Equalizer",
+                dotWave: I18n.t("settingsAdvanced.instrumentalBreak.icon.options.dotWave") || "02 Dot Wave",
+                ripples: I18n.t("settingsAdvanced.instrumentalBreak.icon.options.ripples") || "03 Ripples",
+                orbit: I18n.t("settingsAdvanced.instrumentalBreak.icon.options.orbit") || "04 Orbit",
+                diamonds: I18n.t("settingsAdvanced.instrumentalBreak.icon.options.diamonds") || "05 Diamonds",
+                scan: I18n.t("settingsAdvanced.instrumentalBreak.icon.options.scan") || "06 Scan",
+                arcs: I18n.t("settingsAdvanced.instrumentalBreak.icon.options.arcs") || "07 Arcs",
+                signal: I18n.t("settingsAdvanced.instrumentalBreak.icon.options.signal") || "08 Signal",
+                pulseDot: I18n.t("settingsAdvanced.instrumentalBreak.icon.options.pulseDot") || "09 Pulse Dot",
+                stack: I18n.t("settingsAdvanced.instrumentalBreak.icon.options.stack") || "10 Stack",
+                spark: I18n.t("settingsAdvanced.instrumentalBreak.icon.options.spark") || "11 Spark",
+                splitBars: I18n.t("settingsAdvanced.instrumentalBreak.icon.options.splitBars") || "12 Split Bars",
+                metronome: I18n.t("settingsAdvanced.instrumentalBreak.icon.options.metronome") || "13 Metronome",
+                vinyl: I18n.t("settingsAdvanced.instrumentalBreak.icon.options.vinyl") || "14 Vinyl",
+                beat: I18n.t("settingsAdvanced.instrumentalBreak.icon.options.beat") || "15 Beat",
+                reels: I18n.t("settingsAdvanced.instrumentalBreak.icon.options.reels") || "16 Reels",
+                triangle: I18n.t("settingsAdvanced.instrumentalBreak.icon.options.triangle") || "17 Triangle",
+                morph: I18n.t("settingsAdvanced.instrumentalBreak.icon.options.morph") || "18 Morph",
+                strings: I18n.t("settingsAdvanced.instrumentalBreak.icon.options.strings") || "19 Strings",
+                piano: I18n.t("settingsAdvanced.instrumentalBreak.icon.options.piano") || "20 Piano",
+                bloom: I18n.t("settingsAdvanced.instrumentalBreak.icon.options.bloom") || "21 Bloom",
+                speaker: I18n.t("settingsAdvanced.instrumentalBreak.icon.options.speaker") || "22 Speaker",
+                crossfade: I18n.t("settingsAdvanced.instrumentalBreak.icon.options.crossfade") || "23 Crossfade",
+              },
+            },
+            {
+              desc: I18n.t("settingsAdvanced.instrumentalBreak.showLabel.label") || "Show Text Label",
+              key: "instrumental-break-show-label",
+              info: I18n.t("settingsAdvanced.instrumentalBreak.showLabel.desc") || "Show Intro, Break, or Outro next to the icon based on lyric position",
+              type: ConfigSlider,
+            },
+            {
+              desc: I18n.t("settingsAdvanced.instrumentalBreak.labelStyle.fontFamily.label") || "Text Label Font",
+              key: "instrumental-break-label-font-family",
+              info: I18n.t("settingsAdvanced.instrumentalBreak.labelStyle.fontFamily.desc") || "Select the font for the Intro, Break, or Outro label",
+              type: ConfigFontSelector,
+              defaultValue: getInstrumentalBreakLabelStyleDefault("font-family", "original-font-family", "Pretendard Variable"),
+              disabled: () => CONFIG.visual["instrumental-break-show-label"] !== true,
+            },
+            {
+              desc: I18n.t("settingsAdvanced.instrumentalBreak.labelStyle.fontSize.label") || "Text Label Size",
+              key: "instrumental-break-label-font-size",
+              info: I18n.t("settingsAdvanced.instrumentalBreak.labelStyle.fontSize.desc") || "Font size for the text label",
+              type: ConfigSliderRange,
+              min: 12,
+              max: 128,
+              step: 2,
+              unit: "px",
+              defaultValue: getInstrumentalBreakLabelStyleDefault("font-size", "original-font-size", 32),
+              disabled: () => CONFIG.visual["instrumental-break-show-label"] !== true,
+            },
+            {
+              desc: I18n.t("settingsAdvanced.instrumentalBreak.labelStyle.fontWeight.label") || "Text Label Weight",
+              key: "instrumental-break-label-font-weight",
+              info: I18n.t("settingsAdvanced.instrumentalBreak.labelStyle.fontWeight.desc") || "Font weight for the text label",
+              type: ConfigSelection,
+              options: {
+                100: "Thin (100)",
+                200: "Extra Light (200)",
+                300: "Light (300)",
+                400: "Regular (400)",
+                500: "Medium (500)",
+                600: "Semi Bold (600)",
+                700: "Bold (700)",
+                800: "Extra Bold (800)",
+                900: "Black (900)",
+              },
+              defaultValue: getInstrumentalBreakLabelStyleDefault("font-weight", "original-font-weight", 400),
+              disabled: () => CONFIG.visual["instrumental-break-show-label"] !== true,
+            },
+            {
+              desc: I18n.t("settingsAdvanced.instrumentalBreak.labelStyle.opacity.label") || "Text Label Opacity",
+              key: "instrumental-break-label-opacity",
+              info: I18n.t("settingsAdvanced.instrumentalBreak.labelStyle.opacity.desc") || "Opacity for the text label",
+              type: ConfigSliderRange,
+              min: 0,
+              max: 100,
+              step: 5,
+              unit: "%",
+              defaultValue: getInstrumentalBreakLabelStyleDefault("opacity", "original-opacity", 100),
+              disabled: () => CONFIG.visual["instrumental-break-show-label"] !== true,
+            },
+            {
+              desc: I18n.t("settingsAdvanced.instrumentalBreak.speed.label") || "Animation Speed",
+              key: "instrumental-break-animation-speed",
+              info: I18n.t("settingsAdvanced.instrumentalBreak.speed.desc") || "Adjust the animation speed for the instrumental marker",
+              type: ConfigSliderRange,
+              min: 50,
+              max: 200,
+              step: 5,
+              unit: "%",
+            },
+          ],
+          onChange: (name, value) => {
+            CONFIG.visual[name] = value;
+            if (name === "instrumental-break-label-font-family") {
+              loadGoogleFontFamily(value);
+            }
+            StorageManager.saveConfig(name, value);
+            lyricContainerUpdate?.();
+            window.dispatchEvent(
+              new CustomEvent("ivLyrics", {
+                detail: { type: "config", name, value },
+              })
+            );
           },
         }),
         react.createElement(SectionTitle, {
