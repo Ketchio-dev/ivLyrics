@@ -1842,12 +1842,24 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
 
             const halfLines = Math.floor(numLines / 2);
             const lines = [];
+            const displayableLyrics = lyrics
+                .map((line, index) => ({
+                    line,
+                    index,
+                    interludeInfo: getInterludeInfo(line, index, lyrics.length)
+                }))
+                .filter((entry) => !entry.interludeInfo.isInterlude || entry.index === currentIndex);
+            const currentDisplayIndex = Math.max(
+                0,
+                displayableLyrics.findIndex((entry) => entry.index === currentIndex)
+            );
 
             // 항상 numLines 개수만큼 표시
             for (let offset = -halfLines; offset <= halfLines; offset++) {
-                const i = currentIndex + offset;
+                const displayIndex = currentDisplayIndex + offset;
+                const entry = displayableLyrics[displayIndex];
 
-                if (i < 0 || i >= lyrics.length) {
+                if (!entry) {
                     // 범위 밖: 빈 placeholder 추가 (높이 유지)
                     lines.push({
                         index: `placeholder-${offset}`,
@@ -1863,7 +1875,8 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
                         isPlaceholder: true
                     });
                 } else {
-                    const line = lyrics[i];
+                    const i = entry.index;
+                    const line = entry.line;
                     // originalText = 원어, text = 발음, text2 = 번역
                     const originalText = line?.originalText || line?.text || '';
                     const phonetic = (line?.originalText && line?.text !== line?.originalText) ? line?.text : '';

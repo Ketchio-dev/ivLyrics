@@ -1975,6 +1975,9 @@ const buildPaddedSyncedLyrics = (lyrics, leadingEmptyLines) =>
 			lineNumber,
 		}));
 
+const shouldIncludeSyncedLineInCompactView = (line, activeLineIndex) =>
+	!line?.interludeInfo?.isInterlude || line.lineNumber === activeLineIndex;
+
 const getActiveTimedLineIndex = (lines, position) => {
 	for (let i = lines.length - 1; i >= 0; i--) {
 		const line = lines[i];
@@ -2246,13 +2249,35 @@ const useSyncedLyricsEngine = ({
 		[paddedLyrics, position]
 	);
 
+	const compactDisplayLines = useMemo(() => {
+		if (!compact || isScrolling) {
+			return paddedLyrics;
+		}
+
+		return paddedLyrics
+			.filter((line) => shouldIncludeSyncedLineInCompactView(line, activeLineIndex))
+			.map((line, displayLineNumber) => ({
+				...line,
+				displayLineNumber,
+			}));
+	}, [compact, isScrolling, paddedLyrics, activeLineIndex]);
+
+	const activeDisplayLineIndex = useMemo(() => {
+		if (!compact || isScrolling) {
+			return activeLineIndex;
+		}
+
+		const index = compactDisplayLines.findIndex((line) => line.lineNumber === activeLineIndex);
+		return index >= 0 ? index : Math.min(activeLineIndex, Math.max(0, compactDisplayLines.length - 1));
+	}, [compact, isScrolling, compactDisplayLines, activeLineIndex]);
+
 	const compactWindowStartIndex = useMemo(() => {
 		if (!compact) {
 			return 0;
 		}
 
-		return Math.max(activeLineIndex - CONFIG.visual["lines-before"], 0);
-	}, [compact, activeLineIndex]);
+		return Math.max(activeDisplayLineIndex - CONFIG.visual["lines-before"], 0);
+	}, [compact, activeDisplayLineIndex]);
 
 	const linesToRender = useMemo(() => {
 		if (!compact || isScrolling) {
@@ -2261,19 +2286,19 @@ const useSyncedLyricsEngine = ({
 
 		const startIndex = Math.max(compactWindowStartIndex - 2, 0);
 		const endIndex = Math.min(
-			activeLineIndex + CONFIG.visual["lines-after"] + 3,
-			paddedLyrics.length
+			activeDisplayLineIndex + CONFIG.visual["lines-after"] + 3,
+			compactDisplayLines.length
 		);
 
-		return paddedLyrics.slice(startIndex, endIndex);
-	}, [compact, isScrolling, paddedLyrics, compactWindowStartIndex, activeLineIndex]);
+		return compactDisplayLines.slice(startIndex, endIndex);
+	}, [compact, isScrolling, paddedLyrics, compactDisplayLines, compactWindowStartIndex, activeDisplayLineIndex]);
 	const compactAnchorIndex = compact
 		? Math.min(CONFIG.visual["lines-before"], leadingEmptyLines)
 		: activeLineIndex;
 	const activeElementIndex = compact
 		? (isScrolling
 			? activeLineIndex
-			: Math.max(Math.min(activeLineIndex, CONFIG.visual["lines-before"]), compactAnchorIndex))
+			: Math.max(Math.min(activeDisplayLineIndex, CONFIG.visual["lines-before"]), compactAnchorIndex))
 		: activeLineIndex;
 	const visualAnchorLineNumber = compact && activeLineIndex < leadingEmptyLines
 		? leadingEmptyLines
@@ -2345,36 +2370,42 @@ const useSyncedLyricsEngine = ({
 
 	const renderItems = useMemo(() => {
 		if (compact && isScrolling) {
-			return preparedLyrics.map((line, index) => {
-				const { startTime, originalText, mainText, subText, subText2, hasSubLine } = line;
-				const isActiveLine = index === Math.max(0, activeLineIndex - leadingEmptyLines);
+			const activePreparedIndex = Math.max(0, activeLineIndex - leadingEmptyLines);
 
-				return {
-					type: "line",
-					key: `scroll-inline-${startTime ?? index}-${index}`,
-					className: `lyrics-lyricsContainer-LyricsLine lyrics-lyricsContainer-LyricsLine-scrollView${hasSubLine ? " lyrics-lyricsContainer-LyricsLine-hasSubLine" : ""}${isActiveLine ? " lyrics-lyricsContainer-LyricsLine-active lyrics-lyricsContainer-LyricsLine-scrollCurrent" : ""}`,
-					style: {
-						cursor: Number.isFinite(startTime) ? "pointer" : "default",
-					},
-					line,
-					startTime,
-					originalText,
-					mainText,
-					subText,
-					subText2,
-					isActiveLine,
-					trackLineRef: isActiveLine,
-					canSeek: Number.isFinite(startTime),
-					karaokeActive: isActiveLine,
-					globalCharOffset: globalCharOffsets[index] || 0,
-					activeGlobalCharIndex,
-				};
-			});
+			return preparedLyrics
+				.map((line, index) => ({ line, index }))
+				.filter(({ line, index }) => !line?.interludeInfo?.isInterlude || index === activePreparedIndex)
+				.map(({ line, index }) => {
+					const { startTime, originalText, mainText, subText, subText2, hasSubLine } = line;
+					const isActiveLine = index === activePreparedIndex;
+
+					return {
+						type: "line",
+						key: `scroll-inline-${startTime ?? index}-${index}`,
+						className: `lyrics-lyricsContainer-LyricsLine lyrics-lyricsContainer-LyricsLine-scrollView${hasSubLine ? " lyrics-lyricsContainer-LyricsLine-hasSubLine" : ""}${isActiveLine ? " lyrics-lyricsContainer-LyricsLine-active lyrics-lyricsContainer-LyricsLine-scrollCurrent" : ""}`,
+						style: {
+							cursor: Number.isFinite(startTime) ? "pointer" : "default",
+						},
+						line,
+						startTime,
+						originalText,
+						mainText,
+						subText,
+						subText2,
+						isActiveLine,
+						trackLineRef: isActiveLine,
+						canSeek: Number.isFinite(startTime),
+						karaokeActive: isActiveLine,
+						globalCharOffset: globalCharOffsets[index] || 0,
+						activeGlobalCharIndex,
+					};
+				});
 		}
 
 		return linesToRender.map((line, visibleIndex) => {
 			const {
 				lineNumber = visibleIndex,
+				displayLineNumber = lineNumber,
 				startTime,
 				originalText,
 				mainText,
@@ -2382,7 +2413,7 @@ const useSyncedLyricsEngine = ({
 				subText2,
 			} = line;
 			const compactVisibleIndex = compact
-				? lineNumber - compactWindowStartIndex
+				? displayLineNumber - compactWindowStartIndex
 				: visibleIndex;
 
 			if (compact && lineNumber === 1 && activeLineIndex <= leadingEmptyLines) {
@@ -2413,8 +2444,8 @@ const useSyncedLyricsEngine = ({
 			const animationIndex = getSyncedAnimationIndex({
 				compact,
 				isScrolling,
-				activeLineIndex,
-				lineNumber,
+				activeLineIndex: compact && !isScrolling ? activeDisplayLineIndex : activeLineIndex,
+				lineNumber: compact && !isScrolling ? displayLineNumber : lineNumber,
 				visibleIndex: compactVisibleIndex,
 			});
 			let className = "lyrics-lyricsContainer-LyricsLine";
@@ -2472,6 +2503,7 @@ const useSyncedLyricsEngine = ({
 		isScrolling,
 		isKara,
 		activeElementIndex,
+		activeDisplayLineIndex,
 		compactWindowStartIndex,
 		visualAnchorLineNumber,
 		globalCharOffsets,
