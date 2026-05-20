@@ -6235,10 +6235,10 @@ ruby rt {
 }
 
 .sync-creator-hint {
-  position: fixed;
-  right: calc(var(--iv-floating-toolbar-bottom-gap, 20px) + 56px);
-  bottom: calc(var(--iv-floating-toolbar-bottom-gap, 20px) + 12px);
-  transform: none;
+  position: absolute;
+  right: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%);
   background: var(--spice-card);
   color: var(--spice-text);
   padding: 8px 12px;
@@ -6249,7 +6249,7 @@ ruby rt {
   pointer-events: none;
   opacity: 0;
   animation: hint-fade-in-out 4s ease-in-out forwards;
-  z-index: var(--iv-layer-modal);
+  z-index: 2;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   border: 1px solid var(--spice-button);
 }
@@ -6388,22 +6388,22 @@ ruby rt {
 @keyframes hint-fade-in-out {
   0% {
     opacity: 0;
-    transform: translateX(10px);
+    transform: translateY(-50%) translateX(10px);
   }
 
   15% {
     opacity: 1;
-    transform: translateX(0);
+    transform: translateY(-50%) translateX(0);
   }
 
   85% {
     opacity: 1;
-    transform: translateX(0);
+    transform: translateY(-50%) translateX(0);
   }
 
   100% {
     opacity: 0;
-    transform: translateX(10px);
+    transform: translateY(-50%) translateX(10px);
   }
 }
 

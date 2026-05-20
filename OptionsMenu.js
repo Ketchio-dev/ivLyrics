@@ -3841,20 +3841,16 @@ const SyncDataCreatorButton = react.memo(({ trackInfo, showHint, provider, initi
     }
     void openSyncDataCreator(trackInfo, initialData);
   };
-  const reactDom = resolveOptionsReactDom();
   const hint = showHint
     ? react.createElement("div", {
-      className: "sync-creator-hint",
-      style: { "--iv-floating-toolbar-bottom-gap": isFullscreen ? "40px" : "20px" },
+      className: `sync-creator-hint${isFullscreen ? " is-fullscreen" : ""}`,
     }, I18n.t("syncCreator.clickHereHint") || "")
     : null;
 
   return react.createElement(
     "div",
-    { style: { position: "relative" } },
-    hint && reactDom?.createPortal && document.body
-      ? reactDom.createPortal(hint, document.body)
-      : hint,
+    { style: { position: "relative", display: "inline-flex", alignItems: "center" } },
+    hint,
     react.createElement(
       Spicetify.ReactComponent.TooltipWrapper,
       { label: I18n.t("syncCreator.buttonTooltip") || "Create Karaoke Sync" },
