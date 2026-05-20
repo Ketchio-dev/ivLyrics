@@ -3523,9 +3523,7 @@ ruby rt {
 .fullscreen-navigation-link:hover {
   color: var(--spice-text);
   opacity: 1;
-  text-decoration: underline;
-  text-decoration-thickness: 0.06em;
-  text-underline-offset: 0.14em;
+  text-decoration: none;
 }
 
 .fullscreen-navigation-link:focus-visible {
