@@ -43,7 +43,7 @@
     // Keep this empty for marketplace/user-added builds; it can be configured in the addon settings.
     const DEFAULT_CLIENT_ID = 'pk_r7hWynUBrOgSV9SJ';
     const DEFAULT_AUTH_SCOPE = 'generate';
-    const FIXED_MODEL = 'gemini-fast';
+    const FIXED_MODEL = 'openai';
     const DEFAULT_AUTH_BUDGET = 999;
     const DEFAULT_AUTH_EXPIRY_DAYS = 365;
     const DEVICE_POLL_INTERVAL_MS = 5000;
