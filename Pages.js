@@ -1529,6 +1529,59 @@ const getCurrentTrackDurationMs = () => {
 	return toFiniteTime(Spicetify.Player?.data?.item?.duration?.milliseconds);
 };
 
+const KARAOKE_TRAILING_INTERLUDE_DELAY_MS = 2500;
+
+const getTimedSyllablesFromLine = (line) => {
+	const syllables = [];
+	const appendSyllables = (items) => {
+		if (Array.isArray(items)) {
+			syllables.push(...items);
+		}
+	};
+
+	appendSyllables(line?.syllables);
+	appendSyllables(line?.vocals?.lead?.syllables);
+
+	if (Array.isArray(line?.vocals?.background)) {
+		line.vocals.background.forEach((entry) => appendSyllables(entry?.syllables));
+	}
+
+	return syllables;
+};
+
+const getLastSyllableEndTime = (line) => {
+	let lastEndTime = null;
+	const lineEndTime = toFiniteTime(line?.endTime);
+
+	getTimedSyllablesFromLine(line).forEach((syllable) => {
+		const syllableStart = toFiniteTime(syllable?.startTime);
+		const syllableEnd = toFiniteTime(syllable?.endTime)
+			?? (lineEndTime !== null && syllableStart !== null && lineEndTime >= syllableStart ? lineEndTime : null)
+			?? syllableStart;
+
+		if (syllableEnd !== null) {
+			lastEndTime = lastEndTime === null ? syllableEnd : Math.max(lastEndTime, syllableEnd);
+		}
+	});
+
+	return lastEndTime;
+};
+
+const getKaraokeLineFillEndTime = (line) => {
+	const timedChars = applyKaraokeWhitespaceCompensation(buildKaraokeTimedChars(line));
+	const timedCharEndTime = timedChars.reduce((maxEndTime, charInfo) => {
+		const endTime = toFiniteTime(charInfo?.endTime);
+		return endTime === null ? maxEndTime : Math.max(maxEndTime, endTime);
+	}, -Infinity);
+
+	if (Number.isFinite(timedCharEndTime)) {
+		return timedCharEndTime;
+	}
+
+	const lineBounds = getKaraokeLineBounds(line);
+	return toFiniteTime(lineBounds.endTime) ?? getLastSyllableEndTime(line);
+};
+
 const getInterludeInfo = (line, nextLine = null, lineIndex = -1, lineCount = 0) => {
 	const startTime = toFiniteTime(line?.startTime);
 	if (startTime === null || !isInterludeMarkerText(getInterludeCandidateText(line))) {
@@ -1548,7 +1601,62 @@ const getInterludeInfo = (line, nextLine = null, lineIndex = -1, lineCount = 0) 
 	return {
 		isInterlude: durationMs > INTERLUDE_MIN_DURATION_MS,
 		durationMs,
+		kind: lineIndex >= Math.max(0, lineCount - 1) ? "postlude" : "break",
+	};
+};
+
+const getTrailingKaraokeInterludeInfo = (line, nextLine = null, lineIndex = -1, lineCount = 0) => {
+	const fillEndTime = getKaraokeLineFillEndTime(line);
+	const startTime = fillEndTime !== null ? fillEndTime + KARAOKE_TRAILING_INTERLUDE_DELAY_MS : null;
+	const nextStartTime = toFiniteTime(nextLine?.startTime);
+	const trackEndTime = lineIndex === Math.max(0, lineCount - 1) ? getCurrentTrackDurationMs() : null;
+	const endTime = nextStartTime ?? trackEndTime;
+	const durationMs = startTime !== null && endTime !== null && endTime > startTime
+		? endTime - startTime
+		: 0;
+
+	return {
+		isInterlude: durationMs > INTERLUDE_MIN_DURATION_MS,
+		durationMs,
+		startTime,
+		endTime,
 		kind: getInstrumentalBreakKind(lineIndex, lineCount),
+		source: "karaoke-trailing-gap",
+	};
+};
+
+const createActiveTrailingKaraokeInterludeLine = ({
+	line,
+	nextLine = null,
+	lineIndex = -1,
+	lineCount = 0,
+	position = 0,
+	isActiveLine = false,
+	isKara = false,
+}) => {
+	if (!isKara || !isActiveLine || line?.interludeInfo?.isInterlude) {
+		return null;
+	}
+
+	const interludeInfo = getTrailingKaraokeInterludeInfo(line, nextLine, lineIndex, lineCount);
+	if (
+		!interludeInfo.isInterlude ||
+		interludeInfo.startTime === null ||
+		interludeInfo.endTime === null ||
+		position < interludeInfo.startTime ||
+		position >= interludeInfo.endTime
+	) {
+		return null;
+	}
+
+	return {
+		startTime: interludeInfo.startTime,
+		endTime: interludeInfo.endTime,
+		text: "",
+		originalText: "",
+		text2: "",
+		interludeInfo,
+		isVirtualTrailingInterlude: true,
 	};
 };
 
@@ -2203,10 +2311,11 @@ const SyncedLyricsScrollView = react.memo(({
 		{
 			className: `lyrics-lyricsContainer-SyncedScrollView ${isKara ? "is-karaoke" : "is-synced"}`,
 		},
-		...lyrics.map((line, index) => {
+		...lyrics.flatMap((line, index) => {
 			const { text, startTime, originalText, text2 } = line;
 			const interludeInfo = getInterludeInfo(line, lyrics[index + 1], index, lyrics.length);
 			const renderLine = interludeInfo.isInterlude ? { ...line, interludeInfo } : line;
+			const isActiveLine = index === activeLyricIndex;
 			const { mainText, subText, subText2, hasSubLine } = buildLyricDisplayState(
 				isKara,
 				renderLine,
@@ -2214,15 +2323,24 @@ const SyncedLyricsScrollView = react.memo(({
 				originalText,
 				text2
 			);
-			const isActiveLine = index === activeLyricIndex;
 
-			return react.createElement(LyricsLineBlock, {
+			const trailingInterludeLine = createActiveTrailingKaraokeInterludeLine({
+				line: renderLine,
+				nextLine: lyrics[index + 1],
+				lineIndex: index,
+				lineCount: lyrics.length,
+				position,
+				isActiveLine,
+				isKara,
+			});
+			const isOriginalActiveLine = isActiveLine && !trailingInterludeLine;
+			const lineNode = react.createElement(LyricsLineBlock, {
 				key: `scroll-line-${startTime ?? index}-${index}`,
-				className: `lyrics-lyricsContainer-LyricsLine lyrics-lyricsContainer-LyricsLine-scrollView${hasSubLine ? " lyrics-lyricsContainer-LyricsLine-hasSubLine" : ""}${isActiveLine ? " lyrics-lyricsContainer-LyricsLine-active lyrics-lyricsContainer-LyricsLine-scrollCurrent" : ""}`,
+				className: `lyrics-lyricsContainer-LyricsLine lyrics-lyricsContainer-LyricsLine-scrollView${hasSubLine ? " lyrics-lyricsContainer-LyricsLine-hasSubLine" : ""}${isOriginalActiveLine ? " lyrics-lyricsContainer-LyricsLine-active lyrics-lyricsContainer-LyricsLine-scrollCurrent" : ""}`,
 				style: {
 					cursor: Number.isFinite(startTime) ? "pointer" : "default",
 				},
-				lineRef: isActiveLine ? activeLineRef : null,
+				lineRef: isOriginalActiveLine ? activeLineRef : null,
 				seekTime: Number.isFinite(startTime) ? startTime : null,
 				mainText,
 				subText,
@@ -2232,13 +2350,37 @@ const SyncedLyricsScrollView = react.memo(({
 				line: renderLine,
 				// See the matching note in renderLyricsItems: only the active line
 				// receives the live position so memo can skip the others.
-				position: isActiveLine ? position : 0,
-				isActive: isActiveLine,
-				isCurrentLine: isActiveLine,
+				position: isOriginalActiveLine ? position : 0,
+				isActive: isOriginalActiveLine,
+				isCurrentLine: isOriginalActiveLine,
 				settingsRevision,
 				globalCharOffset: globalCharOffsets[index] || 0,
 				activeGlobalCharIndex,
 			});
+
+			if (!trailingInterludeLine) {
+				return [lineNode];
+			}
+
+			return [
+				lineNode,
+				react.createElement(LyricsLineBlock, {
+					key: `scroll-line-trailing-interlude-${index}-${trailingInterludeLine.startTime}`,
+					className: "lyrics-lyricsContainer-LyricsLine lyrics-lyricsContainer-LyricsLine-scrollView lyrics-lyricsContainer-LyricsLine-active",
+					style: { cursor: "default" },
+					mainText: "",
+					subText: null,
+					subText2: null,
+					originalText: "",
+					isKara,
+					line: trailingInterludeLine,
+					position: 0,
+					isActive: false,
+					isCurrentLine: true,
+					lineRef: activeLineRef,
+					settingsRevision,
+				})
+			];
 		})
 	);
 });
@@ -2400,14 +2542,23 @@ const useSyncedLyricsEngine = ({
 			return preparedLyrics
 				.map((line, index) => ({ line, index }))
 				.filter(({ line, index }) => !line?.interludeInfo?.isInterlude || index === activePreparedIndex)
-				.map(({ line, index }) => {
+				.flatMap(({ line, index }) => {
 					const { startTime, originalText, mainText, subText, subText2, hasSubLine } = line;
 					const isActiveLine = index === activePreparedIndex;
-
-					return {
+					const trailingInterludeLine = createActiveTrailingKaraokeInterludeLine({
+						line,
+						nextLine: preparedLyrics[index + 1],
+						lineIndex: index,
+						lineCount: preparedLyrics.length,
+						position,
+						isActiveLine,
+						isKara,
+					});
+					const isOriginalActiveLine = isActiveLine && !trailingInterludeLine;
+					const item = {
 						type: "line",
 						key: `scroll-inline-${startTime ?? index}-${index}`,
-						className: `lyrics-lyricsContainer-LyricsLine lyrics-lyricsContainer-LyricsLine-scrollView${hasSubLine ? " lyrics-lyricsContainer-LyricsLine-hasSubLine" : ""}${isActiveLine ? " lyrics-lyricsContainer-LyricsLine-active lyrics-lyricsContainer-LyricsLine-scrollCurrent" : ""}`,
+						className: `lyrics-lyricsContainer-LyricsLine lyrics-lyricsContainer-LyricsLine-scrollView${hasSubLine ? " lyrics-lyricsContainer-LyricsLine-hasSubLine" : ""}${isOriginalActiveLine ? " lyrics-lyricsContainer-LyricsLine-active lyrics-lyricsContainer-LyricsLine-scrollCurrent" : ""}`,
 						style: {
 							cursor: Number.isFinite(startTime) ? "pointer" : "default",
 						},
@@ -2417,17 +2568,56 @@ const useSyncedLyricsEngine = ({
 						mainText,
 						subText,
 						subText2,
-						isActiveLine,
-						trackLineRef: isActiveLine,
+						isActiveLine: isOriginalActiveLine,
+						trackLineRef: isOriginalActiveLine,
 						canSeek: Number.isFinite(startTime),
-						karaokeActive: isActiveLine,
+						karaokeActive: isOriginalActiveLine,
 						globalCharOffset: globalCharOffsets[index] || 0,
 						activeGlobalCharIndex,
 					};
+
+					if (!trailingInterludeLine) {
+						return [item];
+					}
+
+					return [
+						item,
+						{
+							type: "line",
+							key: `scroll-inline-trailing-interlude-${index}-${trailingInterludeLine.startTime}`,
+							className: "lyrics-lyricsContainer-LyricsLine lyrics-lyricsContainer-LyricsLine-scrollView lyrics-lyricsContainer-LyricsLine-active",
+							style: { cursor: "default" },
+							line: trailingInterludeLine,
+							startTime: trailingInterludeLine.startTime,
+							originalText: "",
+							mainText: "",
+							subText: null,
+							subText2: null,
+							isActiveLine: true,
+							trackLineRef: true,
+							canSeek: false,
+							karaokeActive: false,
+							globalCharOffset: 0,
+							activeGlobalCharIndex,
+						}
+					];
 				});
 		}
 
-		return linesToRender.map((line, visibleIndex) => {
+		const activeSourceLineIndex = activeLineIndex - leadingEmptyLines;
+		const activeTrailingInterludeLine = activeSourceLineIndex >= 0
+			? createActiveTrailingKaraokeInterludeLine({
+				line: preparedLyrics[activeSourceLineIndex],
+				nextLine: preparedLyrics[activeSourceLineIndex + 1],
+				lineIndex: activeSourceLineIndex,
+				lineCount: preparedLyrics.length,
+				position,
+				isActiveLine: true,
+				isKara,
+			})
+			: null;
+
+		return linesToRender.flatMap((line, visibleIndex) => {
 			const {
 				lineNumber = visibleIndex,
 				displayLineNumber = lineNumber,
@@ -2466,15 +2656,19 @@ const useSyncedLyricsEngine = ({
 			}
 
 			const isActiveLine = lineNumber === activeLineIndex;
-			const animationIndex = getSyncedAnimationIndex({
+			let animationIndex = getSyncedAnimationIndex({
 				compact,
 				isScrolling,
 				activeLineIndex: compact && !isScrolling ? activeDisplayLineIndex : activeLineIndex,
 				lineNumber: compact && !isScrolling ? displayLineNumber : lineNumber,
 				visibleIndex: compactVisibleIndex,
 			});
+			if (activeTrailingInterludeLine && lineNumber <= activeLineIndex) {
+				animationIndex -= 1;
+			}
 			let className = "lyrics-lyricsContainer-LyricsLine";
-			if (isActiveLine) {
+			const isCurrentRenderedLine = isActiveLine && !activeTrailingInterludeLine;
+			if (isCurrentRenderedLine) {
 				className += " lyrics-lyricsContainer-LyricsLine-active";
 			}
 			if (shouldHideSyncedLine({ compact, isScrolling, animationIndex })) {
@@ -2484,7 +2678,7 @@ const useSyncedLyricsEngine = ({
 					: " lyrics-lyricsContainer-LyricsLine-paddingAfter";
 			}
 
-			return {
+			const item = {
 				type: "line",
 				key: lineNumber,
 				className,
@@ -2506,15 +2700,53 @@ const useSyncedLyricsEngine = ({
 				mainText,
 				subText,
 				subText2,
-				isActiveLine,
-				trackLineRef: lineNumber === visualAnchorLineNumber,
+				isActiveLine: isCurrentRenderedLine,
+				trackLineRef: isCurrentRenderedLine && lineNumber === visualAnchorLineNumber,
 				canSeek: lineNumber >= leadingEmptyLines && Number.isFinite(startTime),
-				karaokeActive: compact ? compactVisibleIndex === activeElementIndex : isActiveLine,
+				karaokeActive: isCurrentRenderedLine && (compact ? compactVisibleIndex === activeElementIndex : isActiveLine),
 				globalCharOffset: lineNumber >= leadingEmptyLines && lineNumber - leadingEmptyLines < globalCharOffsets.length
 					? globalCharOffsets[lineNumber - leadingEmptyLines]
 					: 0,
 				activeGlobalCharIndex,
 			};
+
+			if (!activeTrailingInterludeLine || lineNumber !== activeLineIndex) {
+				return [item];
+			}
+
+			const virtualAnimationIndex = 0;
+			return [
+				item,
+				{
+					type: "line",
+					key: `trailing-interlude-${lineNumber}-${activeTrailingInterludeLine.startTime}`,
+					className: "lyrics-lyricsContainer-LyricsLine lyrics-lyricsContainer-LyricsLine-active",
+					style: {
+						cursor: "default",
+						"--position-index": virtualAnimationIndex,
+						"--animation-index": Math.abs(virtualAnimationIndex) + 1,
+						"--line-shift-duration": isScrolling
+							? "0s"
+							: `${Math.max(0.28, 0.46 - Math.min(Math.abs(virtualAnimationIndex), 4) * 0.04)}s`,
+						"--line-shift-delay": isScrolling
+							? "0s"
+							: `${virtualAnimationIndex > 0 ? Math.min(virtualAnimationIndex, 3) * 0.02 : 0}s`,
+						"--blur-index": 0,
+					},
+					line: activeTrailingInterludeLine,
+					startTime: activeTrailingInterludeLine.startTime,
+					originalText: "",
+					mainText: "",
+					subText: null,
+					subText2: null,
+					isActiveLine: true,
+					trackLineRef: true,
+					canSeek: false,
+					karaokeActive: false,
+					globalCharOffset: 0,
+					activeGlobalCharIndex,
+				}
+			];
 		});
 	}, [
 		linesToRender,

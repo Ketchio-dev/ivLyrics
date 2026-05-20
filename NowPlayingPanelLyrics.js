@@ -791,6 +791,7 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
     };
 
     const INTERLUDE_MIN_DURATION_MS = 500;
+    const KARAOKE_TRAILING_INTERLUDE_DELAY_MS = 2500;
     const INTERLUDE_MARKER_REGEX = /^[\s\u00A0\u200B-\u200D\uFEFF\u2669-\u266C]+$/;
     const INSTRUMENTAL_BREAK_ICON_DESIGNS = new Set([
         "equalizer",
@@ -918,6 +919,32 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
         return Number.isFinite(numeric) ? numeric : null;
     };
 
+    const getCurrentTrackDurationMs = () => {
+        if (typeof Spicetify === "undefined") {
+            return null;
+        }
+
+        return toFiniteTime(Spicetify.Player?.data?.item?.duration?.milliseconds);
+    };
+
+    const getLastSyllableEndTime = (line) => {
+        let lastEndTime = null;
+        const lineEndTime = toFiniteTime(line?.endTime);
+
+        getSyllablesFromLine(line).forEach((syllable) => {
+            const syllableStart = toFiniteTime(syllable?.startTime);
+            const syllableEnd = toFiniteTime(syllable?.endTime)
+                ?? (lineEndTime !== null && syllableStart !== null && lineEndTime >= syllableStart ? lineEndTime : null)
+                ?? syllableStart;
+
+            if (syllableEnd !== null) {
+                lastEndTime = lastEndTime === null ? syllableEnd : Math.max(lastEndTime, syllableEnd);
+            }
+        });
+
+        return lastEndTime;
+    };
+
     const getInterludeInfo = (line, lineIndex = -1, lineCount = 0) => {
         const startTime = toFiniteTime(line?.startTime);
         if (startTime === null || !isInterludeMarkerText(getInterludeCandidateText(line))) {
@@ -932,6 +959,31 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
             durationMs,
             kind: getInstrumentalBreakKind(lineIndex, lineCount)
         };
+    };
+
+    const getTrailingKaraokeInterludeInfo = (line, nextLine = null, lineIndex = -1, lineCount = 0) => {
+        const lyricEndTime = getLastSyllableEndTime(line);
+        const startTime = lyricEndTime !== null ? lyricEndTime + KARAOKE_TRAILING_INTERLUDE_DELAY_MS : null;
+        const nextStartTime = toFiniteTime(nextLine?.startTime);
+        const trackEndTime = lineIndex === Math.max(0, lineCount - 1) ? getCurrentTrackDurationMs() : null;
+        const endTime = nextStartTime ?? trackEndTime;
+        const durationMs = startTime !== null && endTime !== null && endTime > startTime
+            ? endTime - startTime
+            : 0;
+
+        return {
+            isInterlude: durationMs > INTERLUDE_MIN_DURATION_MS,
+            durationMs,
+            startTime,
+            endTime,
+            kind: lineIndex >= Math.max(0, lineCount - 1) ? "postlude" : "break",
+            source: "karaoke-trailing-gap"
+        };
+    };
+
+    const getTrailingKaraokeInterludeKey = (lineIndex, interludeInfo) => {
+        if (!interludeInfo?.isInterlude) return null;
+        return `${lineIndex}:${interludeInfo.startTime}:${interludeInfo.endTime}`;
     };
 
     // ============================================
@@ -1133,7 +1185,7 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
     // ============================================
     const LyricLine = memo(({ line, lineIndex, lineCount, isActive, isPast, isFuture, translation, phonetic, isPlaceholder, instrumentalBreakRevision = 0 }) => {
         const lineClass = `ivlyrics-panel-line ${isActive ? 'active' : ''} ${isPast ? 'past' : ''} ${isFuture ? 'future' : ''} ${isPlaceholder ? 'placeholder' : ''}`;
-        const interludeInfo = isPlaceholder ? { isInterlude: false, durationMs: 0 } : getInterludeInfo(line, lineIndex, lineCount);
+        const interludeInfo = isPlaceholder ? { isInterlude: false, durationMs: 0 } : (line?.interludeInfo || getInterludeInfo(line, lineIndex, lineCount));
 
         // 노래방 가사인지 확인
         const syllables = useMemo(() => getSyllablesFromLine(line), [line]);
@@ -1196,6 +1248,7 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
         const [lyrics, setLyrics] = useState([]);
         const [karaokeSource, setKaraokeSource] = useState(null);
         const [currentIndex, setCurrentIndex] = useState(0);
+        const [activeTrailingInterludeKey, setActiveTrailingInterludeKey] = useState(null);
         // currentTime은 더 이상 상태로 관리하지 않음 - 전역 변수 사용
         const [trackOffset, setTrackOffset] = useState(0); // 곡별 싱크 오프셋
         const [globalOffset, setGlobalOffset] = useState(() => window.Utils?.getGlobalSyncOffset?.() || 0);
@@ -1305,6 +1358,7 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
                         currentLyricsState.lyrics = lyricsData;
                         currentLyricsState.trackUri = loadingForTrackUri;
                         setCurrentIndex(0);
+                        setActiveTrailingInterludeKey(null);
 
                         // 곡별 싱크 오프셋 가져오기
                         if (window.TrackSyncDB?.getOffset) {
@@ -1737,6 +1791,7 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
         // 최적화: setInterval 사용 (30ms), LocalStorage 캐싱, 이진 탐색
         useEffect(() => {
             let lastIndex = currentIndex;
+            let lastTrailingInterludeKey = null;
             let lastEventTime = 0;
             let intervalId = null;
             let cachedDelay = null;
@@ -1799,11 +1854,26 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
 
                 // 현재 라인 찾기 (이진 탐색)
                 const newIndex = findCurrentLine(adjustedPosition);
+                const trailingInterludeInfo = getTrailingKaraokeInterludeInfo(
+                    lyrics[newIndex],
+                    lyrics[newIndex + 1],
+                    newIndex,
+                    lyrics.length
+                );
+                const nextTrailingInterludeKey = trailingInterludeInfo.isInterlude &&
+                    adjustedPosition >= trailingInterludeInfo.startTime &&
+                    adjustedPosition < trailingInterludeInfo.endTime
+                    ? getTrailingKaraokeInterludeKey(newIndex, trailingInterludeInfo)
+                    : null;
 
                 // 라인이 변경될 때만 상태 업데이트 (리렌더링 최소화)
                 if (newIndex !== lastIndex) {
                     lastIndex = newIndex;
                     setCurrentIndex(newIndex);
+                }
+                if (nextTrailingInterludeKey !== lastTrailingInterludeKey) {
+                    lastTrailingInterludeKey = nextTrailingInterludeKey;
+                    setActiveTrailingInterludeKey(nextTrailingInterludeKey);
                 }
 
                 // 노래방 가사 업데이트 이벤트 발생 (throttled)
@@ -1856,10 +1926,41 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
                     index,
                     interludeInfo: getInterludeInfo(line, index, lyrics.length)
                 }))
-                .filter((entry) => !entry.interludeInfo.isInterlude || entry.index === currentIndex);
+                .filter((entry) => !entry.interludeInfo.isInterlude || entry.index === currentIndex)
+                .flatMap((entry) => {
+                    const trailingInterludeInfo = entry.index === currentIndex
+                        ? getTrailingKaraokeInterludeInfo(entry.line, lyrics[entry.index + 1], entry.index, lyrics.length)
+                        : null;
+                    const trailingInterludeKey = getTrailingKaraokeInterludeKey(entry.index, trailingInterludeInfo);
+
+                    if (!trailingInterludeKey || trailingInterludeKey !== activeTrailingInterludeKey) {
+                        return [entry];
+                    }
+
+                    return [
+                        entry,
+                        {
+                            line: {
+                                startTime: trailingInterludeInfo.startTime,
+                                endTime: trailingInterludeInfo.endTime,
+                                text: '',
+                                originalText: '',
+                                text2: '',
+                                interludeInfo: trailingInterludeInfo,
+                                isVirtualTrailingInterlude: true
+                            },
+                            index: `trailing-interlude-${entry.index}-${trailingInterludeInfo.startTime}`,
+                            sourceIndex: entry.index,
+                            interludeInfo: trailingInterludeInfo,
+                            isVirtualTrailingInterlude: true
+                        }
+                    ];
+                });
             const currentDisplayIndex = Math.max(
                 0,
-                displayableLyrics.findIndex((entry) => entry.index === currentIndex)
+                displayableLyrics.findIndex((entry) => activeTrailingInterludeKey
+                    ? entry.isVirtualTrailingInterlude
+                    : entry.index === currentIndex)
             );
 
             // 항상 numLines 개수만큼 표시
@@ -1883,31 +1984,33 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
                         isPlaceholder: true
                     });
                 } else {
-                    const i = entry.index;
+                    const i = entry.sourceIndex ?? entry.index;
                     const line = entry.line;
+                    const isVirtualTrailingInterlude = entry.isVirtualTrailingInterlude === true;
                     // originalText = 원어, text = 발음, text2 = 번역
                     const originalText = line?.originalText || line?.text || '';
                     const phonetic = (line?.originalText && line?.text !== line?.originalText) ? line?.text : '';
                     const translation = line?.text2 || '';
 
                     lines.push({
-                        index: i,
+                        index: entry.index,
                         line: line, // 노래방 가사용 전체 line 객체
                         lineIndex: i,
                         lineCount: lyrics.length,
                         originalText: originalText,
                         phonetic: phonetic,
                         translation: translation,
-                        isActive: i === currentIndex,
-                        isPast: i < currentIndex,
+                        isActive: isVirtualTrailingInterlude || (i === currentIndex && !activeTrailingInterludeKey),
+                        isPast: !isVirtualTrailingInterlude && (i < currentIndex || (i === currentIndex && !!activeTrailingInterludeKey)),
                         isFuture: i > currentIndex,
                         isPlaceholder: false
                     });
+
                 }
             }
 
             return lines;
-        }, [lyrics, currentIndex, numLines]);
+        }, [lyrics, currentIndex, numLines, activeTrailingInterludeKey]);
 
         // currentTime은 더 이상 상태로 관리하지 않음 (전역 변수 window._ivLyricsPanelCurrentTime 사용)
 
