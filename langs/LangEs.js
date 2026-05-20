@@ -1584,7 +1584,9 @@ window.LANG_ES = {
     "feedbackPositiveSuccess": "¡Gracias por el feedback positivo!",
     "feedbackNegativeSuccess": "Gracias. ¡Mejoraremos!",
     "feedbackFailed": "Error al enviar feedback",
-    "autoSubmitEnabled": "⚡ Envío automático activado"
+    "autoSubmitEnabled": "⚡ Envío automático activado",
+    "globalTitle": "Sincronización global",
+    "globalInfo": "Se aplica a todas las canciones solo en este dispositivo. Nunca se envía a la comunidad."
   },
   "playbarButton": {
     "label": "Lyrics Plus"

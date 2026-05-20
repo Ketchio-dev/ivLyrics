@@ -1584,7 +1584,9 @@ window.LANG_FA = {
     "feedbackPositiveSuccess": "ممنون بابت بازخورد مثبت!",
     "feedbackNegativeSuccess": "ممنون بابت بازخورد. بهبود خواهیم داد!",
     "feedbackFailed": "ارسال بازخورد ناموفق بود",
-    "autoSubmitEnabled": "⚡ ارسال خودکار فعال است"
+    "autoSubmitEnabled": "⚡ ارسال خودکار فعال است",
+    "globalTitle": "همگام‌سازی سراسری",
+    "globalInfo": "فقط روی همین دستگاه برای همه آهنگ‌ها اعمال می‌شود و هرگز برای انجمن ارسال نمی‌شود."
   },
   "playbarButton": {
     "label": "متن آهنگ پلاس"

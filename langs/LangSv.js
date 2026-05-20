@@ -1584,7 +1584,9 @@ window.LANG_SV = {
     "feedbackPositiveSuccess": "Tack för den positiva feedbacken!",
     "feedbackNegativeSuccess": "Tack för feedbacken. Vi ska förbättra oss!",
     "feedbackFailed": "Det gick inte att skicka feedback",
-    "autoSubmitEnabled": "⚡ Automatisk inlämning är aktiverad"
+    "autoSubmitEnabled": "⚡ Automatisk inlämning är aktiverad",
+    "globalTitle": "Global synk",
+    "globalInfo": "Gäller alla låtar endast på den här enheten. Skickas aldrig till communityn."
   },
   "playbarButton": {
     "label": "Lyrics Plus"

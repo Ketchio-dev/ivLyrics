@@ -1584,7 +1584,9 @@ window.LANG_ZH_TW = {
     "feedbackPositiveSuccess": "感謝您的正面回饋！",
     "feedbackNegativeSuccess": "感謝您的回饋。我們會改進！",
     "feedbackFailed": "回饋提交失敗",
-    "autoSubmitEnabled": "⚡ 自動提交已啟用"
+    "autoSubmitEnabled": "⚡ 自動提交已啟用",
+    "globalTitle": "全域同步",
+    "globalInfo": "只會在此裝置上套用到所有歌曲，絕不會提交到社群。"
   },
   "playbarButton": {
     "label": "歌詞 Plus"

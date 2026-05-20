@@ -1584,7 +1584,9 @@ window.LANG_ID = {
     "feedbackPositiveSuccess": "Terima kasih atas umpan balik positifnya!",
     "feedbackNegativeSuccess": "Terima kasih atas umpan baliknya. Akan kami tingkatkan!",
     "feedbackFailed": "Gagal mengirim umpan balik",
-    "autoSubmitEnabled": "⚡ Kirim otomatis aktif"
+    "autoSubmitEnabled": "⚡ Kirim otomatis aktif",
+    "globalTitle": "Sinkronisasi Global",
+    "globalInfo": "Berlaku untuk semua lagu hanya di perangkat ini. Tidak pernah dikirim ke komunitas."
   },
   "playbarButton": {
     "label": "Lirik Plus"

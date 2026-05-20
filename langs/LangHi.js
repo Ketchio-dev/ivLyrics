@@ -1584,7 +1584,9 @@ window.LANG_HI = {
     "feedbackPositiveSuccess": "सकारात्मक प्रतिक्रिया के लिए धन्यवाद!",
     "feedbackNegativeSuccess": "प्रतिक्रिया के लिए धन्यवाद। हम सुधार करेंगे!",
     "feedbackFailed": "प्रतिक्रिया सबमिशन विफल",
-    "autoSubmitEnabled": "⚡ ऑटो सबमिशन सक्षम है"
+    "autoSubmitEnabled": "⚡ ऑटो सबमिशन सक्षम है",
+    "globalTitle": "वैश्विक सिंक",
+    "globalInfo": "यह केवल इस डिवाइस पर सभी गानों पर लागू होता है। इसे समुदाय में कभी जमा नहीं किया जाता।"
   },
   "playbarButton": {
     "label": "लिरिक्स प्लस"

@@ -1584,7 +1584,9 @@ window.LANG_BN = {
     "feedbackPositiveSuccess": "ইতিবাচক মতামতের জন্য ধন্যবাদ!",
     "feedbackNegativeSuccess": "মতামতের জন্য ধন্যবাদ। আমরা উন্নতি করব!",
     "feedbackFailed": "মতামত জমা দিতে ব্যর্থ হয়েছে",
-    "autoSubmitEnabled": "⚡ স্বয়ংক্রিয় জমা চালু আছে"
+    "autoSubmitEnabled": "⚡ স্বয়ংক্রিয় জমা চালু আছে",
+    "globalTitle": "গ্লোবাল সিঙ্ক",
+    "globalInfo": "শুধু এই ডিভাইসে সব গানে প্রযোজ্য। এটি কখনও কমিউনিটিতে জমা দেওয়া হয় না।"
   },
   "playbarButton": {
     "label": "লিরিক্স প্লাস"

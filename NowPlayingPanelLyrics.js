@@ -1198,6 +1198,7 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
         const [currentIndex, setCurrentIndex] = useState(0);
         // currentTime은 더 이상 상태로 관리하지 않음 - 전역 변수 사용
         const [trackOffset, setTrackOffset] = useState(0); // 곡별 싱크 오프셋
+        const [globalOffset, setGlobalOffset] = useState(() => window.Utils?.getGlobalSyncOffset?.() || 0);
         const [pseudoKaraokeAdvanceMs, setPseudoKaraokeAdvanceMs] = useState(getPseudoKaraokeRenderAdvance());
         const [isEnabled, setIsEnabled] = useState(getStorageValue(STORAGE_KEY, DEFAULT_ENABLED));
         const [numLines, setNumLines] = useState(parseInt(getStorageValue(PANEL_LINES_KEY, DEFAULT_LINES), 10));
@@ -1556,9 +1557,15 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
             };
 
             // 곡 변경 리스너
+            const handleGlobalOffsetChange = (event) => {
+                setGlobalOffset(event.detail?.offset || 0);
+                panelDebug("[PanelLyrics] Global offset changed:", event.detail?.offset || 0);
+            };
+
             Spicetify.Player.addEventListener('songchange', handleSongChange);
             window.addEventListener('ivLyrics', handleSettingsChange);
             window.addEventListener('ivLyrics:offset-changed', handleOffsetChange);
+            window.addEventListener('ivLyrics:global-offset-changed', handleGlobalOffsetChange);
 
             // 초기 로드 (현재 재생 중인 곡)
             loadLyricsFromExtension();
@@ -1567,6 +1574,7 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
                 Spicetify.Player.removeEventListener('songchange', handleSongChange);
                 window.removeEventListener('ivLyrics', handleSettingsChange);
                 window.removeEventListener('ivLyrics:offset-changed', handleOffsetChange);
+                window.removeEventListener('ivLyrics:global-offset-changed', handleGlobalOffsetChange);
             };
         }, [loadLyricsFromExtension]);
 
@@ -1784,7 +1792,7 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
                 const pseudoAdvance = PSEUDO_KARAOKE_SOURCES.has(karaokeSource)
                     ? pseudoKaraokeAdvanceMs
                     : 0;
-                const adjustedPosition = position + (cachedDelay || 0) + trackOffset + pseudoAdvance;
+                const adjustedPosition = position + (cachedDelay || 0) + trackOffset + globalOffset + pseudoAdvance;
 
                 // 전역 변수에 현재 시간 저장 (KaraokeWord에서 읽음)
                 window._ivLyricsPanelCurrentTime = adjustedPosition;
@@ -1820,7 +1828,7 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
                 // 전역 변수 정리
                 window._ivLyricsPanelCurrentTime = 0;
             };
-        }, [lyrics, isEnabled, trackOffset, karaokeSource, pseudoKaraokeAdvanceMs]); // currentIndex 의존성 제거
+        }, [lyrics, isEnabled, trackOffset, globalOffset, karaokeSource, pseudoKaraokeAdvanceMs]); // currentIndex 의존성 제거
 
         // 스크롤 애니메이션 비활성화 - Now Playing 탭 스크롤 문제 방지
         // useEffect(() => {

@@ -1584,7 +1584,9 @@ window.LANG_ZH_CN = {
     "feedbackPositiveSuccess": "感谢您的好评！",
     "feedbackNegativeSuccess": "感谢反馈，我们会改进！",
     "feedbackFailed": "反馈提交失败",
-    "autoSubmitEnabled": "⚡ 自动提交已启用"
+    "autoSubmitEnabled": "⚡ 自动提交已启用",
+    "globalTitle": "全局同步",
+    "globalInfo": "仅在此设备上应用到所有歌曲，绝不会提交到社区。"
   },
   "playbarButton": {
     "label": "歌词 Plus"

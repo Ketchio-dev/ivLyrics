@@ -1675,6 +1675,8 @@ const CONFIG = {
       "ivLyrics:visual:community-sync-auto-submit",
       false
     ),
+    "global-sync-offset":
+      Number(StorageManager.getItem("ivLyrics:visual:global-sync-offset")) || 0,
     "fullscreen-key":
       StorageManager.getItem("ivLyrics:visual:fullscreen-key") || "f12",
     "synced-compact": StorageManager.get("ivLyrics:visual:synced-compact"),

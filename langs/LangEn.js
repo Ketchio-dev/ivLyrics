@@ -1584,7 +1584,9 @@ window.LANG_EN = {
     "feedbackPositiveSuccess": "Thanks for the positive feedback!",
     "feedbackNegativeSuccess": "Thanks for the feedback. We'll improve!",
     "feedbackFailed": "Failed to submit feedback",
-    "autoSubmitEnabled": "⚡ Auto-submit is enabled"
+    "autoSubmitEnabled": "⚡ Auto-submit is enabled",
+    "globalTitle": "Global Sync",
+    "globalInfo": "Applies to every song on this device only. It is never submitted to the community."
   },
   "playbarButton": {
     "label": "Lyrics Plus"

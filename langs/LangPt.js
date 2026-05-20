@@ -1584,7 +1584,9 @@ window.LANG_PT = {
     "feedbackPositiveSuccess": "Obrigado pelo feedback positivo!",
     "feedbackNegativeSuccess": "Obrigado. Vamos melhorar!",
     "feedbackFailed": "Falha ao enviar feedback",
-    "autoSubmitEnabled": "⚡ Envio automático ativado"
+    "autoSubmitEnabled": "⚡ Envio automático ativado",
+    "globalTitle": "Sincronização global",
+    "globalInfo": "Aplica-se a todas as músicas apenas neste dispositivo. Nunca é enviada à comunidade."
   },
   "playbarButton": {
     "label": "Letra Plus"

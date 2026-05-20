@@ -1329,6 +1329,48 @@ const Utils = {
     return names[this.detectPlatform()];
   },
 
+  getGlobalSyncOffset() {
+    const fromConfig = window.CONFIG?.visual?.["global-sync-offset"];
+    const fromStorage = (() => {
+      try {
+        return localStorage.getItem("ivLyrics:visual:global-sync-offset");
+      } catch (error) {
+        return null;
+      }
+    })();
+    const numericValue = Number(fromConfig ?? fromStorage ?? 0);
+    if (!Number.isFinite(numericValue)) return 0;
+    return Math.max(-10000, Math.min(10000, Math.round(numericValue)));
+  },
+
+  setGlobalSyncOffset(offset) {
+    const numericValue = Number(offset);
+    const safeOffset = Number.isFinite(numericValue)
+      ? Math.max(-10000, Math.min(10000, Math.round(numericValue)))
+      : 0;
+
+    if (window.CONFIG?.visual) {
+      window.CONFIG.visual["global-sync-offset"] = safeOffset;
+    }
+
+    try {
+      if (typeof StorageManager !== "undefined" && StorageManager?.saveConfig) {
+        StorageManager.saveConfig("global-sync-offset", safeOffset);
+      } else {
+        localStorage.setItem("ivLyrics:visual:global-sync-offset", String(safeOffset));
+      }
+    } catch (error) {
+      console.error("[ivLyrics] Failed to save global sync offset:", error);
+    }
+
+    window.dispatchEvent(new CustomEvent("ivLyrics:global-offset-changed", {
+      detail: { offset: safeOffset }
+    }));
+    window.dispatchEvent(new CustomEvent("ivLyrics", {
+      detail: { type: "config", name: "global-sync-offset", value: safeOffset }
+    }));
+  },
+
   // Track-specific sync offset management (using IndexedDB)
   async getTrackSyncOffset(trackUri) {
     if (!trackUri) return 0;

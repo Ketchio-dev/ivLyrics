@@ -4687,6 +4687,15 @@
                 offset += window.CONFIG.visual.delay;
             }
 
+            const globalSyncOffset = Number(
+                window.Utils?.getGlobalSyncOffset?.()
+                ?? window.CONFIG?.visual?.["global-sync-offset"]
+                ?? 0
+            );
+            if (Number.isFinite(globalSyncOffset)) {
+                offset += globalSyncOffset;
+            }
+
             // 2. TrackSyncDB에서 트랙별 오프셋
             if (this._offsetCache && this._offsetCache[uri] !== undefined) {
                 offset += this._offsetCache[uri];
@@ -5048,6 +5057,7 @@
             window.addEventListener('storage', this._storageListener);
             window.addEventListener('ivLyrics:delay-changed', this._delayChangedListener);
             window.addEventListener('ivLyrics:offset-changed', this._offsetChangedListener);
+            window.addEventListener('ivLyrics:global-offset-changed', this._offsetChangedListener);
             window.addEventListener('ivLyrics:lyrics-ready', this._lyricsReadyListener);
             document.addEventListener('visibilitychange', this._visibilityChangeListener);
             window.addEventListener('focus', this._focusListener);
@@ -5068,6 +5078,7 @@
             }
             if (this._offsetChangedListener) {
                 window.removeEventListener('ivLyrics:offset-changed', this._offsetChangedListener);
+                window.removeEventListener('ivLyrics:global-offset-changed', this._offsetChangedListener);
                 this._offsetChangedListener = null;
             }
             if (this._lyricsReadyListener) {
@@ -5479,6 +5490,7 @@
                 window.addEventListener('storage', this._storageListener);
                 window.addEventListener('ivLyrics:delay-changed', this._delayChangedListener);
                 window.addEventListener('ivLyrics:offset-changed', this._offsetChangedListener);
+                window.addEventListener('ivLyrics:global-offset-changed', this._offsetChangedListener);
                 window.addEventListener('ivLyrics:lyrics-ready', this._lyricsReadyListener);
                 document.addEventListener('visibilitychange', this._visibilityChangeListener);
                 window.addEventListener('focus', this._focusListener);
@@ -5500,6 +5512,7 @@
                 }
                 if (this._offsetChangedListener) {
                     window.removeEventListener('ivLyrics:offset-changed', this._offsetChangedListener);
+                    window.removeEventListener('ivLyrics:global-offset-changed', this._offsetChangedListener);
                     this._offsetChangedListener = null;
                 }
                 if (this._lyricsReadyListener) {

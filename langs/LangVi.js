@@ -1584,7 +1584,9 @@ window.LANG_VI = {
     "feedbackPositiveSuccess": "Cảm ơn phản hồi tích cực của bạn!",
     "feedbackNegativeSuccess": "Cảm ơn phản hồi. Chúng tôi sẽ cải thiện!",
     "feedbackFailed": "Gửi phản hồi thất bại",
-    "autoSubmitEnabled": "⚡ Tự động gửi đang được bật"
+    "autoSubmitEnabled": "⚡ Tự động gửi đang được bật",
+    "globalTitle": "Đồng bộ toàn cục",
+    "globalInfo": "Chỉ áp dụng cho mọi bài hát trên thiết bị này. Không bao giờ được gửi lên cộng đồng."
   },
   "playbarButton": {
     "label": "Lyrics Plus"

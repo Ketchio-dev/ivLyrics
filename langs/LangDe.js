@@ -1584,7 +1584,9 @@ window.LANG_DE = {
     "feedbackPositiveSuccess": "Danke für das Feedback!",
     "feedbackNegativeSuccess": "Danke, wir werden es verbessern!",
     "feedbackFailed": "Feedback fehlgeschlagen",
-    "autoSubmitEnabled": "⚡ Automatisches Senden aktiviert"
+    "autoSubmitEnabled": "⚡ Automatisches Senden aktiviert",
+    "globalTitle": "Globale Synchronisierung",
+    "globalInfo": "Gilt nur auf diesem Gerät für alle Songs. Wird niemals an die Community gesendet."
   },
   "playbarButton": {
     "label": "Lyrics Plus"

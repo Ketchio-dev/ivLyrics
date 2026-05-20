@@ -1584,7 +1584,9 @@ window.LANG_KO = {
     "feedbackPositiveSuccess": "긍정적인 피드백 감사합니다!",
     "feedbackNegativeSuccess": "피드백 감사합니다. 개선하겠습니다!",
     "feedbackFailed": "피드백 제출에 실패했습니다",
-    "autoSubmitEnabled": "⚡ 자동 제출이 활성화되어 있습니다"
+    "autoSubmitEnabled": "⚡ 자동 제출이 활성화되어 있습니다",
+    "globalTitle": "전역 싱크",
+    "globalInfo": "이 기기에서만 모든 곡에 적용됩니다. 커뮤니티에는 절대 제출되지 않습니다."
   },
   "playbarButton": {
     "label": "가사 플러스"

@@ -1584,7 +1584,9 @@ window.LANG_RU = {
     "feedbackPositiveSuccess": "Спасибо за положительный отзыв!",
     "feedbackNegativeSuccess": "Спасибо за отзыв. Мы улучшим это!",
     "feedbackFailed": "Ошибка отправки отзыва",
-    "autoSubmitEnabled": "⚡ Автоотправка включена"
+    "autoSubmitEnabled": "⚡ Автоотправка включена",
+    "globalTitle": "Глобальная синхронизация",
+    "globalInfo": "Применяется ко всем трекам только на этом устройстве. Никогда не отправляется в сообщество."
   },
   "playbarButton": {
     "label": "Текст Плюс"

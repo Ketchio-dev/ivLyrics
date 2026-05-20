@@ -1584,7 +1584,9 @@ window.LANG_MS = {
     "feedbackPositiveSuccess": "Terima kasih atas maklum balas positif anda!",
     "feedbackNegativeSuccess": "Terima kasih atas maklum balas anda. Kami akan memperbaikinya!",
     "feedbackFailed": "Gagal menyerahkan maklum balas",
-    "autoSubmitEnabled": "⚡ Penyerahan automatik diaktifkan"
+    "autoSubmitEnabled": "⚡ Penyerahan automatik diaktifkan",
+    "globalTitle": "Segerak Global",
+    "globalInfo": "Digunakan pada semua lagu hanya pada peranti ini. Tidak akan dihantar kepada komuniti."
   },
   "playbarButton": {
     "label": "Lyrics Plus"

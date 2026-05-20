@@ -532,7 +532,8 @@ const VideoBackground = ({ trackUri, firstLyricTime, brightness, blurAmount, cov
                 const captionStartTime = videoInfo.captionStartTime;
                 const offset = getVideoSyncOffsetSeconds(captionStartTime, lyricsStartTime, videoInfo);
                 const globalDelayMs = typeof CONFIG !== "undefined" && CONFIG.visual ? Number(CONFIG.visual.delay || 0) : 0;
-                const additionalDelaySeconds = (trackOffsetMs + globalDelayMs) / 1000;
+                const globalSyncOffsetMs = Number(window.Utils?.getGlobalSyncOffset?.() ?? CONFIG?.visual?.["global-sync-offset"] ?? 0) || 0;
+                const additionalDelaySeconds = (trackOffsetMs + globalDelayMs + globalSyncOffsetMs) / 1000;
                 let targetVideoTime = spotifyTime + offset + additionalDelaySeconds;
 
                 if (targetVideoTime >= 0 && video.duration > 0) {
@@ -732,7 +733,8 @@ const VideoBackground = ({ trackUri, firstLyricTime, brightness, blurAmount, cov
             const captionStartTime = videoInfo.captionStartTime;
             const offset = getVideoSyncOffsetSeconds(captionStartTime, lyricsStartTime, videoInfo);
             const globalDelayMs = typeof CONFIG !== "undefined" && CONFIG.visual ? Number(CONFIG.visual.delay || 0) : 0;
-            const additionalDelaySeconds = (trackOffsetMs + globalDelayMs) / 1000;
+            const globalSyncOffsetMs = Number(window.Utils?.getGlobalSyncOffset?.() ?? CONFIG?.visual?.["global-sync-offset"] ?? 0) || 0;
+            const additionalDelaySeconds = (trackOffsetMs + globalDelayMs + globalSyncOffsetMs) / 1000;
             let targetVideoTime = spotifyTime + offset + additionalDelaySeconds;
 
             // 영상 길이보다 음악이 길 경우, 영상을 처음부터 반복 재생
@@ -871,7 +873,8 @@ const VideoBackground = ({ trackUri, firstLyricTime, brightness, blurAmount, cov
             // captionStartTime이 있는 경우에만 가사와 자막 시작 시간 차이를 계산하여 오프셋 적용
             const offset = getVideoSyncOffsetSeconds(captionStartTime, lyricsStartTime, videoInfo);
             const globalDelayMs = typeof CONFIG !== "undefined" && CONFIG.visual ? Number(CONFIG.visual.delay || 0) : 0;
-            const additionalDelaySeconds = (trackOffsetMs + globalDelayMs) / 1000;
+            const globalSyncOffsetMs = Number(window.Utils?.getGlobalSyncOffset?.() ?? CONFIG?.visual?.["global-sync-offset"] ?? 0) || 0;
+            const additionalDelaySeconds = (trackOffsetMs + globalDelayMs + globalSyncOffsetMs) / 1000;
             let targetVideoTime = spotifyTime + offset + additionalDelaySeconds;
 
             // 영상 길이보다 음악이 길 경우, 영상을 처음부터 반복 재생

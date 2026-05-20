@@ -1119,6 +1119,30 @@ const useTrackOffsetState = () => {
 	return trackOffset;
 };
 
+const getGlobalSyncOffsetValue = () => {
+	if (typeof Utils !== "undefined" && typeof Utils.getGlobalSyncOffset === "function") {
+		return Utils.getGlobalSyncOffset();
+	}
+	const numericValue = Number(CONFIG?.visual?.["global-sync-offset"] ?? 0);
+	return Number.isFinite(numericValue) ? numericValue : 0;
+};
+
+const useGlobalSyncOffsetState = () => {
+	const [globalOffset, setGlobalOffset] = useState(getGlobalSyncOffsetValue);
+
+	useEffect(() => {
+		const handleGlobalOffsetChange = (event) => {
+			const nextOffset = Number(event.detail?.offset ?? 0);
+			setGlobalOffset(Number.isFinite(nextOffset) ? nextOffset : 0);
+		};
+
+		window.addEventListener("ivLyrics:global-offset-changed", handleGlobalOffsetChange);
+		return () => window.removeEventListener("ivLyrics:global-offset-changed", handleGlobalOffsetChange);
+	}, []);
+
+	return globalOffset;
+};
+
 // Quantize playback position so identical values within a step don't trigger
 // setState. SyncedLyricsPage's renderItems useMemo depends on `position`, so
 // every change there cascades into rebuilding every line's style/className
@@ -1141,11 +1165,12 @@ const getPositionQuantizeMs = () => Math.max(1, Math.round(1000 / getTrackPositi
 const useLyricsPlaybackPosition = () => {
 	const [position, setPosition] = useState(0);
 	const trackOffset = useTrackOffsetState();
+	const globalOffset = useGlobalSyncOffsetState();
 
 	useTrackPosition(() => {
 		const newPos = window.Utils?.getSafePlayerProgress?.()
 			?? (Spicetify.Player.getProgress?.() || 0);
-		const delay = CONFIG.visual.delay + trackOffset;
+		const delay = CONFIG.visual.delay + trackOffset + globalOffset;
 		const quantizeMs = getPositionQuantizeMs();
 		const next = Math.round((newPos + delay) / quantizeMs) * quantizeMs;
 		setPosition((prev) => (prev === next ? prev : next));

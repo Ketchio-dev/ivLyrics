@@ -1584,7 +1584,9 @@ window.LANG_TH = {
     "feedbackPositiveSuccess": "ขอบคุณสำหรับคำติชม!",
     "feedbackNegativeSuccess": "ขอบคุณสำหรับคำติชม เราจะปรับปรุงให้ดีขึ้น!",
     "feedbackFailed": "ส่งคำติชมล้มเหลว",
-    "autoSubmitEnabled": "⚡ เปิดใช้งานการส่งอัตโนมัติ"
+    "autoSubmitEnabled": "⚡ เปิดใช้งานการส่งอัตโนมัติ",
+    "globalTitle": "ซิงก์ส่วนกลาง",
+    "globalInfo": "ใช้กับทุกเพลงบนอุปกรณ์นี้เท่านั้น และจะไม่ถูกส่งไปยังชุมชน"
   },
   "playbarButton": {
     "label": "เนื้อเพลง Plus"

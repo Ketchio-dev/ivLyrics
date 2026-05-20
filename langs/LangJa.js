@@ -1584,7 +1584,9 @@ window.LANG_JA = {
     "feedbackPositiveSuccess": "肯定的なフィードバックありがとうございます！",
     "feedbackNegativeSuccess": "フィードバックありがとうございます。改善します！",
     "feedbackFailed": "フィードバックの提出に失敗しました",
-    "autoSubmitEnabled": "⚡ 自動提出が有効になっています"
+    "autoSubmitEnabled": "⚡ 自動提出が有効になっています",
+    "globalTitle": "グローバル同期",
+    "globalInfo": "このデバイス上のすべての曲にのみ適用されます。コミュニティには送信されません。"
   },
   "playbarButton": {
     "label": "歌詞プラス"

@@ -1584,7 +1584,9 @@ window.LANG_AR = {
     "feedbackPositiveSuccess": "شكرًا لتقييمك الإيجابي!",
     "feedbackNegativeSuccess": "شكرًا للتقييم. سنعمل على التحسين!",
     "feedbackFailed": "فشل إرسال التقييم",
-    "autoSubmitEnabled": "⚡ الإرسال التلقائي مفعل"
+    "autoSubmitEnabled": "⚡ الإرسال التلقائي مفعل",
+    "globalTitle": "مزامنة عامة",
+    "globalInfo": "تطبق على كل الأغاني على هذا الجهاز فقط. لا يتم إرسالها إلى المجتمع أبداً."
   },
   "playbarButton": {
     "label": "كلمات بلس"
