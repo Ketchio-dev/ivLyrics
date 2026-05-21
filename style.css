@@ -660,6 +660,11 @@ body.ivlyrics-page-active .main-topBar-container {
     text-shadow var(--iv-motion-duration-medium) var(--iv-motion-ease-standard);
 }
 
+.lyrics-lyricsContainer-LyricsLine > p:has(.lyrics-karaoke-stack),
+.lyrics-lyricsContainer-LyricsLine > p:has(.lyrics-karaoke-line) {
+  overflow: visible;
+}
+
 .lyrics-lyricsContainer-LyricsLine-active > p,
 .lyrics-lyricsContainer-LyricsLine-active .lyrics-lyricsContainer-LyricsLine-phonetic,
 .lyrics-lyricsContainer-LyricsLine-active .lyrics-lyricsContainer-LyricsLine-translation,
@@ -970,8 +975,9 @@ div.lyrics-tabBar-headerItemLink {
   width: 100%;
   max-width: 100%;
   letter-spacing: var(--lyrics-original-letter-spacing, 0);
-  line-height: 1.3;
+  line-height: 1.38;
   color: var(--lyrics-color-inactive);
+  overflow: visible;
   /* Apply the configured shadow once per line instead of once per karaoke char. */
   filter: var(--lyrics-text-drop-shadow, none);
   text-shadow: none !important;
@@ -1000,13 +1006,17 @@ div.lyrics-tabBar-headerItemLink {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.18em;
+  gap: 0.24em;
   width: 100%;
+  overflow: visible;
+  padding-block: 0.08em;
 }
 
 .lyrics-karaoke-part {
   display: block;
   width: 100%;
+  overflow: visible;
+  padding-block: 0.03em;
 }
 
 .lyrics-karaoke-part.background {
@@ -1169,6 +1179,7 @@ div.lyrics-tabBar-headerItemLink {
   display: inline-block;
   white-space: nowrap;
   vertical-align: baseline;
+  overflow: visible;
 }
 
 .lyrics-karaoke-text-run-segment {
@@ -1226,6 +1237,7 @@ div.lyrics-tabBar-headerItemLink {
   filter: none;
   text-shadow: none;
   vertical-align: baseline;
+  overflow: visible;
 }
 
 .lyrics-karaoke-char.is-bouncing {
@@ -1276,6 +1288,7 @@ div.lyrics-tabBar-headerItemLink {
 
 .lyrics-karaoke-ruby {
   ruby-position: over;
+  overflow: visible;
 }
 
 /* Keep pending rt on the same transparent + background-clip:text path the active

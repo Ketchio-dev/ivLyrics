@@ -720,7 +720,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			const char = chars[index] || '';
 			const isOpen = char === '(' || char === '（';
 			const isClose = char === ')' || char === '）';
-			const isHidden = isOpen || isClose || /\s/u.test(char);
+			const isHidden = isOpen || isClose;
 
 			if (isOpen || isClose) {
 				flushRun(index - 1);
@@ -1218,17 +1218,17 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 	);
 	const hasCurrentLineFurigana = currentLineFuriganaMap.size > 0;
 	const currentLineCharacterPronunciationData = useMemo(() => {
-		if (activeParallelPart || !showCharacterPronunciations || !Array.isArray(characterPronunciations?.lines)) {
+		if (!showCharacterPronunciations || !Array.isArray(characterPronunciations?.lines)) {
 			return null;
 		}
 
 		return characterPronunciations.lines.find(line => Number(line?.index) === currentLineIndex)
 			|| characterPronunciations.lines[currentLineIndex]
 			|| null;
-	}, [activeParallelPart, showCharacterPronunciations, characterPronunciations, currentLineIndex]);
+	}, [showCharacterPronunciations, characterPronunciations, currentLineIndex]);
 	const currentLinePronunciationUnits = useMemo(
-		() => normalizeSyncCreatorPronunciationUnits(currentLineCharacterPronunciationData, currentLineChars),
-		[currentLineCharacterPronunciationData, currentLineChars]
+		() => activeParallelPart ? [] : normalizeSyncCreatorPronunciationUnits(currentLineCharacterPronunciationData, currentLineChars),
+		[activeParallelPart, currentLineCharacterPronunciationData, currentLineChars]
 	);
 	const currentLineEffectiveSyllableSegments = useMemo(() => {
 		if (currentLinePronunciationUnits.length > 0) {
@@ -1245,16 +1245,20 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			return new Map();
 		}
 
+		const partIndexMap = activeParallelPart
+			? new Map(currentLineCharRefs.map((ref, displayIndex) => [ref.localIndex, displayIndex]))
+			: null;
 		const map = new Map();
 		lineData.chars.forEach((item, fallbackIndex) => {
-			const index = Number.isInteger(Number(item?.i)) ? Number(item.i) : fallbackIndex;
+			const sourceIndex = Number.isInteger(Number(item?.i)) ? Number(item.i) : fallbackIndex;
+			const index = partIndexMap ? partIndexMap.get(sourceIndex) : sourceIndex;
 			const pronunciation = typeof item?.pronunciation === 'string' ? item.pronunciation.trim() : '';
-			if (pronunciation) {
+			if (pronunciation && Number.isInteger(index)) {
 				map.set(index, pronunciation);
 			}
 		});
 		return map;
-	}, [currentLineCharacterPronunciationData, currentLineChars]);
+	}, [activeParallelPart, currentLineCharacterPronunciationData, currentLineCharRefs]);
 	const hasCurrentLineCharacterPronunciation = currentLineCharacterPronunciationMap.size > 0 || currentLinePronunciationUnits.length > 0;
 	const usePrimaryCharacterPronunciation = isCharacterPronunciationPrimary && hasCurrentLineCharacterPronunciation;
 	const currentLineRenderedPronunciationUnits = useMemo(() => {
