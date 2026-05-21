@@ -838,13 +838,15 @@ body.ivlyrics-page-active .main-topBar-container {
 }
 
 .lyrics-lyricsContainer-SyncedLyricsPage:not(.scrolling-active) .lyrics-lyricsContainer-SyncedLyrics>.lyrics-lyricsContainer-LyricsLine-paddingBefore {
-  height: 0 !important;
   min-height: 0 !important;
   margin-top: 0 !important;
   margin-bottom: 0 !important;
   padding-top: 0 !important;
   padding-bottom: 0 !important;
-  overflow: hidden;
+  /* Keep outgoing multi-line lyrics in flow while hidden so the remaining lines
+     do not visually fall when a tall line leaves the compact window. */
+  height: auto !important;
+  overflow: visible;
 }
 
 .lyrics-lyricsContainer-LyricsLine,

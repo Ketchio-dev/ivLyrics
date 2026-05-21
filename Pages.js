@@ -2060,6 +2060,8 @@ const getCompactSyncedOffset = (container, activeLine, isScrolling) => {
 	return anchorOffset - (activeLine.offsetTop + activeLine.clientHeight / 2);
 };
 
+const useSyncedLayoutEffect = react.useLayoutEffect || useEffect;
+
 const buildGlobalCharState = (lyrics, position) => {
 	const offsets = [];
 	let totalChars = 0;
@@ -2748,14 +2750,8 @@ const useSyncedLyricsEngine = ({
 			return paddedLyrics;
 		}
 
-		const startIndex = Math.max(compactWindowStartIndex - 2, 0);
-		const endIndex = Math.min(
-			activeDisplayLineIndex + CONFIG.visual["lines-after"] + 3,
-			compactDisplayLines.length
-		);
-
-		return compactDisplayLines.slice(startIndex, endIndex);
-	}, [compact, isScrolling, paddedLyrics, compactDisplayLines, compactWindowStartIndex, activeDisplayLineIndex]);
+		return compactDisplayLines;
+	}, [compact, isScrolling, paddedLyrics, compactDisplayLines]);
 	const compactAnchorIndex = compact
 		? Math.min(CONFIG.visual["lines-before"], leadingEmptyLines)
 		: activeLineIndex;
@@ -2799,7 +2795,7 @@ const useSyncedLyricsEngine = ({
 	// each time. Now scoped to the events that can actually change the offset:
 	// active line shifts, scrolling state flips, compact mode toggles.
 	const [compactOffset, setCompactOffset] = useState(0);
-	useEffect(() => {
+	useSyncedLayoutEffect(() => {
 		if (!compact) {
 			setCompactOffset(0);
 			return;
