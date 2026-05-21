@@ -3345,57 +3345,78 @@ const KaraokeLine = react.memo(({ line, position, isActive, globalCharOffset = 0
 	if (vocalRows) {
 		const rowPhonetics = splitLineByParallelShape(phonetic, vocalRows.length);
 		const rowTranslations = splitLineByParallelShape(translation, vocalRows.length);
+		const hasRowPhoneticSubline = vocalRows.some((row, rowIndex) => row.phonetic || rowPhonetics[rowIndex]);
+		const hasRowTranslationSubline = vocalRows.some((row, rowIndex) => row.translation || rowTranslations[rowIndex]);
+		const stackPhonetic = !hasRowPhoneticSubline && typeof phonetic === "string" ? phonetic.trim() : "";
+		const stackTranslation = !hasRowTranslationSubline && typeof translation === "string" ? translation.trim() : "";
 		let rowGlobalCharOffset = globalCharOffset;
+		const stackChildren = vocalRows.map((row, rowIndex) => {
+			const rowLine = {
+				...line,
+				text: row.text,
+				originalText: row.text,
+				syllables: row.syllables,
+				vocals: undefined,
+				speaker: row.speaker,
+				kind: row.kind,
+			};
+			const classParts = [
+				"lyrics-karaoke-part",
+				row.role === "background" ? "background" : "lead",
+				row.kind || "vocal",
+				row.speakerClass ? `speaker-${row.speakerClass}` : "",
+			].filter(Boolean);
+			const currentOffset = rowGlobalCharOffset;
+			rowGlobalCharOffset += getKaraokeSyllableCharCount(row.syllables);
+			const rowPhonetic = row.phonetic || rowPhonetics[rowIndex] || "";
+			const rowTranslation = row.translation || rowTranslations[rowIndex] || "";
+
+			return react.createElement(
+				"span",
+				{
+					key: row.key || rowIndex,
+					className: classParts.join(" "),
+				},
+				react.createElement(KaraokeLine, {
+					line: rowLine,
+					position,
+					isActive,
+					globalCharOffset: currentOffset,
+					activeGlobalCharIndex,
+				}),
+				rowPhonetic && react.createElement(
+					"span",
+					{ className: "lyrics-lyricsContainer-LyricsLine-phonetic lyrics-karaoke-part-subline" },
+					rowPhonetic
+				),
+				rowTranslation && react.createElement(
+					"span",
+					{ className: "lyrics-lyricsContainer-LyricsLine-translation lyrics-karaoke-part-subline" },
+					rowTranslation
+				)
+			);
+		});
+
+		if (stackPhonetic) {
+			stackChildren.push(react.createElement(
+				"span",
+				{ key: "stack-phonetic", className: "lyrics-lyricsContainer-LyricsLine-phonetic lyrics-karaoke-part-subline lyrics-karaoke-stack-subline" },
+				stackPhonetic
+			));
+		}
+
+		if (stackTranslation) {
+			stackChildren.push(react.createElement(
+				"span",
+				{ key: "stack-translation", className: "lyrics-lyricsContainer-LyricsLine-translation lyrics-karaoke-part-subline lyrics-karaoke-stack-subline" },
+				stackTranslation
+			));
+		}
 
 		return react.createElement(
 			"span",
 			{ className: "lyrics-karaoke-stack" },
-			vocalRows.map((row, rowIndex) => {
-				const rowLine = {
-					...line,
-					text: row.text,
-					originalText: row.text,
-					syllables: row.syllables,
-					vocals: undefined,
-					speaker: row.speaker,
-					kind: row.kind,
-				};
-				const classParts = [
-					"lyrics-karaoke-part",
-					row.role === "background" ? "background" : "lead",
-					row.kind || "vocal",
-					row.speakerClass ? `speaker-${row.speakerClass}` : "",
-				].filter(Boolean);
-				const currentOffset = rowGlobalCharOffset;
-				rowGlobalCharOffset += getKaraokeSyllableCharCount(row.syllables);
-				const rowPhonetic = row.phonetic || rowPhonetics[rowIndex] || "";
-				const rowTranslation = row.translation || rowTranslations[rowIndex] || "";
-
-				return react.createElement(
-					"span",
-					{
-						key: row.key || rowIndex,
-						className: classParts.join(" "),
-					},
-					react.createElement(KaraokeLine, {
-						line: rowLine,
-						position,
-						isActive,
-						globalCharOffset: currentOffset,
-						activeGlobalCharIndex,
-					}),
-					rowPhonetic && react.createElement(
-						"span",
-						{ className: "lyrics-lyricsContainer-LyricsLine-phonetic lyrics-karaoke-part-subline" },
-						rowPhonetic
-					),
-					rowTranslation && react.createElement(
-						"span",
-						{ className: "lyrics-lyricsContainer-LyricsLine-translation lyrics-karaoke-part-subline" },
-						rowTranslation
-					)
-				);
-			})
+			stackChildren
 		);
 	}
 

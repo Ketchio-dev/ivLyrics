@@ -409,6 +409,8 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			escape: 'esc',
 			return: 'enter',
 			del: 'delete',
+			divide: '/',
+			numpaddivide: '/',
 			control: 'ctrl',
 			command: 'meta',
 			cmd: 'meta',
@@ -444,6 +446,11 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			parts.push(baseKey);
 		}
 		return parts.join('+');
+	};
+	const isSyncCreatorDragHotkeyEvent = (event, normalizedHotkey = getNormalizedHotkeyFromEvent(event)) => {
+		if (normalizedHotkey === '/') return true;
+		if (event.ctrlKey || event.altKey || event.shiftKey || event.metaKey) return false;
+		return event.code === 'Slash' || event.code === 'NumpadDivide';
 	};
 	const formatHotkeyToken = (value) => {
 		const token = normalizeHotkeyToken(value);
@@ -2818,11 +2825,12 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 
 		const handleKeyDown = (e) => {
 			const normalizedHotkey = getNormalizedHotkeyFromEvent(e);
+			const isDragHotkey = isSyncCreatorDragHotkeyEvent(e, normalizedHotkey);
 			const shortcutBindings = getSyncCreatorShortcutBindings();
 			const shortcutAction = Object.entries(shortcutBindings)
 				.find(([, bindings]) => bindings.includes(normalizedHotkey))?.[0] || null;
-			const staticHotkeys = new Set(['enter', 'backspace', '/', 'z', 'x']);
-			if (!shortcutAction && !staticHotkeys.has(normalizedHotkey)) return;
+			const staticHotkeys = new Set(['enter', 'backspace', 'space', 'z', 'x']);
+			if (!shortcutAction && !isDragHotkey && !staticHotkeys.has(normalizedHotkey)) return;
 
 			// record 모드가 아니면 처리하지 않음
 			if (mode !== 'record') return;
@@ -2834,6 +2842,13 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			window.__ivLyricsDebugLog?.('[SyncDataCreator] KeyDown:', e.key, 'normalized:', normalizedHotkey, 'mode:', mode, 'lineIndex:', currentLineIndex);
 
 			if (currentLineIndex >= lyricsLines.length) return;
+			if (!currentLineChars.length) return;
+
+			const consumeKeyboardEvent = () => {
+				e.preventDefault();
+				e.stopPropagation();
+				e.stopImmediatePropagation();
+			};
 
 			// 한 글자 앞으로 진행하는 헬퍼 함수
 			const advanceOneChar = (currentTime) => {
@@ -3126,18 +3141,15 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 
 			// 오른쪽 방향키: 한 글자 싱크
 			if (shortcutAction === 'charForward') {
-				e.preventDefault();
-				e.stopPropagation();
-				e.stopImmediatePropagation();
+				consumeKeyboardEvent();
 				const currentTime = Spicetify.Player.getProgress() / 1000;
 				advanceOneChar(currentTime);
+				return;
 			}
 
 			// 왼쪽 방향키: 한 글자 취소 (첫 글자도 취소 가능)
 			if (shortcutAction === 'charBack') {
-				e.preventDefault();
-				e.stopPropagation();
-				e.stopImmediatePropagation();
+				consumeKeyboardEvent();
 				if (isKeyboardSyncingRef.current && keyboardCharIndexRef.current >= 0) {
 					pendingWordSyncRef.current = null;
 					pendingSyllableSyncRef.current = null;
@@ -3152,31 +3164,28 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 						window.__ivLyricsDebugLog?.('[SyncDataCreator] All chars reverted, sync reset');
 					}
 				}
+				return;
 			}
 
 			// . (> 키): 한 단어 싱크
 			if (shortcutAction === 'wordForward') {
-				e.preventDefault();
-				e.stopPropagation();
-				e.stopImmediatePropagation();
+				consumeKeyboardEvent();
 				const currentTime = Spicetify.Player.getProgress() / 1000;
 				advanceOneWord(currentTime);
+				return;
 			}
 
 			// , (< 키): 한 단어 취소
 			if (shortcutAction === 'wordBack') {
-				e.preventDefault();
-				e.stopPropagation();
-				e.stopImmediatePropagation();
+				consumeKeyboardEvent();
 				pendingSyllableSyncRef.current = null;
 				revertOneWord();
+				return;
 			}
 
 			// ; 키: 음절 단위 싱크 (다음 모음까지 진행)
 			if (shortcutAction === 'syllable') {
-				e.preventDefault();
-				e.stopPropagation();
-				e.stopImmediatePropagation();
+				consumeKeyboardEvent();
 				const currentTime = Spicetify.Player.getProgress() / 1000;
 
 				if (!currentLineEffectiveSyllableSegments.length) {
@@ -3251,13 +3260,12 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 					endIdx: nextSegment.end,
 					startTime: currentTime
 				};
+				return;
 			}
 
 			// / 키: 드래그 모드 시작 (누르고 있으면 연속으로 빠르게 진행)
-			if (e.key === '/' && !e.repeat) {
-				e.preventDefault();
-				e.stopPropagation();
-				e.stopImmediatePropagation();
+			if (isDragHotkey) {
+				consumeKeyboardEvent();
 
 				// 이미 드래그 중이면 무시
 				if (isKeyboardDraggingRef.current) return;
@@ -3292,66 +3300,78 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 						keyboardDragIntervalRef.current = null;
 					}
 				}, 30);
+				return;
 			}
 
 			// Enter: 현재 라인 완료 (중간에서도 완료 가능, 키보드 싱크 중일 때만)
-			if (e.key === 'Enter') {
+			if (normalizedHotkey === 'enter') {
 				// 키보드 싱크 중일 때만 처리 (글자를 하나라도 맞췄을 때)
 				if (isKeyboardSyncingRef.current && keyboardCharIndexRef.current >= 0) {
-					e.preventDefault();
-					e.stopPropagation();
-					e.stopImmediatePropagation();
+					consumeKeyboardEvent();
 					finishKeyboardSync();
 				}
 				// 싱크 중이 아닐 때는 기본 동작 허용 (다른 버튼 클릭 등)
+				return;
 			}
 
 			// Backspace: 현재 라인 싱크 취소
-			if (e.key === 'Backspace' && isKeyboardSyncingRef.current) {
-				e.preventDefault();
-				e.stopPropagation();
-				e.stopImmediatePropagation();
-				isKeyboardSyncingRef.current = false;
-				keyboardCharIndexRef.current = -1;
-				charTimesRef.current = [];
-				pendingWordSyncRef.current = null;
-				pendingSyllableSyncRef.current = null;
-				setDragStartTime(null);
-				setRecordingCharIndex(-1);
+			if (normalizedHotkey === 'backspace') {
+				consumeKeyboardEvent();
+				if (isKeyboardSyncingRef.current) {
+					isKeyboardSyncingRef.current = false;
+					keyboardCharIndexRef.current = -1;
+					charTimesRef.current = [];
+					pendingWordSyncRef.current = null;
+					pendingSyllableSyncRef.current = null;
+					setDragStartTime(null);
+					setRecordingCharIndex(-1);
 
-				// 드래그 모드도 취소
-				if (isKeyboardDraggingRef.current) {
-					isKeyboardDraggingRef.current = false;
-					if (keyboardDragIntervalRef.current) {
-						clearInterval(keyboardDragIntervalRef.current);
-						keyboardDragIntervalRef.current = null;
+					// 드래그 모드도 취소
+					if (isKeyboardDraggingRef.current) {
+						isKeyboardDraggingRef.current = false;
+						if (keyboardDragIntervalRef.current) {
+							clearInterval(keyboardDragIntervalRef.current);
+							keyboardDragIntervalRef.current = null;
+						}
 					}
 				}
+				return;
+			}
+
+			if (normalizedHotkey === 'space') {
+				consumeKeyboardEvent();
+				if (typeof Spicetify.Player?.togglePlay === 'function') {
+					Spicetify.Player.togglePlay();
+				} else if (Spicetify.Player?.isPlaying?.()) {
+					Spicetify.Player.pause?.();
+				} else {
+					Spicetify.Player?.play?.();
+				}
+				return;
 			}
 
 			// z: 3초 뒤로
-			if (e.key === 'z') {
-				e.preventDefault();
-				e.stopPropagation();
-				e.stopImmediatePropagation();
+			if (normalizedHotkey === 'z') {
+				consumeKeyboardEvent();
 				const currentPos = Spicetify.Player.getProgress();
 				Spicetify.Player.seek(Math.max(0, currentPos - 3000));
+				return;
 			}
 
 			// x: 3초 앞으로
-			if (e.key === 'x') {
-				e.preventDefault();
-				e.stopPropagation();
-				e.stopImmediatePropagation();
+			if (normalizedHotkey === 'x') {
+				consumeKeyboardEvent();
 				const currentPos = Spicetify.Player.getProgress();
 				const duration = Spicetify.Player.getDuration();
 				Spicetify.Player.seek(Math.min(duration, currentPos + 3000));
+				return;
 			}
 		};
 
 		// / 키 keyup 이벤트 핸들러 (드래그 종료)
 		const handleKeyUp = (e) => {
-			if (e.key === '/') {
+			const normalizedHotkey = getNormalizedHotkeyFromEvent(e);
+			if (isSyncCreatorDragHotkeyEvent(e, normalizedHotkey)) {
 				e.preventDefault();
 				e.stopPropagation();
 				e.stopImmediatePropagation();
