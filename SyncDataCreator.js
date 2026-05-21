@@ -2048,6 +2048,103 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		return normalizedChars;
 	}, []);
 
+	const mergeCurrentLineWithNext = useCallback(() => {
+		if (currentLineIndex < 0 || currentLineIndex >= lyricsLines.length - 1) return;
+
+		const currentText = lyricsLines[currentLineIndex] || '';
+		const nextText = lyricsLines[currentLineIndex + 1] || '';
+		const currentChars = Array.from(currentText);
+		const nextChars = Array.from(nextText);
+		if (!currentChars.length || !nextChars.length) return;
+
+		const currentStart = lineCharOffsets[currentLineIndex] ?? 0;
+		const nextStart = lineCharOffsets[currentLineIndex + 1] ?? currentStart + currentChars.length;
+		const oldNextEnd = nextStart + nextChars.length - 1;
+		const mergedEnd = oldNextEnd;
+
+		setSyncData(prev => {
+			if (!prev || !Array.isArray(prev.lines)) return prev;
+
+			const currentLineData = prev.lines.find(line => line.start === currentStart);
+			const nextLineData = prev.lines.find(line => line.start === nextStart);
+			const previousLine = prev.lines.reduce((best, line) => {
+				if (line.start >= currentStart || !Array.isArray(line.chars) || !line.chars.length) return best;
+				return !best || line.start > best.start ? line : best;
+			}, null);
+			const previousLineEndTime = previousLine?.chars?.[previousLine.chars.length - 1] ?? -1;
+			const currentPartChars = Array.isArray(currentLineData?.chars) && currentLineData.chars.length === currentChars.length
+				? normalizeCommittedLineChars(currentLineData.chars, previousLineEndTime)
+				: null;
+			const nextPartChars = Array.isArray(nextLineData?.chars) && nextLineData.chars.length === nextChars.length
+				? normalizeCommittedLineChars(nextLineData.chars, previousLineEndTime)
+				: null;
+			const mergedLine = currentPartChars && nextPartChars
+				? {
+					start: currentStart,
+					end: mergedEnd,
+					chars: normalizeCommittedLineChars([
+						...currentPartChars,
+						...nextPartChars
+					], previousLineEndTime),
+					speaker: normalizeSyncCreatorSpeaker(currentLineData?.speaker) || SYNC_CREATOR_DEFAULT_SPEAKER,
+					kind: normalizeSyncCreatorKind(currentLineData?.kind) || SYNC_CREATOR_DEFAULT_KIND,
+					parallel: {
+						layout: 'stack',
+						hiddenRanges: [],
+						parts: [
+							{
+								id: 'a',
+								role: 'lead',
+								speaker: normalizeSyncCreatorSpeaker(currentLineData?.speaker) || SYNC_CREATOR_DEFAULT_SPEAKER,
+								kind: normalizeSyncCreatorKind(currentLineData?.kind) || SYNC_CREATOR_DEFAULT_KIND,
+								ranges: [{ start: currentStart, end: currentStart + currentChars.length - 1 }],
+								join: [],
+								chars: currentPartChars
+							},
+							{
+								id: 'b',
+								role: 'background',
+								speaker: normalizeSyncCreatorSpeaker(nextLineData?.speaker) || SYNC_CREATOR_DEFAULT_SPEAKER,
+								kind: normalizeSyncCreatorKind(nextLineData?.kind) || SYNC_CREATOR_DEFAULT_KIND,
+								ranges: [{ start: nextStart, end: mergedEnd }],
+								join: [],
+								chars: nextPartChars
+							}
+						]
+					}
+				}
+				: null;
+
+			const lines = prev.lines
+				.filter(line => line.start < currentStart || line.start > oldNextEnd);
+
+			if (mergedLine) {
+				lines.push(mergedLine);
+			}
+
+			lines.sort((a, b) => a.start - b.start);
+			return lines.length > 0 ? {
+				...prev,
+				version: mergedLine ? 2 : prev.version,
+				lines
+			} : null;
+		});
+
+		const nextLyricsLines = lyricsLines.slice();
+		nextLyricsLines.splice(currentLineIndex, 2, `${currentText}${nextText}`);
+		setLyricsText(nextLyricsLines.join('\n'));
+		setMultiVocalMode(true);
+		setActiveParallelPartId('a');
+		setManualParallelSplitDrafts({ [currentStart]: [currentChars.length] });
+		setParallelPartMetaDrafts({});
+		setLineMetaDrafts({});
+		setMode('idle');
+		setRecordingCharIndex(-1);
+		charTimesRef.current = [];
+		if (lyricsScrollRef.current) lyricsScrollRef.current.scrollLeft = 0;
+		Toast.success(I18n.t('syncCreator.mergedWithNextLine') || 'Merged with the next line as separate vocal parts.');
+	}, [currentLineIndex, lyricsLines, lineCharOffsets, normalizeCommittedLineChars]);
+
 	const commitCurrentLineSync = useCallback((rawChars) => {
 		if (multiVocalMode && !isCurrentSyncTargetMetaComplete) {
 			showMissingMetaToast();
@@ -3923,7 +4020,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			fontSize: '10.5px', fontWeight: '600', cursor: 'pointer',
 			fontVariantNumeric: 'tabular-nums'
 		},
-		lyricsArea: { flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '20px 28px', overflow: 'hidden', position: 'relative', zIndex: 1 },
+		lyricsArea: { flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', padding: '20px 28px', overflow: 'hidden', position: 'relative', zIndex: 1 },
 		lineNav: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', marginBottom: '18px' },
 		navBtn: {
 			background: 'rgba(255,255,255,0.05)', color: 'var(--spice-text)',
@@ -3936,7 +4033,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		lineInfo: { textAlign: 'center', minWidth: '120px' },
 		lineCount: { fontSize: '22px', fontWeight: '700', color: 'var(--spice-text)', letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' },
 		lineStatus: { fontSize: '11px', color: 'var(--spice-subtext)', marginTop: '2px', fontWeight: '500' },
-		multiVocalSwitchRow: { display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '-6px 0 12px' },
+		multiVocalSwitchRow: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', flexWrap: 'wrap', margin: '-6px 0 12px' },
 		multiVocalSwitchBtn: {
 			background: 'rgba(var(--spice-rgb-button), 0.12)',
 			border: '1px solid rgba(var(--spice-rgb-button), 0.3)',
@@ -4704,12 +4801,17 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 					react.createElement('button', { style: { ...s.navBtn, opacity: currentLineIndex >= lyricsLines.length - 1 ? 0.3 : 1 }, onClick: goToNextLine, disabled: currentLineIndex >= lyricsLines.length - 1 }, '▶')
 				),
 
-				!multiVocalMode && currentFullLineChars.length > 1 && react.createElement('div', { style: s.multiVocalSwitchRow },
-					react.createElement('button', {
+				((!multiVocalMode && currentFullLineChars.length > 1) || currentLineIndex < lyricsLines.length - 1) && react.createElement('div', { style: s.multiVocalSwitchRow },
+					!multiVocalMode && currentFullLineChars.length > 1 && react.createElement('button', {
 						type: 'button',
 						style: s.multiVocalSwitchBtn,
 						onClick: enableManualMultiVocalMode
-					}, I18n.t('syncCreator.enableMultiVocalMode') || 'Enable multiple vocal mode')
+					}, I18n.t('syncCreator.enableMultiVocalMode') || 'Enable multiple vocal mode'),
+					currentLineIndex < lyricsLines.length - 1 && react.createElement('button', {
+						type: 'button',
+						style: s.multiVocalSwitchBtn,
+						onClick: mergeCurrentLineWithNext
+					}, I18n.t('syncCreator.mergeWithNextLine') || 'Merge next line')
 				),
 
 				multiVocalMode && react.createElement('div', { style: s.multiVocalBanner },
