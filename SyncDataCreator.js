@@ -1461,15 +1461,25 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		if (manualTemplate) return manualTemplate;
 		return buildParentheticalParallelTemplate(lineChars, lineStart);
 	}, [getAutoMergeSplitPointsForLine, manualParallelSplitDrafts]);
+	const getParallelTemplateForLineData = useCallback((lineData, lineChars, lineStart, isMergedWithNext = false) => {
+		const hasManualDraft = Array.isArray(manualParallelSplitDrafts[lineStart])
+			&& manualParallelSplitDrafts[lineStart].length > 0;
+		if (!hasManualDraft && Array.isArray(lineData?.parallel?.parts) && lineData.parallel.parts.length > 1) {
+			return lineData.parallel;
+		}
+
+		return getParallelTemplateForLine(lineChars, lineStart)
+			|| (isMergedWithNext ? lineData?.parallel : null);
+	}, [getParallelTemplateForLine, manualParallelSplitDrafts]);
 	const currentParallelTemplate = useMemo(() => {
 		if (!multiVocalMode) return null;
-		const template = getParallelTemplateForLine(currentFullLineChars, currentLineStart);
-		if (template) return template;
-		if (currentLineMergedWithNext && Array.isArray(currentExistingLineData?.parallel?.parts)) {
-			return currentExistingLineData.parallel;
-		}
-		return null;
-	}, [multiVocalMode, getParallelTemplateForLine, currentFullLineChars, currentLineStart, currentLineMergedWithNext, currentExistingLineData]);
+		return getParallelTemplateForLineData(
+			currentExistingLineData,
+			currentFullLineChars,
+			currentLineStart,
+			currentLineMergedWithNext
+		);
+	}, [multiVocalMode, getParallelTemplateForLineData, currentFullLineChars, currentLineStart, currentLineMergedWithNext, currentExistingLineData]);
 	const currentParallelData = useMemo(() => {
 		const merged = mergeSyncCreatorParallelTemplate(currentParallelTemplate, currentExistingLineData?.parallel);
 		if (!merged) return null;
@@ -1729,7 +1739,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				const templateChars = isMergedWithNext
 					? mergedIndexes.flatMap(lineIndex => Array.from(lyricsLines[lineIndex] || ''))
 					: Array.from(lineText || '');
-				const template = getParallelTemplateForLine(templateChars, lineStart) || (isMergedWithNext ? lineData.parallel : null);
+				const template = getParallelTemplateForLineData(lineData, templateChars, lineStart, isMergedWithNext);
 				if (template?.parts?.length > 1) {
 					const existingParts = Array.isArray(lineData.parallel?.parts) ? lineData.parallel.parts : [];
 					const isComplete = template.parts.every(part => {
@@ -1746,7 +1756,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			}, 0);
 		}
 		return syncData.lines.length;
-	}, [syncData, multiVocalMode, lyricsLines, lineCharOffsets, getParallelTemplateForLine, isLineCoveredByMergedPrevious, findMergedOwnerLineIndex, getMergedLineIndexesForStart]);
+	}, [syncData, multiVocalMode, lyricsLines, lineCharOffsets, getParallelTemplateForLineData, isLineCoveredByMergedPrevious, findMergedOwnerLineIndex, getMergedLineIndexesForStart]);
 
 	// 현재 줄이 싱크되어 있는지
 	const isCurrentLineSynced = useMemo(() => {
@@ -3562,7 +3572,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			const templateChars = isMergedWithNext
 				? mergedIndexes.flatMap(lineIndex => Array.from(lyricsLines[lineIndex] || ''))
 				: Array.from(lineText || '');
-			const template = getParallelTemplateForLine(templateChars, lineStart) || (isMergedWithNext ? lineData?.parallel : null);
+			const template = getParallelTemplateForLineData(lineData, templateChars, lineStart, isMergedWithNext);
 			if (Array.isArray(template?.parts)) {
 				template.parts.forEach(part => {
 					if (!part?.id) return;
@@ -3610,7 +3620,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		parallelPartMetaDrafts,
 		isLineCoveredByMergedPrevious,
 		getMergedLineIndexesForStart,
-		getParallelTemplateForLine
+		getParallelTemplateForLineData
 	]);
 
 	const currentManualSplitPoints = useMemo(() => {
@@ -3877,7 +3887,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				const lineChars = isMergedWithNext
 					? mergedIndexes.flatMap(lineIndex => Array.from(lyricsLines[lineIndex] || ''))
 					: Array.from(lineText);
-				const template = getParallelTemplateForLine(lineChars, lineStart) || (isMergedWithNext ? lineData.parallel : null);
+				const template = getParallelTemplateForLineData(lineData, lineChars, lineStart, isMergedWithNext);
 				if (template?.parts?.length > 1) {
 					const existingParts = Array.isArray(lineData.parallel?.parts) ? lineData.parallel.parts : [];
 					for (const part of template.parts) {
@@ -3994,7 +4004,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		}
 
 		setIsSubmitting(false);
-	}, [syncData, lyricsLines, lineCharOffsets, multiVocalMode, trackId, provider, trackName, artistName, onClose, getParallelTemplateForLine, getMergedLineIndexesForStart, isLineCoveredByMergedPrevious]);
+	}, [syncData, lyricsLines, lineCharOffsets, multiVocalMode, trackId, provider, trackName, artistName, onClose, getParallelTemplateForLineData, getMergedLineIndexesForStart, isLineCoveredByMergedPrevious]);
 
 	// 싱크 데이터 내보내기 (JSON 파일로 저장)
 	const exportSyncData = useCallback(() => {
