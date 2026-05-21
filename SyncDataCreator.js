@@ -1285,6 +1285,21 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		() => isLineCoveredByMergedPrevious(currentLineIndex),
 		[isLineCoveredByMergedPrevious, currentLineIndex]
 	);
+	const findNavigableLineIndex = useCallback((fromIndex, direction) => {
+		const step = direction < 0 ? -1 : 1;
+		for (let index = fromIndex + step; index >= 0 && index < lyricsLines.length; index += step) {
+			if (!isLineCoveredByMergedPrevious(index)) return index;
+		}
+		return -1;
+	}, [lyricsLines.length, isLineCoveredByMergedPrevious]);
+	const previousNavigableLineIndex = useMemo(
+		() => findNavigableLineIndex(currentLineIndex, -1),
+		[findNavigableLineIndex, currentLineIndex]
+	);
+	const nextNavigableLineIndex = useMemo(
+		() => findNavigableLineIndex(currentLineIndex, 1),
+		[findNavigableLineIndex, currentLineIndex]
+	);
 	const currentFullLineChars = useMemo(() => {
 		if (!currentLineMergedWithNext) return currentBaseLineChars;
 		return [...currentBaseLineChars, ...currentNextLineChars];
@@ -1374,11 +1389,12 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			return;
 		}
 
-		if (currentLineIndex < lyricsLines.length - 1) {
-			setCurrentLineIndex(prev => prev + 1);
+		const nextIndex = findNavigableLineIndex(currentLineIndex, 1);
+		if (nextIndex >= 0) {
+			setCurrentLineIndex(nextIndex);
 			if (lyricsScrollRef.current) lyricsScrollRef.current.scrollLeft = 0;
 		}
-	}, [getIncompleteParallelPartId, currentLineIndex, lyricsLines.length]);
+	}, [getIncompleteParallelPartId, currentLineIndex, findNavigableLineIndex]);
 	const currentLineCharRefs = useMemo(() => {
 		if (activeParallelPart) {
 			return rangesToCharRefs(activeParallelPart.ranges, currentFullLineChars, currentLineStart);
@@ -3537,18 +3553,18 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 	}, []);
 
 	const goToPrevLine = useCallback(() => {
-		if (currentLineIndex > 0) {
-			setCurrentLineIndex(prev => prev - 1);
+		if (previousNavigableLineIndex >= 0) {
+			setCurrentLineIndex(previousNavigableLineIndex);
 			if (lyricsScrollRef.current) lyricsScrollRef.current.scrollLeft = 0;
 		}
-	}, [currentLineIndex]);
+	}, [previousNavigableLineIndex]);
 
 	const goToNextLine = useCallback(() => {
-		if (currentLineIndex < lyricsLines.length - 1) {
-			setCurrentLineIndex(prev => prev + 1);
+		if (nextNavigableLineIndex >= 0) {
+			setCurrentLineIndex(nextNavigableLineIndex);
 			if (lyricsScrollRef.current) lyricsScrollRef.current.scrollLeft = 0;
 		}
-	}, [currentLineIndex, lyricsLines.length]);
+	}, [nextNavigableLineIndex]);
 
 	const goToFirstLine = useCallback(() => {
 		setCurrentLineIndex(0);
@@ -5049,12 +5065,12 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			lyricsText && lyricsLines.length > 0 && react.createElement(react.Fragment, null,
 				// Line Navigation (이전/다음 버튼)
 				react.createElement('div', { style: s.lineNav },
-					react.createElement('button', { style: { ...s.navBtn, opacity: currentLineIndex <= 0 ? 0.3 : 1 }, onClick: goToPrevLine, disabled: currentLineIndex <= 0 }, '◀'),
+					react.createElement('button', { style: { ...s.navBtn, opacity: previousNavigableLineIndex < 0 ? 0.3 : 1 }, onClick: goToPrevLine, disabled: previousNavigableLineIndex < 0 }, '◀'),
 					react.createElement('div', { style: s.lineInfo },
 						react.createElement('div', { style: s.lineCount }, `${currentLineIndex + 1} / ${lyricsLines.length}`),
 						react.createElement('div', { style: s.lineStatus }, isCurrentLineSynced ? '✓ ' + I18n.t('syncCreator.synced') : I18n.t('syncCreator.notSynced'))
 					),
-					react.createElement('button', { style: { ...s.navBtn, opacity: currentLineIndex >= lyricsLines.length - 1 ? 0.3 : 1 }, onClick: goToNextLine, disabled: currentLineIndex >= lyricsLines.length - 1 }, '▶')
+					react.createElement('button', { style: { ...s.navBtn, opacity: nextNavigableLineIndex < 0 ? 0.3 : 1 }, onClick: goToNextLine, disabled: nextNavigableLineIndex < 0 }, '▶')
 				),
 
 				((!multiVocalMode && currentFullLineChars.length > 1) || (currentLineIndex < lyricsLines.length - 1 && !currentLineMergedWithNext && !currentLineCoveredByPrevious)) && react.createElement('div', { style: s.multiVocalSwitchRow },
@@ -5270,15 +5286,15 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				),
 
 				// Next Line
-				currentLineIndex < lyricsLines.length - 1 && react.createElement('div', { style: s.nextLineBox },
+				nextNavigableLineIndex >= 0 && react.createElement('div', { style: s.nextLineBox },
 					react.createElement('div', { style: s.nextLineLabel }, I18n.t('syncCreator.nextLine')),
 					react.createElement('div', {
 						style: {
 							...s.nextLineText,
-							direction: getSyncCreatorTextDirection(lyricsLines[currentLineIndex + 1]),
+							direction: getSyncCreatorTextDirection(lyricsLines[nextNavigableLineIndex]),
 							unicodeBidi: 'plaintext'
 						}
-					}, getSyncCreatorFuriganaReact(lyricsLines[currentLineIndex + 1]))
+					}, getSyncCreatorFuriganaReact(lyricsLines[nextNavigableLineIndex]))
 				),
 
 				mode === 'record' && react.createElement('div', { style: s.hint }, I18n.t('syncCreator.dragHint')),
