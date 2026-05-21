@@ -626,8 +626,8 @@ body.${PANEL_ACTIVE_BODY_CLASS} [data-testid="lyrics-npv-section"] {
 }
 
 @keyframes ivlyrics-panel-glow {
-  0%, 100% { filter: brightness(1); text-shadow: 0 0 0 rgba(255, 255, 255, 0); }
-  50% { filter: brightness(1.14); text-shadow: 0 0 0.12em rgba(255, 255, 255, 0.3), 0 0 0.48em rgba(248, 251, 255, 0.26); }
+  0%, 100% { filter: brightness(1.16); text-shadow: 0 0 0.14em rgba(255, 255, 255, 0.34), 0 0 0.54em rgba(248, 251, 255, 0.3); }
+  50% { filter: brightness(1.1); text-shadow: 0 0 0.1em rgba(255, 255, 255, 0.28), 0 0 0.44em rgba(248, 251, 255, 0.24); }
 }
 
 @keyframes ivlyrics-panel-glitch {
