@@ -398,6 +398,7 @@ body.${PANEL_ACTIVE_BODY_CLASS} [data-testid="lyrics-npv-section"] {
 .lyrics-break-icon-crossfade::before { left: 0.24em; }
 .lyrics-break-icon-crossfade::after { right: 0.24em; animation-delay: calc(var(--break-duration-slow, 1815ms) * -0.5); }
 .ivlyrics-panel-line:not(.active) .lyrics-break-icon, .ivlyrics-panel-line:not(.active) .lyrics-break-icon *, .ivlyrics-panel-line:not(.active) .lyrics-break-icon::before, .ivlyrics-panel-line:not(.active) .lyrics-break-icon::after, .ivlyrics-panel-line:not(.active) .lyrics-break-icon *::before, .ivlyrics-panel-line:not(.active) .lyrics-break-icon *::after { animation-play-state: paused !important; }
+.ivlyrics-panel-lyrics-section.playback-paused .lyrics-break-icon, .ivlyrics-panel-lyrics-section.playback-paused .lyrics-break-icon *, .ivlyrics-panel-lyrics-section.playback-paused .lyrics-break-icon::before, .ivlyrics-panel-lyrics-section.playback-paused .lyrics-break-icon::after, .ivlyrics-panel-lyrics-section.playback-paused .lyrics-break-icon *::before, .ivlyrics-panel-lyrics-section.playback-paused .lyrics-break-icon *::after { animation-play-state: paused !important; }
 
 .ivlyrics-panel-line-phonetic {
   font-size: calc(var(--ivlyrics-panel-phonetic-size, 13px) * var(--ivlyrics-font-scale, 1)) !important;
@@ -843,6 +844,14 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
 
     const setPanelActiveState = (isActive) => {
         document.body.classList.toggle(PANEL_ACTIVE_BODY_CLASS, isActive);
+    };
+
+    const getPlaybackPaused = () => {
+        const paused = Spicetify.Player?.data?.isPaused;
+        if (typeof paused === "boolean") {
+            return paused;
+        }
+        return !(Spicetify.Player?.isPlaying?.() ?? false);
     };
 
     const scheduleInsertPanelLyrics = (delay = 100) => {
@@ -1509,6 +1518,7 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
         const [numLines, setNumLines] = useState(parseInt(getStorageValue(PANEL_LINES_KEY, DEFAULT_LINES), 10));
         const [fontScale, setFontScale] = useState(parseInt(getStorageValue(FONT_SCALE_KEY, DEFAULT_FONT_SCALE), 10));
         const [instrumentalBreakRevision, setInstrumentalBreakRevision] = useState(0);
+        const [isPlaybackPaused, setIsPlaybackPaused] = useState(getPlaybackPaused);
         const containerRef = useRef(null);
         const scrollRef = useRef(null);
         const lastTrackUri = useRef(null);
@@ -1878,7 +1888,14 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
                 panelDebug("[PanelLyrics] Global offset changed:", event.detail?.offset || 0);
             };
 
+            const handlePlaybackChange = () => {
+                setIsPlaybackPaused(getPlaybackPaused());
+            };
+
+            handlePlaybackChange();
             Spicetify.Player.addEventListener('songchange', handleSongChange);
+            Spicetify.Player?.addEventListener?.('onplaypause', handlePlaybackChange);
+            Spicetify.Player?.addEventListener?.('songchange', handlePlaybackChange);
             window.addEventListener('ivLyrics', handleSettingsChange);
             window.addEventListener('ivLyrics:offset-changed', handleOffsetChange);
             window.addEventListener('ivLyrics:global-offset-changed', handleGlobalOffsetChange);
@@ -1888,6 +1905,8 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
 
             return () => {
                 Spicetify.Player.removeEventListener('songchange', handleSongChange);
+                Spicetify.Player?.removeEventListener?.('onplaypause', handlePlaybackChange);
+                Spicetify.Player?.removeEventListener?.('songchange', handlePlaybackChange);
                 window.removeEventListener('ivLyrics', handleSettingsChange);
                 window.removeEventListener('ivLyrics:offset-changed', handleOffsetChange);
                 window.removeEventListener('ivLyrics:global-offset-changed', handleGlobalOffsetChange);
@@ -2290,7 +2309,7 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
         if (!isEnabled) return null;
         if (!lyrics || lyrics.length === 0) {
             return react.createElement("div", {
-                className: PANEL_SECTION_CLASS,
+                className: `${PANEL_SECTION_CLASS}${isPlaybackPaused ? " playback-paused" : ""}`,
                 ref: containerRef,
                 onClick: handleContainerClick,
                 style: containerStyle
@@ -2305,7 +2324,7 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
         }
 
         return react.createElement("div", {
-            className: PANEL_SECTION_CLASS,
+            className: `${PANEL_SECTION_CLASS}${isPlaybackPaused ? " playback-paused" : ""}`,
             ref: containerRef,
             onClick: handleContainerClick,
             style: containerStyle

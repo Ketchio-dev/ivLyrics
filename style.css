@@ -2568,6 +2568,15 @@ div.lyrics-tabBar-headerItemLink {
   animation-play-state: paused;
 }
 
+.lyrics-lyricsContainer-LyricsContainer.playback-paused .lyrics-break-icon,
+.lyrics-lyricsContainer-LyricsContainer.playback-paused .lyrics-break-icon *,
+.lyrics-lyricsContainer-LyricsContainer.playback-paused .lyrics-break-icon::before,
+.lyrics-lyricsContainer-LyricsContainer.playback-paused .lyrics-break-icon::after,
+.lyrics-lyricsContainer-LyricsContainer.playback-paused .lyrics-break-icon *::before,
+.lyrics-lyricsContainer-LyricsContainer.playback-paused .lyrics-break-icon *::after {
+  animation-play-state: paused;
+}
+
 .lyrics-lyricsContainer-LyricsContainer.motion-reduced .lyrics-break-icon,
 .lyrics-lyricsContainer-LyricsContainer.motion-reduced .lyrics-break-icon *,
 .lyrics-lyricsContainer-LyricsContainer.motion-reduced .lyrics-break-icon::before,

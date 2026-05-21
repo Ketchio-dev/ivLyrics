@@ -2990,6 +2990,7 @@ class LyricsContainer extends react.Component {
       lyricsEditHasPronunciationCache: false,
       lyricsEditHasTranslationCache: false,
       lyricsEditError: "",
+      isPlaybackPaused: true,
     };
     this.currentTrackUri = "";
     this._lyricsFetchSeq = 0;
@@ -5384,6 +5385,14 @@ class LyricsContainer extends react.Component {
     }
   }
 
+  getPlaybackPaused() {
+    const paused = Spicetify.Player?.data?.isPaused;
+    if (typeof paused === "boolean") {
+      return paused;
+    }
+    return !(Spicetify.Player?.isPlaying?.() ?? false);
+  }
+
   componentDidMount() {
     document.body.classList.add('ivlyrics-page-active');
 
@@ -5429,6 +5438,16 @@ class LyricsContainer extends react.Component {
       CacheManager.init();
       CacheManager._initialized = true;
     }
+
+    this.updatePlaybackPausedState = () => {
+      const isPlaybackPaused = this.getPlaybackPaused();
+      if (this.state.isPlaybackPaused !== isPlaybackPaused) {
+        this.setState({ isPlaybackPaused });
+      }
+    };
+    this.updatePlaybackPausedState();
+    Spicetify.Player?.addEventListener?.("onplaypause", this.updatePlaybackPausedState);
+    Spicetify.Player?.addEventListener?.("songchange", this.updatePlaybackPausedState);
 
     this.onQueueChange = async ({ data: queue }) => {
       const newUri = queue.current?.uri;
@@ -5734,6 +5753,9 @@ class LyricsContainer extends react.Component {
     window.removeEventListener("ivLyrics", this.handleConfigChange);
     window.removeEventListener("furigana-ready", this.handleFuriganaReady);
     window.removeEventListener("ivLyrics:lyric-index-changed", this.handleLyricIndexChange);
+    Spicetify.Player?.removeEventListener?.("onplaypause", this.updatePlaybackPausedState);
+    Spicetify.Player?.removeEventListener?.("songchange", this.updatePlaybackPausedState);
+    this.updatePlaybackPausedState = null;
     if (this._cleanupFloatingMenuOutsideClick) {
       this._cleanupFloatingMenuOutsideClick();
       this._cleanupFloatingMenuOutsideClick = null;
@@ -6392,7 +6414,7 @@ class LyricsContainer extends react.Component {
       "div",
       {
         className: `lyrics-lyricsContainer-LyricsContainer${CONFIG.visual["fade-blur"] ? " blur-enabled" : ""
-          }${CONFIG.visual["highlight-mode"] ? " highlight-mode-enabled" : ""}${fadLyricsContainer ? " fad-enabled" : ""}${fullscreenClasses}${shouldReduceMotion ? " motion-reduced" : ""}`,
+          }${CONFIG.visual["highlight-mode"] ? " highlight-mode-enabled" : ""}${fadLyricsContainer ? " fad-enabled" : ""}${fullscreenClasses}${shouldReduceMotion ? " motion-reduced" : ""}${this.state.isPlaybackPaused ? " playback-paused" : ""}`,
         style: this.styleVariables,
         ref: (el) => {
           if (!el) return;
