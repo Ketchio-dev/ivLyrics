@@ -14,6 +14,7 @@
     // ============================================
 
     const STORAGE_PREFIX = 'ivLyrics:lyrics:';
+    const SYNC_DATA_RENDERER_VERSION = '2026-05-21-parenthetical-v2-1';
 
     // 가사 유형
     const LYRICS_TYPES = {
@@ -536,9 +537,14 @@
                     if (trackId && window.LyricsService?.getCachedLyrics) {
                         try {
                             const cached = await window.LyricsService.getCachedLyrics(trackId, provider.id);
-                            if (cached && (!provider.cacheVersion || cached.cacheVersion === provider.cacheVersion)) {
+                            const isProviderCacheCurrent = cached && (!provider.cacheVersion || cached.cacheVersion === provider.cacheVersion);
+                            const isSyncDataRendererCurrent = !cached?.syncDataApplied
+                                || cached.syncDataRendererVersion === SYNC_DATA_RENDERER_VERSION;
+                            if (isProviderCacheCurrent && isSyncDataRendererCurrent) {
                                 result = cached;
                                 window.__ivLyricsDebugLog?.(`[LyricsAddonManager] Cache hit for ${provider.id}`);
+                            } else if (isProviderCacheCurrent && !isSyncDataRendererCurrent) {
+                                window.__ivLyricsDebugLog?.(`[LyricsAddonManager] Sync-data renderer cache mismatch for ${provider.id}, refetching...`);
                             } else if (cached) {
                                 window.__ivLyricsDebugLog?.(`[LyricsAddonManager] Cache version mismatch for ${provider.id}, refetching...`);
                             }
@@ -595,6 +601,7 @@
                                         result.karaoke = karaoke;
                                         result.syncDataApplied = true;
                                         result.syncDataProvider = syncProvider;
+                                        result.syncDataRendererVersion = SYNC_DATA_RENDERER_VERSION;
 
                                         // 기여자 정보 추가
                                         if (syncData.contributors || syncData.syncData?.contributors) {
@@ -646,6 +653,9 @@
 
                     // 4. 사용자 설정에 따라 필터링
                     const finalResult = { ...result };
+                    if (finalResult.syncDataApplied) {
+                        finalResult.syncDataRendererVersion = SYNC_DATA_RENDERER_VERSION;
+                    }
                     if (!allowKaraoke) finalResult.karaoke = null;
                     if (!allowSynced) finalResult.synced = null;
                     if (!allowUnsynced) finalResult.unsynced = null;

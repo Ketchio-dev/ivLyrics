@@ -91,6 +91,15 @@
             console.log(...args);
         }
     };
+    const getLyricsTextCacheHash = (text) => {
+        const value = String(text || '').normalize('NFC');
+        let hash = 2166136261;
+        for (const char of value) {
+            hash ^= char.codePointAt(0) || 0;
+            hash = Math.imul(hash, 16777619);
+        }
+        return `src-${(hash >>> 0).toString(36)}-${value.length.toString(36)}`;
+    };
 
     const cleanupWorker = (worker) => {
         if (!worker) return;
@@ -919,17 +928,18 @@
             }
         },
 
-        _getTranslationKey(trackId, lang, isPhonetic, provider) {
+        _getTranslationKey(trackId, lang, isPhonetic, provider, sourceHash = null) {
             const providerSuffix = provider ? `:${provider}` : '';
-            return `${trackId}:${lang}:${isPhonetic ? 'phonetic' : 'translation'}${providerSuffix}`;
+            const sourceSuffix = sourceHash ? `:${sourceHash}` : '';
+            return `${trackId}:${lang}:${isPhonetic ? 'phonetic' : 'translation'}${providerSuffix}${sourceSuffix}`;
         },
 
-        async getTranslation(trackId, lang, isPhonetic = false, provider = null) {
+        async getTranslation(trackId, lang, isPhonetic = false, provider = null, sourceHash = null) {
             try {
                 const db = await this._openDB();
                 const tx = db.transaction('translations', 'readonly');
                 const store = tx.objectStore('translations');
-                const cacheKey = this._getTranslationKey(trackId, lang, isPhonetic, provider);
+                const cacheKey = this._getTranslationKey(trackId, lang, isPhonetic, provider, sourceHash);
 
                 const result = await new Promise((resolve, reject) => {
                     const request = store.get(cacheKey);
@@ -949,12 +959,12 @@
             }
         },
 
-        async setTranslation(trackId, lang, isPhonetic, data, provider = null) {
+        async setTranslation(trackId, lang, isPhonetic, data, provider = null, sourceHash = null) {
             try {
                 const db = await this._openDB();
                 const tx = db.transaction('translations', 'readwrite');
                 const store = tx.objectStore('translations');
-                const cacheKey = this._getTranslationKey(trackId, lang, isPhonetic, provider);
+                const cacheKey = this._getTranslationKey(trackId, lang, isPhonetic, provider, sourceHash);
 
                 store.put({
                     cacheKey,
@@ -962,6 +972,7 @@
                     lang,
                     isPhonetic,
                     provider,
+                    sourceHash,
                     data,
                     cachedAt: Date.now()
                 });
@@ -1659,12 +1670,137 @@
          * @param {Object} syncData - 싱크 데이터 { provider, syncData: { lines: [...] } }
          * @returns {Array} - karaoke 형식의 가사
          */
+        const getSyncDataParenthesisClose = (char) => {
+            if (char === '(') return ')';
+            if (char === '\uFF08') return '\uFF09';
+            return '';
+        };
+
+        const isSyncDataParenthesisClose = (char) => char === ')' || char === '\uFF09';
+
+        const isSyncDataStandaloneParentheticalLine = (line) => {
+            const chars = Array.from(String(line || '').trim());
+            if (chars.length < 2 || !getSyncDataParenthesisClose(chars[0])) return false;
+
+            const expectedStack = [];
+            for (let index = 0; index < chars.length; index++) {
+                const char = chars[index];
+                const expectedClose = getSyncDataParenthesisClose(char);
+                if (expectedClose) {
+                    expectedStack.push(expectedClose);
+                    continue;
+                }
+                if (isSyncDataParenthesisClose(char)) {
+                    if (!expectedStack.length || expectedStack[expectedStack.length - 1] !== char) {
+                        return false;
+                    }
+                    expectedStack.pop();
+                    if (expectedStack.length === 0 && index < chars.length - 1) {
+                        return false;
+                    }
+                }
+            }
+
+            return expectedStack.length === 0;
+        };
+
+        const stripSyncDataStandaloneParentheticalLine = (line) => {
+            let value = String(line || '').normalize('NFC').trim();
+            let changed = false;
+
+            while (isSyncDataStandaloneParentheticalLine(value)) {
+                const chars = Array.from(value);
+                value = chars.slice(1, -1).join('').trim();
+                changed = true;
+            }
+
+            return changed ? value : String(line || '').normalize('NFC');
+        };
+
+        const stripSyncDataLeadingParenthesis = (line) => {
+            const value = String(line || '').normalize('NFC');
+            const chars = Array.from(value);
+            const index = chars.findIndex(char => !/\s/u.test(char));
+            if (index < 0 || !getSyncDataParenthesisClose(chars[index])) return value;
+            return chars.slice(0, index).join('') + chars.slice(index + 1).join('');
+        };
+
+        const stripSyncDataTrailingParenthesis = (line, closeChar) => {
+            const value = String(line || '').normalize('NFC');
+            const chars = Array.from(value);
+            for (let index = chars.length - 1; index >= 0; index--) {
+                if (/\s/u.test(chars[index])) continue;
+                if (chars[index] !== closeChar) return value;
+                return chars.slice(0, index).join('') + chars.slice(index + 1).join('');
+            }
+            return value;
+        };
+
+        const normalizeSyncDataStandaloneParentheticalBlocks = (lines) => {
+            const normalizedLines = Array.isArray(lines) ? [...lines] : [];
+
+            for (let index = 0; index < normalizedLines.length; index++) {
+                const trimmed = String(normalizedLines[index] || '').trim();
+                if (!trimmed) continue;
+
+                const openChar = Array.from(trimmed)[0] || '';
+                const closeChar = getSyncDataParenthesisClose(openChar);
+                if (!closeChar || trimmed.includes(closeChar)) continue;
+
+                let closeLineIndex = -1;
+                for (let candidate = index + 1; candidate < normalizedLines.length; candidate++) {
+                    const candidateTrimmed = String(normalizedLines[candidate] || '').trim();
+                    if (!candidateTrimmed) continue;
+                    if (candidateTrimmed.endsWith(closeChar)) {
+                        closeLineIndex = candidate;
+                        break;
+                    }
+                }
+
+                if (closeLineIndex < 0) continue;
+
+                normalizedLines[index] = stripSyncDataLeadingParenthesis(normalizedLines[index]).trim();
+                normalizedLines[closeLineIndex] = stripSyncDataTrailingParenthesis(normalizedLines[closeLineIndex], closeChar).trim();
+            }
+
+            return normalizedLines;
+        };
+
+        const normalizeSyncDataStandaloneParentheticalLines = (text) => (
+            normalizeSyncDataStandaloneParentheticalBlocks(
+                String(text || '')
+                    .normalize('NFC')
+                    .split('\n')
+                    .map(line => stripSyncDataStandaloneParentheticalLine(line))
+            ).join('\n')
+        );
+
+        const getSyncDataBaseLyricsLines = (lyrics, normalizeStandaloneParentheticalLines) => {
+            const sourceLines = (Array.isArray(lyrics) ? lyrics : [])
+                .map(line => (line?.text || '').normalize('NFC'))
+                .filter(line => line.trim().length > 0);
+
+            if (!normalizeStandaloneParentheticalLines) {
+                return sourceLines;
+            }
+
+            return normalizeSyncDataStandaloneParentheticalLines(sourceLines.join('\n'))
+                .split('\n')
+                .filter(line => line.trim().length > 0);
+        };
+
+        /**
+         * Applies community sync-data to base lyrics and produces karaoke lyrics.
+         * sync-data v2 uses offsets from lyrics after standalone parenthetical vocal markers are removed.
+         */
         function applySyncDataToLyrics(lyrics, syncData) {
             if (!lyrics || !syncData || !syncData.syncData || !syncData.syncData.lines) {
                 return null;
             }
 
             const syncLines = syncData.syncData.lines;
+            const shouldNormalizeParentheticalLines = Number(syncData.syncData.version ?? syncData.version ?? 1) >= 2;
+            const baseLyricsLines = getSyncDataBaseLyricsLines(lyrics, shouldNormalizeParentheticalLines);
 
             // 전체 가사 텍스트를 하나로 합침 (줄바꿈 없이 - SyncDataCreator와 동일하게)
             // SyncDataCreator에서는 각 줄의 글자 수만 계산하고 줄바꿈은 포함하지 않음
@@ -1675,9 +1811,8 @@
             // 중요 3: NFD(결합 문자) vs NFC(합성 문자) 정규화 차이로 인한 인덱스 불일치 방지
             // 예: "é"가 NFD에서는 "e" + 결합 액센트로 2개 코드포인트, NFC에서는 1개 코드포인트
             // SyncDataCreator와 동일하게 NFC로 정규화해야 함
-            const fullTextChars = lyrics
-                .filter(line => (line.text || '').trim().length > 0)
-                .map(line => Array.from((line.text || '').normalize('NFC')))
+            const fullTextChars = baseLyricsLines
+                .map(line => Array.from(line))
                 .flat();
 
             const result = [];
@@ -3631,8 +3766,8 @@
          * @param {string} provider - 가사 제공자
          * @returns {Promise<Object|null>}
          */
-        async getTranslation(trackId, lang, isPhonetic = false, provider = null) {
-            return await LyricsCache.getTranslation(trackId, lang, isPhonetic, provider);
+        async getTranslation(trackId, lang, isPhonetic = false, provider = null, sourceHash = null) {
+            return await LyricsCache.getTranslation(trackId, lang, isPhonetic, provider, sourceHash);
         },
 
         /**
@@ -3644,8 +3779,8 @@
          * @param {string} provider - 가사 제공자
          * @returns {Promise<boolean>}
          */
-        async cacheTranslation(trackId, lang, isPhonetic, data, provider = null) {
-            return await LyricsCache.setTranslation(trackId, lang, isPhonetic, data, provider);
+        async cacheTranslation(trackId, lang, isPhonetic, data, provider = null, sourceHash = null) {
+            return await LyricsCache.setTranslation(trackId, lang, isPhonetic, data, provider, sourceHash);
         },
 
         /**
@@ -3763,7 +3898,7 @@
                 }
 
                 // 2. 가사 선택 (synced, karaoke, unsynced 순)
-                let lyrics = lyricsResult.synced || lyricsResult.karaoke || lyricsResult.unsynced || [];
+                let lyrics = lyricsResult.karaoke || lyricsResult.synced || lyricsResult.unsynced || [];
                 const provider = lyricsResult.provider;
 
                 if (lyrics.length === 0) {
@@ -4079,8 +4214,10 @@
     const _translatorPendingRetries = new Map();
 
     // 진행 중인 요청 키 생성
-    function getTranslatorRequestKey(trackId, wantSmartPhonetic, lang) {
-        return `${trackId}:${wantSmartPhonetic ? 'phonetic' : 'translation'}:${lang}`;
+    function getTranslatorRequestKey(trackId, wantSmartPhonetic, lang, provider = null, sourceHash = null) {
+        const providerKey = provider || '';
+        const sourceKey = sourceHash || '';
+        return `${trackId}:${wantSmartPhonetic ? 'phonetic' : 'translation'}:${lang}:${providerKey}:${sourceKey}`;
     }
 
     // I18n이 로드되기 전에 기본 에러 메시지 반환
@@ -4314,6 +4451,7 @@
             onLine = null,
         }) {
             if (!text?.trim()) throw new Error("No text provided for translation");
+            const sourceHash = getLyricsTextCacheHash(text);
 
             let finalTrackId = trackId;
             if (!finalTrackId) {
@@ -4328,12 +4466,12 @@
             // 로컬 캐시 확인
             if (!ignoreCache) {
                 try {
-                    const localCached = await LyricsCache.getTranslation(finalTrackId, userLang, wantSmartPhonetic, provider);
+                    const localCached = await LyricsCache.getTranslation(finalTrackId, userLang, wantSmartPhonetic, provider, sourceHash);
                     if (localCached) {
                         if (window.ApiTracker) {
                             window.ApiTracker.logCacheHit(
                                 wantSmartPhonetic ? 'phonetic' : 'translation',
-                                `${finalTrackId}:${userLang}`,
+                                `${finalTrackId}:${userLang}:${sourceHash}`,
                                 { lineCount: localCached.phonetic?.length || localCached.translation?.length || 0 }
                             );
                         }
@@ -4348,7 +4486,7 @@
             if (window.AIAddonManager) {
                 serviceDebug(`[Translator] Using AIAddonManager for lyrics`);
 
-                const requestKey = getTranslatorRequestKey(finalTrackId, wantSmartPhonetic, userLang);
+                const requestKey = getTranslatorRequestKey(finalTrackId, wantSmartPhonetic, userLang, provider, sourceHash);
                 if (!ignoreCache && _translatorInflightRequests.has(requestKey)) {
                     return _translatorInflightRequests.get(requestKey);
                 }
@@ -4367,7 +4505,7 @@
                         });
 
                         if (result) {
-                            LyricsCache.setTranslation(finalTrackId, userLang, wantSmartPhonetic, result, provider).catch(() => { });
+                            LyricsCache.setTranslation(finalTrackId, userLang, wantSmartPhonetic, result, provider, sourceHash).catch(() => { });
                             return result;
                         }
                     } catch (e) {

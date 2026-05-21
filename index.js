@@ -1891,6 +1891,43 @@ const emptyState = {
   currentLyrics: null,
 };
 
+const SYNC_DATA_RENDERER_VERSION = "2026-05-21-parenthetical-v2-1";
+
+const getLyricsTextCacheHash = (lyrics = []) => {
+  const lines = Array.isArray(lyrics) ? lyrics : [];
+  let hash = 2166136261;
+  let length = 0;
+
+  for (const line of lines) {
+    const value = String(line?.text || "").normalize("NFC");
+    length += value.length + 1;
+    for (const char of `${value}\n`) {
+      hash ^= char.codePointAt(0) || 0;
+      hash = Math.imul(hash, 16777619);
+    }
+  }
+
+  return `txt-${(hash >>> 0).toString(36)}-${length.toString(36)}`;
+};
+
+const getSyncDataRendererCacheVersion = (lyricsState = {}) => (
+  lyricsState?.syncDataApplied
+    ? `${lyricsState.syncDataRendererVersion || "legacy-sync-data-renderer"}:${getLyricsTextCacheHash(
+      lyricsState.karaoke || lyricsState.synced || lyricsState.unsynced
+    )}`
+    : "base"
+);
+
+const isLyricsRenderCacheCurrent = (lyricsState = {}) => (
+  !lyricsState?.syncDataApplied ||
+  lyricsState.syncDataRendererVersion === SYNC_DATA_RENDERER_VERSION
+);
+
+const getDisplayModeCacheKey = (lyricsState = {}, mode = "") => {
+  const providerKey = lyricsState.provider || "";
+  return `${lyricsState.uri}:${providerKey}:${mode}:${getSyncDataRendererCacheVersion(lyricsState)}`;
+};
+
 // Enhanced cache system with memory-efficient LRU and automatic cleanup
 const CacheManager = {
   _cache: new Map(),
@@ -2301,19 +2338,20 @@ const Prefetcher = {
     const uri = trackInfo.uri;
     const trackId = uri?.split(':')[2];  // spotify:track:XXXX -> XXXX
     const cacheKeyBase = `prefetch:translation:${uri}`;
+    const versionedCacheKeyBase = `${cacheKeyBase}:${getSyncDataRendererCacheVersion(lyrics)}`;
 
     // 이미 캐시에 있으면 스킵
-    if (this._prefetchCache.has(cacheKeyBase)) {
+    if (this._prefetchCache.has(versionedCacheKeyBase)) {
       ivLyricsDebug(`[Prefetcher] Translation already cached for: ${trackInfo.title}`);
       return;
     }
 
     // 이미 요청 중이면 기존 요청 반환
-    if (this._inflightRequests.has(cacheKeyBase)) {
-      return this._inflightRequests.get(cacheKeyBase);
+    if (this._inflightRequests.has(versionedCacheKeyBase)) {
+      return this._inflightRequests.get(versionedCacheKeyBase);
     }
 
-    const lyricsArray = lyrics.synced || lyrics.unsynced || lyrics.karaoke;
+    const lyricsArray = lyrics.karaoke || lyrics.synced || lyrics.unsynced;
     if (!lyricsArray || lyricsArray.length === 0) return;
 
     // 언어 감지
@@ -2379,7 +2417,7 @@ const Prefetcher = {
             if (phoneticResponse.phonetic) {
               const mapped = processTranslationResult(phoneticResponse.phonetic);
               if (mapped) {
-                CacheManager.set(`${uri}:${lyrics.provider}:gemini_romaji`, mapped);
+                CacheManager.set(getDisplayModeCacheKey(lyrics, "gemini_romaji"), mapped);
                 ivLyricsDebug(`[Prefetcher] Phonetic cached for: ${trackInfo.title} (provider: ${lyrics.provider})`);
               }
             }
@@ -2406,10 +2444,10 @@ const Prefetcher = {
               if (mapped) {
                 // mode1, mode2 중 번역이 필요한 것에 캐시 저장
                 if (displayMode1 && displayMode1 !== "none" && displayMode1 !== "gemini_romaji") {
-                  CacheManager.set(`${uri}:${lyrics.provider}:${displayMode1}`, mapped);
+                  CacheManager.set(getDisplayModeCacheKey(lyrics, displayMode1), mapped);
                 }
                 if (displayMode2 && displayMode2 !== "none" && displayMode2 !== "gemini_romaji") {
-                  CacheManager.set(`${uri}:${lyrics.provider}:${displayMode2}`, mapped);
+                  CacheManager.set(getDisplayModeCacheKey(lyrics, displayMode2), mapped);
                 }
                 ivLyricsDebug(`[Prefetcher] Translation cached for: ${trackInfo.title} (provider: ${lyrics.provider})`);
               }
@@ -2420,7 +2458,7 @@ const Prefetcher = {
         }
 
         // 결과를 프리페치 캐시에 저장 (완료 표시용)
-        this._prefetchCache.set(cacheKeyBase, {
+        this._prefetchCache.set(versionedCacheKeyBase, {
           lyricsArray,
           displayMode1,
           displayMode2,
@@ -2433,11 +2471,11 @@ const Prefetcher = {
         console.warn(`[Prefetcher] Translation prefetch failed:`, error.message);
         return null;
       } finally {
-        this._inflightRequests.delete(cacheKeyBase);
+        this._inflightRequests.delete(versionedCacheKeyBase);
       }
     })();
 
-    this._inflightRequests.set(cacheKeyBase, prefetchPromise);
+    this._inflightRequests.set(versionedCacheKeyBase, prefetchPromise);
     return prefetchPromise;
   },
 
@@ -3642,6 +3680,7 @@ class LyricsContainer extends react.Component {
       this._dmResults[currentUri].lastMode1 = mode1;
       this._dmResults[currentUri].lastMode2 = mode2;
       this._dmResults[currentUri].lastProvider = currentProvider;
+      this._dmResults[currentUri].lastRendererVersion = getSyncDataRendererCacheVersion(lyricsState);
 
       const mapResultLinesToLyrics = (linesInput) => {
         return mapTranslationLinesToLyrics(originalLyrics, linesInput);
@@ -3831,10 +3870,10 @@ class LyricsContainer extends react.Component {
       // CacheManager에도 새 결과 저장 (getGeminiTranslation에서 캐시 히트하도록)
       this._dmResults[currentUri].lastProvider = currentProvider;
       if (translatedLyrics1 && mode1) {
-        CacheManager.set(`${currentUri}:${currentProvider}:${mode1}`, translatedLyrics1);
+        CacheManager.set(getDisplayModeCacheKey(lyricsState, mode1), translatedLyrics1);
       }
       if (translatedLyrics2 && mode2) {
-        CacheManager.set(`${currentUri}:${currentProvider}:${mode2}`, translatedLyrics2);
+        CacheManager.set(getDisplayModeCacheKey(lyricsState, mode2), translatedLyrics2);
       }
 
       // lyricsSource를 다시 호출하여 기존 로직으로 화면 업데이트
@@ -4052,6 +4091,9 @@ class LyricsContainer extends react.Component {
       this.resetDelay();
 
       let tempState;
+      if (CACHE[info.uri] && !isLyricsRenderCacheCurrent(CACHE[info.uri])) {
+        delete CACHE[info.uri];
+      }
       // if lyrics are cached
       if (
         (mode === -1 && CACHE[info.uri]) ||
@@ -4364,10 +4406,11 @@ class LyricsContainer extends react.Component {
     // Progressive loading: keep results per track so Mode 1 does not disappear when Mode 2 finishes
     // Check if display modes or provider changed - if so, clear cached results
     const currentProvider = lyricsState.provider || '';
+    const currentRendererVersion = getSyncDataRendererCacheVersion(lyricsState);
     if (this._dmResults[currentUri]) {
       const cached = this._dmResults[currentUri];
       // If provider changed, invalidate all cache for this track
-      if (cached.lastProvider !== currentProvider) {
+      if (cached.lastProvider !== currentProvider || cached.lastRendererVersion !== currentRendererVersion) {
         ivLyricsDebug(`[processLyricsWithDisplayModes] Provider changed from ${cached.lastProvider} to ${currentProvider}, invalidating cache`);
         cached.mode1 = null;
         cached.mode2 = null;
@@ -4388,6 +4431,7 @@ class LyricsContainer extends react.Component {
     this._dmResults[currentUri].lastMode1 = displayMode1;
     this._dmResults[currentUri].lastMode2 = displayMode2;
     this._dmResults[currentUri].lastProvider = currentProvider;
+    this._dmResults[currentUri].lastRendererVersion = currentRendererVersion;
 
     let lyricsMode1 = this._dmResults[currentUri].mode1;
     let lyricsMode2 = this._dmResults[currentUri].mode2;
@@ -4797,8 +4841,7 @@ class LyricsContainer extends react.Component {
       }
 
       const cacheKey = mode;
-      const providerKey = lyricsState.provider || '';
-      const cacheKey2 = `${lyricsState.uri}:${providerKey}:${cacheKey}`;
+      const cacheKey2 = getDisplayModeCacheKey(lyricsState, cacheKey);
       const cached = CacheManager.get(cacheKey2);
 
       if (cached) {
@@ -4829,7 +4872,7 @@ class LyricsContainer extends react.Component {
       }
 
       // De-duplicate concurrent calls per (uri, type). Share the same promise for callers
-      const inflightKey = `${lyricsState.uri}:${providerKey}:${cacheKey}`;
+      const inflightKey = cacheKey2;
       if (this._inflightGemini?.has(inflightKey)) {
         return this._inflightGemini
           .get(inflightKey)
@@ -4952,13 +4995,13 @@ class LyricsContainer extends react.Component {
       if (!Array.isArray(lyrics))
         return reject(new Error("Invalid lyrics format for conversion."));
 
-      const cacheKey = `${lyricsState.uri}:trad:${language}:${displayMode}`;
+      const cacheKey = `${lyricsState.uri}:trad:${language}:${displayMode}:${getSyncDataRendererCacheVersion(lyricsState)}`;
       const cached = CacheManager.get(cacheKey);
       if (cached) return resolve(cached);
 
       // De-duplicate concurrent calls per (uri, language, mode)
       this._inflightTrad = this._inflightTrad || new Map();
-      const inflightKey = `${lyricsState.uri}:trad:${language}:${displayMode}`;
+      const inflightKey = cacheKey;
       if (this._inflightTrad.has(inflightKey)) {
         return this._inflightTrad.get(inflightKey).then(resolve).catch(reject);
       }

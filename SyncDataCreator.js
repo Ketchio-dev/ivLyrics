@@ -15,6 +15,7 @@ const SYNC_CREATOR_SPEAKER_OPTIONS = [
 ];
 const SYNC_CREATOR_DEFAULT_SPEAKER = 'MALE 1';
 const SYNC_CREATOR_DEFAULT_KIND = 'vocal';
+const SYNC_CREATOR_MAX_MERGED_LINES = 5;
 const SYNC_CREATOR_KIND_OPTIONS = [
 	['vocal', 'syncCreator.kindVocal'],
 	['effect', 'syncCreator.kindEffect'],
@@ -704,6 +705,51 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		ranges.push({ start: lineStart + start, end: lineStart + end });
 	};
 
+	const normalizeSyncCreatorHiddenRanges = (ranges) => {
+		if (!Array.isArray(ranges)) return [];
+		return ranges
+			.map((range) => {
+				const start = Number(range?.start);
+				const end = Number(range?.end);
+				return Number.isInteger(start) && Number.isInteger(end) && end >= start
+					? { start, end }
+					: null;
+			})
+			.filter(Boolean);
+	};
+
+	const sanitizeSyncCreatorParallel = (parallel) => {
+		if (!parallel || typeof parallel !== 'object') return parallel;
+		const nextParallel = { ...parallel };
+		const hiddenRanges = normalizeSyncCreatorHiddenRanges(nextParallel.hiddenRanges);
+		if (hiddenRanges.length > 0) {
+			nextParallel.hiddenRanges = hiddenRanges;
+		} else {
+			delete nextParallel.hiddenRanges;
+		}
+		return nextParallel;
+	};
+
+	const sanitizeSyncCreatorSyncData = (data) => {
+		if (!data || !Array.isArray(data.lines)) return data;
+		return {
+			...data,
+			lines: data.lines.map((line) => {
+				const nextLine = { ...line };
+				if (nextLine.parallel) {
+					nextLine.parallel = sanitizeSyncCreatorParallel(nextLine.parallel);
+				}
+				const hiddenRanges = normalizeSyncCreatorHiddenRanges(nextLine.hiddenRanges);
+				if (hiddenRanges.length > 0) {
+					nextLine.hiddenRanges = hiddenRanges;
+				} else {
+					delete nextLine.hiddenRanges;
+				}
+				return nextLine;
+			})
+		};
+	};
+
 	const buildParentheticalParallelTemplate = (lineChars, lineStart = 0) => {
 		const chars = Array.isArray(lineChars) ? lineChars : [];
 		if (!chars.length) return null;
@@ -786,11 +832,11 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 
 			if (parts.length < 2) return null;
 
-			return {
+			return sanitizeSyncCreatorParallel({
 				layout: 'stack',
 				parts,
 				hiddenRanges
-			};
+			});
 		};
 
 		const separatorTemplate = buildSeparatorTemplate();
@@ -873,13 +919,13 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			.filter(group => group.ranges.length > 0)
 			.sort((a, b) => a.ranges[0].start - b.ranges[0].start);
 
-		return {
+		return sanitizeSyncCreatorParallel({
 			layout: 'stack',
 			parts: orderedRangeGroups.map((group, index) =>
 				buildPart(index, group.ranges, index === 0 ? 'lead' : 'background')
 			),
 			hiddenRanges
-		};
+		});
 	};
 
 	const buildManualParallelTemplate = (lineChars, lineStart = 0, splitPoints = []) => {
@@ -934,17 +980,17 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		}
 
 		if (parts.length < 2) return null;
-		return {
+		return sanitizeSyncCreatorParallel({
 			layout: 'stack',
 			parts,
 			hiddenRanges
-		};
+		});
 	};
 
 	const mergeSyncCreatorParallelTemplate = (template, existingParallel) => {
 		if (!template) return null;
 		const existingParts = Array.isArray(existingParallel?.parts) ? existingParallel.parts : [];
-		return {
+		return sanitizeSyncCreatorParallel({
 			layout: existingParallel?.layout || template.layout || 'stack',
 			hiddenRanges: Array.isArray(existingParallel?.hiddenRanges) ? existingParallel.hiddenRanges : template.hiddenRanges,
 			parts: template.parts.map((part) => {
@@ -957,7 +1003,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 						chars: Array.isArray(existing?.chars) ? existing.chars : undefined
 					};
 				})
-		};
+		});
 	};
 
 	// 상태 관리
@@ -972,6 +1018,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 	const [parallelPartMetaDrafts, setParallelPartMetaDrafts] = useState({});
 	const [manualParallelSplitDrafts, setManualParallelSplitDrafts] = useState({});
 	const [mergedLineDrafts, setMergedLineDrafts] = useState({});
+	const [isParallelSplitCollapsed, setIsParallelSplitCollapsed] = useState(false);
 	const [lineMetaDrafts, setLineMetaDrafts] = useState({});
 	const [multiVocalMode, setMultiVocalMode] = useState(false);
 	const [pendingMultiVocalDecision, setPendingMultiVocalDecision] = useState(null);
@@ -1237,50 +1284,99 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		if (currentLineIndex < 0 || currentLineIndex >= lyricsLines.length) return [];
 		return Array.from(lyricsLines[currentLineIndex]);
 	}, [lyricsLines, currentLineIndex]);
-	const currentNextLineChars = useMemo(() => {
-		if (currentLineIndex < 0 || currentLineIndex >= lyricsLines.length - 1) return [];
-		return Array.from(lyricsLines[currentLineIndex + 1]);
-	}, [lyricsLines, currentLineIndex]);
-	const currentNextLineStart = currentLineIndex < lyricsLines.length - 1
-		? lineCharOffsets[currentLineIndex + 1]
-		: null;
-	const currentNextLineEnd = Number.isInteger(currentNextLineStart)
-		? currentNextLineStart + currentNextLineChars.length - 1
-		: -1;
 	const currentExistingLineData = useMemo(() => {
 		if (!Array.isArray(syncData?.lines)) return null;
 		return syncData.lines.find(line => line.start === currentLineStart) || null;
 	}, [syncData, currentLineStart]);
-	const currentLineMergedWithNext = useMemo(() => {
-		if (!Number.isInteger(currentNextLineStart) || currentNextLineChars.length === 0) return false;
-		if (mergedLineDrafts[currentLineStart] === currentNextLineStart) return true;
-		if (!currentExistingLineData || currentExistingLineData.end < currentNextLineEnd) return false;
-		return Array.isArray(currentExistingLineData.parallel?.parts)
-			&& currentExistingLineData.parallel.parts.some(part =>
-				Array.isArray(part?.ranges)
-				&& part.ranges.some(range => Number(range?.start) >= currentNextLineStart && Number(range?.end) <= currentNextLineEnd)
-			);
-	}, [currentExistingLineData, currentLineStart, currentNextLineChars.length, currentNextLineEnd, currentNextLineStart, mergedLineDrafts]);
-	const isLineCoveredByMergedPrevious = useCallback((index, linesByStartOverride = null) => {
-		if (index <= 0 || index >= lyricsLines.length) return false;
-		const previousStart = lineCharOffsets[index - 1];
+	const getLineEndAtIndex = useCallback((index) => {
+		if (index < 0 || index >= lyricsLines.length) return -1;
 		const lineStart = lineCharOffsets[index];
 		const lineChars = Array.from(lyricsLines[index] || '');
-		if (!Number.isInteger(previousStart) || !Number.isInteger(lineStart) || lineChars.length === 0) return false;
-		const lineEnd = lineStart + lineChars.length - 1;
-		if (mergedLineDrafts[previousStart] === lineStart) return true;
+		return Number.isInteger(lineStart) && lineChars.length > 0
+			? lineStart + lineChars.length - 1
+			: -1;
+	}, [lineCharOffsets, lyricsLines]);
+	const normalizeMergedLineDraftStarts = useCallback((value) => {
+		const rawStarts = Array.isArray(value)
+			? value
+			: Number.isInteger(Number(value))
+				? [Number(value)]
+				: [];
+		return [...new Set(rawStarts
+			.map(start => Number(start))
+			.filter(start => Number.isInteger(start)))]
+			.sort((a, b) => a - b)
+			.slice(0, SYNC_CREATOR_MAX_MERGED_LINES - 1);
+	}, []);
+	const lineHasParallelRangeCovering = useCallback((line, lineStart, lineEnd) => (
+		Array.isArray(line?.parallel?.parts)
+		&& line.parallel.parts.some(part =>
+			Array.isArray(part?.ranges)
+			&& part.ranges.some(range =>
+				Number(range?.start) <= lineStart
+				&& Number(range?.end) >= lineEnd
+			)
+		)
+	), []);
+	const getMergedLineIndexesForStart = useCallback((startIndex, linesByStartOverride = null) => {
+		if (startIndex < 0 || startIndex >= lyricsLines.length) return [];
+		const lineStart = lineCharOffsets[startIndex];
+		if (!Number.isInteger(lineStart)) return [startIndex];
+
+		const draftStarts = normalizeMergedLineDraftStarts(mergedLineDrafts[lineStart]);
+		if (draftStarts.length > 0) {
+			const indexes = [startIndex];
+			for (let index = startIndex + 1; index < lyricsLines.length && indexes.length < SYNC_CREATOR_MAX_MERGED_LINES; index++) {
+				const nextStart = lineCharOffsets[index];
+				if (draftStarts.includes(nextStart)) {
+					indexes.push(index);
+					continue;
+				}
+				break;
+			}
+			return indexes;
+		}
 
 		const linesByStart = linesByStartOverride
 			|| new Map((Array.isArray(syncData?.lines) ? syncData.lines : []).map(line => [line.start, line]));
-		const previousLine = linesByStart.get(previousStart);
-		if (!previousLine || previousLine.end < lineEnd) return false;
+		const lineData = linesByStart.get(lineStart);
+		if (!lineData || !Array.isArray(lineData.parallel?.parts)) return [startIndex];
 
-		return Array.isArray(previousLine.parallel?.parts)
-			&& previousLine.parallel.parts.some(part =>
-				Array.isArray(part?.ranges)
-				&& part.ranges.some(range => Number(range?.start) >= lineStart && Number(range?.end) <= lineEnd)
-			);
-	}, [lineCharOffsets, lyricsLines, mergedLineDrafts, syncData]);
+		const indexes = [startIndex];
+		for (let index = startIndex + 1; index < lyricsLines.length && indexes.length < SYNC_CREATOR_MAX_MERGED_LINES; index++) {
+			const nextStart = lineCharOffsets[index];
+			const nextEnd = getLineEndAtIndex(index);
+			if (!Number.isInteger(nextStart) || nextEnd < nextStart || Number(lineData.end) < nextEnd) break;
+			if (!lineHasParallelRangeCovering(lineData, nextStart, nextEnd)) break;
+			indexes.push(index);
+		}
+		return indexes;
+	}, [
+		getLineEndAtIndex,
+		lineCharOffsets,
+		lineHasParallelRangeCovering,
+		lyricsLines.length,
+		mergedLineDrafts,
+		normalizeMergedLineDraftStarts,
+		syncData
+	]);
+	const findMergedOwnerLineIndex = useCallback((index, linesByStartOverride = null) => {
+		if (index <= 0 || index >= lyricsLines.length) return -1;
+		const minIndex = Math.max(0, index - SYNC_CREATOR_MAX_MERGED_LINES + 1);
+		for (let ownerIndex = index - 1; ownerIndex >= minIndex; ownerIndex--) {
+			const mergedIndexes = getMergedLineIndexesForStart(ownerIndex, linesByStartOverride);
+			if (mergedIndexes.includes(index)) return ownerIndex;
+		}
+		return -1;
+	}, [getMergedLineIndexesForStart, lyricsLines.length]);
+	const currentMergedLineIndexes = useMemo(
+		() => getMergedLineIndexesForStart(currentLineIndex),
+		[getMergedLineIndexesForStart, currentLineIndex]
+	);
+	const currentLineMergedWithNext = currentMergedLineIndexes.length > 1;
+	const isLineCoveredByMergedPrevious = useCallback((index, linesByStartOverride = null) => {
+		return findMergedOwnerLineIndex(index, linesByStartOverride) >= 0;
+	}, [findMergedOwnerLineIndex]);
 	const currentLineCoveredByPrevious = useMemo(
 		() => isLineCoveredByMergedPrevious(currentLineIndex),
 		[isLineCoveredByMergedPrevious, currentLineIndex]
@@ -1302,17 +1398,49 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 	);
 	const currentFullLineChars = useMemo(() => {
 		if (!currentLineMergedWithNext) return currentBaseLineChars;
-		return [...currentBaseLineChars, ...currentNextLineChars];
-	}, [currentBaseLineChars, currentLineMergedWithNext, currentNextLineChars]);
+		return currentMergedLineIndexes.flatMap(index => Array.from(lyricsLines[index] || ''));
+	}, [currentBaseLineChars, currentLineMergedWithNext, currentMergedLineIndexes, lyricsLines]);
+	const getAutoMergeSplitPointsForLine = useCallback((lineStart) => {
+		const startIndex = lineCharOffsets.indexOf(lineStart);
+		if (startIndex < 0) return [];
+		const mergedIndexes = getMergedLineIndexesForStart(startIndex);
+		if (mergedIndexes.length <= 1) return [];
+
+		const splitPoints = [];
+		let offset = 0;
+		for (let index = 0; index < mergedIndexes.length - 1; index++) {
+			offset += Array.from(lyricsLines[mergedIndexes[index]] || '').length;
+			if (offset > 0) splitPoints.push(offset);
+		}
+		return splitPoints;
+	}, [getMergedLineIndexesForStart, lineCharOffsets, lyricsLines]);
+	const currentAutoMergeSplitPoints = useMemo(
+		() => getAutoMergeSplitPointsForLine(currentLineStart),
+		[getAutoMergeSplitPointsForLine, currentLineStart]
+	);
+	const currentAutoMergeSplitPointSet = useMemo(
+		() => new Set(currentAutoMergeSplitPoints),
+		[currentAutoMergeSplitPoints]
+	);
+	const currentNextMergeLineIndex = currentMergedLineIndexes.length > 0
+		? currentMergedLineIndexes[currentMergedLineIndexes.length - 1] + 1
+		: currentLineIndex + 1;
+	const canMergeCurrentLineWithNext = !currentLineCoveredByPrevious
+		&& currentMergedLineIndexes.length < SYNC_CREATOR_MAX_MERGED_LINES
+		&& currentNextMergeLineIndex < lyricsLines.length;
 	const currentLineMeta = useMemo(() => ({
 		speaker: normalizeSyncCreatorSpeaker(lineMetaDrafts[currentLineStart]?.speaker || currentExistingLineData?.speaker) || SYNC_CREATOR_DEFAULT_SPEAKER,
 		kind: normalizeSyncCreatorKind(lineMetaDrafts[currentLineStart]?.kind || currentExistingLineData?.kind) || SYNC_CREATOR_DEFAULT_KIND
 	}), [lineMetaDrafts, currentLineStart, currentExistingLineData]);
 	const getParallelTemplateForLine = useCallback((lineChars, lineStart) => {
-		const manualTemplate = buildManualParallelTemplate(lineChars, lineStart, manualParallelSplitDrafts[lineStart]);
+		const splitPoints = [
+			...getAutoMergeSplitPointsForLine(lineStart),
+			...(Array.isArray(manualParallelSplitDrafts[lineStart]) ? manualParallelSplitDrafts[lineStart] : [])
+		];
+		const manualTemplate = buildManualParallelTemplate(lineChars, lineStart, splitPoints);
 		if (manualTemplate) return manualTemplate;
 		return buildParentheticalParallelTemplate(lineChars, lineStart);
-	}, [manualParallelSplitDrafts]);
+	}, [getAutoMergeSplitPointsForLine, manualParallelSplitDrafts]);
 	const currentParallelTemplate = useMemo(() => {
 		if (!multiVocalMode) return null;
 		const template = getParallelTemplateForLine(currentFullLineChars, currentLineStart);
@@ -1562,7 +1690,8 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			const linesByStart = new Map(syncData.lines.map(line => [line.start, line]));
 			return lyricsLines.reduce((count, lineText, index) => {
 				if (isLineCoveredByMergedPrevious(index, linesByStart)) {
-					const previousLine = linesByStart.get(lineCharOffsets[index - 1]);
+					const ownerIndex = findMergedOwnerLineIndex(index, linesByStart);
+					const previousLine = ownerIndex >= 0 ? linesByStart.get(lineCharOffsets[ownerIndex]) : null;
 					const previousParts = Array.isArray(previousLine?.parallel?.parts) ? previousLine.parallel.parts : [];
 					const previousComplete = previousParts.length > 1 && previousParts.every(part =>
 						Array.isArray(part.chars)
@@ -1575,11 +1704,10 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				const lineStart = lineCharOffsets[index];
 				const lineData = linesByStart.get(lineStart);
 				if (!lineData) return count;
-				const isMergedWithNext = index < lyricsLines.length - 1
-					&& (mergedLineDrafts[lineStart] === lineCharOffsets[index + 1]
-						|| (lineData.end >= lineCharOffsets[index + 1] + Array.from(lyricsLines[index + 1] || '').length - 1));
+				const mergedIndexes = getMergedLineIndexesForStart(index, linesByStart);
+				const isMergedWithNext = mergedIndexes.length > 1;
 				const templateChars = isMergedWithNext
-					? [...Array.from(lineText || ''), ...Array.from(lyricsLines[index + 1] || '')]
+					? mergedIndexes.flatMap(lineIndex => Array.from(lyricsLines[lineIndex] || ''))
 					: Array.from(lineText || '');
 				const template = getParallelTemplateForLine(templateChars, lineStart) || (isMergedWithNext ? lineData.parallel : null);
 				if (template?.parts?.length > 1) {
@@ -1598,7 +1726,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			}, 0);
 		}
 		return syncData.lines.length;
-	}, [syncData, multiVocalMode, lyricsLines, lineCharOffsets, getParallelTemplateForLine, isLineCoveredByMergedPrevious, mergedLineDrafts]);
+	}, [syncData, multiVocalMode, lyricsLines, lineCharOffsets, getParallelTemplateForLine, isLineCoveredByMergedPrevious, findMergedOwnerLineIndex, getMergedLineIndexesForStart]);
 
 	// 현재 줄이 싱크되어 있는지
 	const isCurrentLineSynced = useMemo(() => {
@@ -2191,99 +2319,123 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 	}, []);
 
 	const mergeCurrentLineWithNext = useCallback(() => {
-		if (currentLineIndex < 0 || currentLineIndex >= lyricsLines.length - 1) return;
-		if (currentLineMergedWithNext || currentLineCoveredByPrevious) return;
-
-		const currentText = lyricsLines[currentLineIndex] || '';
-		const nextText = lyricsLines[currentLineIndex + 1] || '';
-		const currentChars = Array.from(currentText);
-		const nextChars = Array.from(nextText);
-		if (!currentChars.length || !nextChars.length) return;
+		if (!canMergeCurrentLineWithNext) return;
 
 		const currentStart = lineCharOffsets[currentLineIndex] ?? 0;
-		const nextStart = lineCharOffsets[currentLineIndex + 1] ?? currentStart + currentChars.length;
-		const oldNextEnd = nextStart + nextChars.length - 1;
-		const mergedEnd = oldNextEnd;
+		const nextStart = lineCharOffsets[currentNextMergeLineIndex];
+		const nextEnd = getLineEndAtIndex(currentNextMergeLineIndex);
+		if (!Number.isInteger(currentStart) || !Number.isInteger(nextStart) || nextEnd < nextStart) return;
+
+		const nextMergedLineIndexes = [...currentMergedLineIndexes, currentNextMergeLineIndex]
+			.filter((index, position, indexes) => indexes.indexOf(index) === position)
+			.sort((a, b) => a - b)
+			.slice(0, SYNC_CREATOR_MAX_MERGED_LINES);
+		const mergedEnd = getLineEndAtIndex(nextMergedLineIndexes[nextMergedLineIndexes.length - 1]);
+		const partIds = 'abcdefghijklmnopqrstuvwxyz'.split('');
 
 		setSyncData(prev => {
 			if (!prev || !Array.isArray(prev.lines)) return prev;
 
-			const currentLineData = prev.lines.find(line => line.start === currentStart);
-			const nextLineData = prev.lines.find(line => line.start === nextStart);
+			const linesByStart = new Map(prev.lines.map(line => [line.start, line]));
+			const currentLineData = linesByStart.get(currentStart);
 			const previousLine = prev.lines.reduce((best, line) => {
 				if (line.start >= currentStart || !Array.isArray(line.chars) || !line.chars.length) return best;
 				return !best || line.start > best.start ? line : best;
 			}, null);
 			const previousLineEndTime = previousLine?.chars?.[previousLine.chars.length - 1] ?? -1;
-			const currentPartChars = Array.isArray(currentLineData?.chars) && currentLineData.chars.length === currentChars.length
-				? normalizeCommittedLineChars(currentLineData.chars, previousLineEndTime)
-				: null;
-			const nextPartChars = Array.isArray(nextLineData?.chars) && nextLineData.chars.length === nextChars.length
-				? normalizeCommittedLineChars(nextLineData.chars, previousLineEndTime)
-				: null;
-			const mergedLine = currentPartChars && nextPartChars
+
+			const getPartSnapshot = (lineIndex) => {
+				const lineStart = lineCharOffsets[lineIndex];
+				const lineEnd = getLineEndAtIndex(lineIndex);
+				const lineChars = Array.from(lyricsLines[lineIndex] || '');
+				if (!Number.isInteger(lineStart) || lineEnd < lineStart || lineChars.length === 0) return null;
+
+				const directLine = linesByStart.get(lineStart);
+				const existingPart = currentLineData?.parallel?.parts?.find(part =>
+					Array.isArray(part?.ranges)
+					&& part.ranges.some(range =>
+						Number(range?.start) <= lineStart
+						&& Number(range?.end) >= lineEnd
+					)
+				);
+				const mergedOffsetStart = lineStart - currentStart;
+				const mergedOffsetEnd = mergedOffsetStart + lineChars.length;
+				const chars = Array.isArray(directLine?.chars) && directLine.chars.length === lineChars.length
+					? directLine.chars
+					: Array.isArray(existingPart?.chars) && existingPart.chars.length === lineChars.length
+						? existingPart.chars
+						: Array.isArray(currentLineData?.chars) && currentLineData.chars.length >= mergedOffsetEnd
+							? currentLineData.chars.slice(mergedOffsetStart, mergedOffsetEnd)
+							: null;
+				if (!Array.isArray(chars) || chars.length !== lineChars.length) return null;
+
+				return {
+					start: lineStart,
+					end: lineEnd,
+					chars,
+					speaker: normalizeSyncCreatorSpeaker(directLine?.speaker || existingPart?.speaker || currentLineData?.speaker) || SYNC_CREATOR_DEFAULT_SPEAKER,
+					kind: normalizeSyncCreatorKind(directLine?.kind || existingPart?.kind || currentLineData?.kind) || SYNC_CREATOR_DEFAULT_KIND
+				};
+			};
+
+			const snapshots = nextMergedLineIndexes.map(getPartSnapshot);
+			const mergedLine = snapshots.every(Boolean)
 				? {
 					start: currentStart,
 					end: mergedEnd,
-					chars: normalizeCommittedLineChars([
-						...currentPartChars,
-						...nextPartChars
-					], previousLineEndTime),
-					speaker: normalizeSyncCreatorSpeaker(currentLineData?.speaker) || SYNC_CREATOR_DEFAULT_SPEAKER,
-					kind: normalizeSyncCreatorKind(currentLineData?.kind) || SYNC_CREATOR_DEFAULT_KIND,
-					parallel: {
+					chars: normalizeCommittedLineChars(snapshots.flatMap(snapshot => snapshot.chars), previousLineEndTime),
+					speaker: snapshots[0].speaker,
+					kind: snapshots[0].kind,
+					parallel: sanitizeSyncCreatorParallel({
 						layout: 'stack',
-						hiddenRanges: [],
-						parts: [
-							{
-								id: 'a',
-								role: 'lead',
-								speaker: normalizeSyncCreatorSpeaker(currentLineData?.speaker) || SYNC_CREATOR_DEFAULT_SPEAKER,
-								kind: normalizeSyncCreatorKind(currentLineData?.kind) || SYNC_CREATOR_DEFAULT_KIND,
-								ranges: [{ start: currentStart, end: currentStart + currentChars.length - 1 }],
-								join: [],
-								chars: currentPartChars
-							},
-							{
-								id: 'b',
-								role: 'background',
-								speaker: normalizeSyncCreatorSpeaker(nextLineData?.speaker) || SYNC_CREATOR_DEFAULT_SPEAKER,
-								kind: normalizeSyncCreatorKind(nextLineData?.kind) || SYNC_CREATOR_DEFAULT_KIND,
-								ranges: [{ start: nextStart, end: mergedEnd }],
-								join: [],
-								chars: nextPartChars
-							}
-						]
-					}
+						parts: snapshots.map((snapshot, index) => ({
+							id: partIds[index] || `p${index + 1}`,
+							role: index === 0 ? 'lead' : 'background',
+							speaker: snapshot.speaker,
+							kind: snapshot.kind,
+							ranges: [{ start: snapshot.start, end: snapshot.end }],
+							join: [],
+							chars: snapshot.chars
+						}))
+					})
 				}
 				: null;
 			if (!mergedLine) return prev;
 
 			const lines = prev.lines
-				.filter(line => line.start < currentStart || line.start > oldNextEnd);
+				.filter(line => line.start < currentStart || line.start > mergedEnd);
 
-			if (mergedLine) {
-				lines.push(mergedLine);
-			}
+			lines.push(mergedLine);
 
 			lines.sort((a, b) => a.start - b.start);
 			return lines.length > 0 ? {
 				...prev,
-				version: mergedLine ? 2 : prev.version,
+				version: 2,
 				lines
 			} : null;
 		});
 
 		setMultiVocalMode(true);
 		setActiveParallelPartId('a');
-		setMergedLineDrafts(prev => ({ ...prev, [currentStart]: nextStart }));
-		setManualParallelSplitDrafts(prev => ({ ...prev, [currentStart]: [currentChars.length] }));
+		setMergedLineDrafts(prev => ({
+			...prev,
+			[currentStart]: nextMergedLineIndexes.slice(1).map(index => lineCharOffsets[index])
+		}));
 		setMode('idle');
 		setRecordingCharIndex(-1);
 		charTimesRef.current = [];
 		if (lyricsScrollRef.current) lyricsScrollRef.current.scrollLeft = 0;
 		Toast.success(I18n.t('syncCreator.mergedWithNextLine') || 'Merged with the next line as separate vocal parts.');
-	}, [currentLineCoveredByPrevious, currentLineIndex, currentLineMergedWithNext, lyricsLines, lineCharOffsets, normalizeCommittedLineChars]);
+	}, [
+		canMergeCurrentLineWithNext,
+		currentLineIndex,
+		currentMergedLineIndexes,
+		currentNextMergeLineIndex,
+		getLineEndAtIndex,
+		lineCharOffsets,
+		lyricsLines,
+		normalizeCommittedLineChars
+	]);
 
 	const commitCurrentLineSync = useCallback((rawChars) => {
 		if (multiVocalMode && !isCurrentSyncTargetMetaComplete) {
@@ -2302,9 +2454,8 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			? syncData.lines.map((line) => ({
 				...line,
 				chars: Array.isArray(line.chars) ? [...line.chars] : [],
-				parallel: line.parallel ? {
+				parallel: line.parallel ? sanitizeSyncCreatorParallel({
 					...line.parallel,
-					hiddenRanges: Array.isArray(line.parallel.hiddenRanges) ? [...line.parallel.hiddenRanges] : [],
 					parts: Array.isArray(line.parallel.parts)
 						? line.parallel.parts.map(part => ({
 							...part,
@@ -2313,7 +2464,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 							chars: Array.isArray(part.chars) ? [...part.chars] : undefined
 						}))
 						: []
-				} : undefined
+				}) : undefined
 			}))
 			: [];
 		const existingIndex = nextLines.findIndex((line) => line.start === lineStart);
@@ -2411,11 +2562,11 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				.filter(Boolean);
 
 			if (parts.length > 0) {
-				lineData.parallel = {
+				lineData.parallel = sanitizeSyncCreatorParallel({
 					layout: currentParallelData.layout || 'stack',
 					hiddenRanges: currentParallelData.hiddenRanges || [],
 					parts
-				};
+				});
 			} else {
 				delete lineData.parallel;
 			}
@@ -3373,13 +3524,10 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			}
 
 			const lineData = syncLinesByStart.get(lineStart);
-			const nextLineStart = lineCharOffsets[index + 1];
-			const nextLineChars = Array.from(lyricsLines[index + 1] || '');
-			const isMergedWithNext = index < lyricsLines.length - 1
-				&& (mergedLineDrafts[lineStart] === nextLineStart
-					|| (lineData && Number.isInteger(nextLineStart) && lineData.end >= nextLineStart + nextLineChars.length - 1));
+			const mergedIndexes = getMergedLineIndexesForStart(index, syncLinesByStart);
+			const isMergedWithNext = mergedIndexes.length > 1;
 			const templateChars = isMergedWithNext
-				? [...Array.from(lineText || ''), ...nextLineChars]
+				? mergedIndexes.flatMap(lineIndex => Array.from(lyricsLines[lineIndex] || ''))
 				: Array.from(lineText || '');
 			const template = getParallelTemplateForLine(templateChars, lineStart) || (isMergedWithNext ? lineData?.parallel : null);
 			if (Array.isArray(template?.parts)) {
@@ -3428,24 +3576,27 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		lineMetaDrafts,
 		parallelPartMetaDrafts,
 		isLineCoveredByMergedPrevious,
-		mergedLineDrafts,
+		getMergedLineIndexesForStart,
 		getParallelTemplateForLine
 	]);
 
 	const currentManualSplitPoints = useMemo(() => {
 		const splitPoints = manualParallelSplitDrafts[currentLineStart];
-		return Array.isArray(splitPoints)
-			? [...new Set(splitPoints
+		return [...new Set([
+			...currentAutoMergeSplitPoints,
+			...(Array.isArray(splitPoints) ? splitPoints : [])
+		]
 				.map(value => Number(value))
 				.filter(value => Number.isInteger(value) && value > 0 && value < currentFullLineChars.length))]
-				.sort((a, b) => a - b)
-			: [];
-	}, [manualParallelSplitDrafts, currentLineStart, currentFullLineChars.length]);
+			.sort((a, b) => a - b);
+	}, [manualParallelSplitDrafts, currentLineStart, currentFullLineChars.length, currentAutoMergeSplitPoints]);
 	const currentManualSplitPointSet = useMemo(
 		() => new Set(currentManualSplitPoints),
 		[currentManualSplitPoints]
 	);
 	const hasManualParallelSplit = currentManualSplitPoints.length > 0;
+	const hasManualDraftSplit = Array.isArray(manualParallelSplitDrafts[currentLineStart])
+		&& manualParallelSplitDrafts[currentLineStart].length > 0;
 	const resetCurrentLineManualSplit = useCallback(() => {
 		const lineStart = lineCharOffsets[currentLineIndex];
 		setManualParallelSplitDrafts(prev => {
@@ -3459,10 +3610,88 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		charTimesRef.current = [];
 		if (lyricsScrollRef.current) lyricsScrollRef.current.scrollLeft = 0;
 	}, [lineCharOffsets, currentLineIndex]);
+	const unmergeCurrentLine = useCallback(() => {
+		if (!currentLineMergedWithNext || currentMergedLineIndexes.length <= 1) return;
+		const lineStart = lineCharOffsets[currentLineIndex];
+		const mergedEnd = getLineEndAtIndex(currentMergedLineIndexes[currentMergedLineIndexes.length - 1]);
+
+		setSyncData(prev => {
+			if (!prev || !Array.isArray(prev.lines)) return prev;
+			const mergedLine = prev.lines.find(line => line.start === lineStart);
+			if (!mergedLine || Number(mergedLine.end) < mergedEnd) return prev;
+
+			const restoredLines = currentMergedLineIndexes
+				.map((lineIndex) => {
+					const start = lineCharOffsets[lineIndex];
+					const end = getLineEndAtIndex(lineIndex);
+					const lineChars = Array.from(lyricsLines[lineIndex] || '');
+					if (!Number.isInteger(start) || end < start || lineChars.length === 0) return null;
+
+					const part = mergedLine.parallel?.parts?.find(item =>
+						Array.isArray(item?.ranges)
+						&& item.ranges.some(range =>
+							Number(range?.start) <= start
+							&& Number(range?.end) >= end
+						)
+					);
+					const sliceStart = start - lineStart;
+					const sliceEnd = sliceStart + lineChars.length;
+					const chars = Array.isArray(part?.chars) && part.chars.length === lineChars.length
+						? part.chars
+						: Array.isArray(mergedLine.chars) && mergedLine.chars.length >= sliceEnd
+							? mergedLine.chars.slice(sliceStart, sliceEnd)
+							: null;
+					if (!Array.isArray(chars) || chars.length !== lineChars.length) return null;
+
+					const speaker = normalizeSyncCreatorSpeaker(part?.speaker || mergedLine.speaker) || SYNC_CREATOR_DEFAULT_SPEAKER;
+					const kind = normalizeSyncCreatorKind(part?.kind || mergedLine.kind) || SYNC_CREATOR_DEFAULT_KIND;
+					return { start, end, chars, speaker, kind };
+				})
+				.filter(Boolean);
+			if (restoredLines.length !== currentMergedLineIndexes.length) return prev;
+
+			const lines = prev.lines
+				.filter(line => line.start < lineStart || line.start > mergedEnd);
+			lines.push(...restoredLines);
+			lines.sort((a, b) => a.start - b.start);
+			return lines.length > 0
+				? { ...prev, version: lines.some(line => line.parallel) ? 2 : (prev.version || 1), lines }
+				: null;
+		});
+
+		setMergedLineDrafts(prev => {
+			if (!Object.prototype.hasOwnProperty.call(prev, lineStart)) return prev;
+			const next = { ...prev };
+			delete next[lineStart];
+			return next;
+		});
+		setManualParallelSplitDrafts(prev => {
+			if (!Object.prototype.hasOwnProperty.call(prev, lineStart)) return prev;
+			const next = { ...prev };
+			delete next[lineStart];
+			return next;
+		});
+		setActiveParallelPartId('full');
+		setMode('idle');
+		setRecordingCharIndex(-1);
+		charTimesRef.current = [];
+		if (lyricsScrollRef.current) lyricsScrollRef.current.scrollLeft = 0;
+	}, [
+		currentLineIndex,
+		currentLineMergedWithNext,
+		currentMergedLineIndexes,
+		getLineEndAtIndex,
+		lineCharOffsets,
+		lyricsLines
+	]);
 	const toggleManualParallelSplitPoint = useCallback((splitPoint) => {
 		if (!multiVocalMode || currentFullLineChars.length < 2) return;
 		const normalizedSplitPoint = Number(splitPoint);
 		if (!Number.isInteger(normalizedSplitPoint) || normalizedSplitPoint <= 0 || normalizedSplitPoint >= currentFullLineChars.length) {
+			return;
+		}
+		if (currentAutoMergeSplitPointSet.has(normalizedSplitPoint)) {
+			unmergeCurrentLine();
 			return;
 		}
 
@@ -3490,7 +3719,14 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		setRecordingCharIndex(-1);
 		charTimesRef.current = [];
 		if (lyricsScrollRef.current) lyricsScrollRef.current.scrollLeft = 0;
-	}, [multiVocalMode, currentFullLineChars.length, lineCharOffsets, currentLineIndex]);
+	}, [
+		multiVocalMode,
+		currentFullLineChars.length,
+		currentAutoMergeSplitPointSet,
+		unmergeCurrentLine,
+		lineCharOffsets,
+		currentLineIndex
+	]);
 	const enableManualMultiVocalMode = useCallback(() => {
 		setMultiVocalMode(true);
 		setActiveParallelPartId('');
@@ -3603,11 +3839,10 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 					return;
 				}
 
-				const isMergedWithNext = index < lyricsLines.length - 1
-					&& (mergedLineDrafts[lineStart] === lineCharOffsets[index + 1]
-						|| (lineData.end >= lineCharOffsets[index + 1] + Array.from(lyricsLines[index + 1] || '').length - 1));
+				const mergedIndexes = getMergedLineIndexesForStart(index, linesByStart);
+				const isMergedWithNext = mergedIndexes.length > 1;
 				const lineChars = isMergedWithNext
-					? [...Array.from(lineText), ...Array.from(lyricsLines[index + 1] || '')]
+					? mergedIndexes.flatMap(lineIndex => Array.from(lyricsLines[lineIndex] || ''))
 					: Array.from(lineText);
 				const template = getParallelTemplateForLine(lineChars, lineStart) || (isMergedWithNext ? lineData.parallel : null);
 				if (template?.parts?.length > 1) {
@@ -3638,14 +3873,14 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			if (!confirm(I18n.t('syncCreator.incompleteConfirm'))) return;
 		}
 
-		const syncDataToSubmit = {
+		const syncDataToSubmit = sanitizeSyncCreatorSyncData({
 			...syncData,
 			lines: syncData.lines.map(line => {
 				const speaker = normalizeSyncCreatorSpeaker(line.speaker) || SYNC_CREATOR_DEFAULT_SPEAKER;
 				const kind = normalizeSyncCreatorKind(line.kind) || SYNC_CREATOR_DEFAULT_KIND;
 				const nextLine = {
 					...line,
-					parallel: line.parallel ? {
+					parallel: line.parallel ? sanitizeSyncCreatorParallel({
 						...line.parallel,
 						parts: Array.isArray(line.parallel.parts)
 							? line.parallel.parts.map(part => ({
@@ -3654,7 +3889,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 								kind: normalizeSyncCreatorKind(part.kind) || SYNC_CREATOR_DEFAULT_KIND
 							}))
 							: line.parallel.parts
-					} : line.parallel
+					}) : line.parallel
 				};
 
 				if (multiVocalMode || speaker !== SYNC_CREATOR_DEFAULT_SPEAKER) {
@@ -3669,7 +3904,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				}
 				return nextLine;
 			})
-		};
+		});
 
 		setIsSubmitting(true);
 
@@ -3697,11 +3932,11 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 					Toast.error(I18n.t('syncCreator.submitError'));
 				}
 			} else {
-					const response = await fetch('https://lyrics.api.ivl.is/lyrics/sync-data', {
-						method: 'POST',
-						headers: Utils.getApiHeaders({ 'Content-Type': 'application/json' }),
-						body: JSON.stringify({ trackId, provider, syncData, ...submitMetadata })
-					});
+				const response = await fetch('https://lyrics.api.ivl.is/lyrics/sync-data', {
+					method: 'POST',
+					headers: Utils.getApiHeaders({ 'Content-Type': 'application/json' }),
+					body: JSON.stringify({ trackId, provider, syncData: syncDataToSubmit, ...submitMetadata })
+				});
 
 				if (response.ok) {
 					Toast.success(I18n.t('syncCreator.submitSuccess'));
@@ -3726,7 +3961,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		}
 
 		setIsSubmitting(false);
-	}, [syncData, lyricsLines, lineCharOffsets, multiVocalMode, trackId, provider, trackName, artistName, onClose, getParallelTemplateForLine, isLineCoveredByMergedPrevious, mergedLineDrafts]);
+	}, [syncData, lyricsLines, lineCharOffsets, multiVocalMode, trackId, provider, trackName, artistName, onClose, getParallelTemplateForLine, getMergedLineIndexesForStart, isLineCoveredByMergedPrevious]);
 
 	// 싱크 데이터 내보내기 (JSON 파일로 저장)
 	const exportSyncData = useCallback(() => {
@@ -3735,7 +3970,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			return;
 		}
 
-		const blob = new Blob([JSON.stringify(syncData, null, 2)], { type: 'application/json' });
+		const blob = new Blob([JSON.stringify(sanitizeSyncCreatorSyncData(syncData), null, 2)], { type: 'application/json' });
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement('a');
 		a.href = url;
@@ -3767,7 +4002,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				}
 
 				// 싱크 데이터 적용
-				setSyncData(importedData);
+				setSyncData(sanitizeSyncCreatorSyncData(importedData));
 
 				Toast.success(I18n.t('syncCreator.importSuccess') || 'Imported sync data');
 			} catch (err) {
@@ -4347,6 +4582,24 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			fontWeight: '800',
 			cursor: 'pointer'
 		},
+		parallelSplitToggleBtn: {
+			background: 'rgba(255,255,255,0.055)',
+			border: '1px solid rgba(255,255,255,0.08)',
+			color: 'var(--spice-text)',
+			padding: '4px 9px',
+			borderRadius: '999px',
+			fontSize: '10px',
+			fontWeight: '800',
+			cursor: 'pointer'
+		},
+		parallelSplitBody: {
+			maxHeight: 'min(220px, 24vh)',
+			overflowY: 'auto',
+			overflowX: 'hidden',
+			overscrollBehavior: 'contain',
+			scrollbarWidth: 'thin',
+			padding: '2px 4px 4px'
+		},
 		parallelSplitTape: { display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'stretch', gap: '2px 0', lineHeight: 1.2 },
 		parallelSplitChar: {
 			display: 'inline-flex',
@@ -4408,6 +4661,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		parallelStack: { width: '100%', display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'stretch' },
 		parallelStackLine: {
 			width: '100%',
+			flexShrink: 0,
 			background: 'rgba(255,255,255,0.025)',
 			color: 'var(--spice-text)',
 			border: '1px solid rgba(255,255,255,0.07)',
@@ -4468,6 +4722,17 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			cursor: mode === 'record' ? 'pointer' : 'default',
 			userSelect: 'none', marginBottom: '14px',
 			boxShadow: '0 20px 48px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.04)'
+		},
+		lyricsBoxParallelScrollable: {
+			alignItems: 'stretch',
+			maxHeight: 'min(430px, 44vh)',
+			overflowY: 'auto',
+			overflowX: 'hidden',
+			overscrollBehavior: 'contain',
+			scrollbarWidth: 'thin',
+			paddingRight: '14px',
+			paddingLeft: '14px',
+			touchAction: 'pan-y'
 		},
 		lyricsScroll: { width: '100%', overflowX: 'auto', overflowY: 'hidden', paddingBottom: '28px', display: 'flex', justifyContent: 'center' },
 		lyricsLine: { display: 'inline-flex', flexWrap: 'nowrap', gap: '0px', paddingLeft: '32px', paddingRight: '32px', justifyContent: 'center', alignItems: usePrimaryCharacterPronunciation ? 'flex-start' : 'stretch' },
@@ -5073,13 +5338,13 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 					react.createElement('button', { style: { ...s.navBtn, opacity: nextNavigableLineIndex < 0 ? 0.3 : 1 }, onClick: goToNextLine, disabled: nextNavigableLineIndex < 0 }, '▶')
 				),
 
-				((!multiVocalMode && currentFullLineChars.length > 1) || (currentLineIndex < lyricsLines.length - 1 && !currentLineMergedWithNext && !currentLineCoveredByPrevious)) && react.createElement('div', { style: s.multiVocalSwitchRow },
+				((!multiVocalMode && currentFullLineChars.length > 1) || canMergeCurrentLineWithNext) && react.createElement('div', { style: s.multiVocalSwitchRow },
 					!multiVocalMode && currentFullLineChars.length > 1 && react.createElement('button', {
 						type: 'button',
 						style: s.multiVocalSwitchBtn,
 						onClick: enableManualMultiVocalMode
 					}, I18n.t('syncCreator.enableMultiVocalMode') || 'Enable multiple vocal mode'),
-					currentLineIndex < lyricsLines.length - 1 && !currentLineMergedWithNext && !currentLineCoveredByPrevious && react.createElement('button', {
+					canMergeCurrentLineWithNext && react.createElement('button', {
 						type: 'button',
 						style: s.multiVocalSwitchBtn,
 						onClick: mergeCurrentLineWithNext
@@ -5096,13 +5361,21 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 					react.createElement('div', { style: s.parallelSplitHeader },
 						react.createElement('span', { style: s.parallelSplitTitle }, I18n.t('syncCreator.manualSplit') || 'Manual split'),
 						hasManualParallelSplit && react.createElement('span', { style: s.parallelSplitBadge }, `${currentManualSplitPoints.length + 1} parts`),
-						hasManualParallelSplit && react.createElement('button', {
+						hasManualDraftSplit && react.createElement('button', {
 							type: 'button',
 							style: s.parallelSplitResetBtn,
 							onClick: resetCurrentLineManualSplit
-						}, I18n.t('syncCreator.useAutoSplit') || 'Use auto')
+						}, I18n.t('syncCreator.useAutoSplit') || 'Use auto'),
+						react.createElement('button', {
+							type: 'button',
+							style: s.parallelSplitToggleBtn,
+							onClick: () => setIsParallelSplitCollapsed(prev => !prev)
+						}, isParallelSplitCollapsed
+							? (I18n.t('update.expand') || 'Expand')
+							: (I18n.t('update.collapse') || 'Collapse'))
 					),
-					react.createElement('div', { style: s.parallelSplitTape },
+					!isParallelSplitCollapsed && react.createElement('div', { style: s.parallelSplitBody },
+						react.createElement('div', { style: s.parallelSplitTape },
 						currentFullLineChars.map((char, index) => react.createElement(react.Fragment, { key: `manual-split-${currentLineStart}-${index}` },
 							index > 0 && react.createElement('button', {
 								type: 'button',
@@ -5119,6 +5392,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 							}, currentManualSplitPointSet.has(index) ? '|' : '·'),
 							react.createElement('span', { style: s.parallelSplitChar }, char === ' ' ? '\u00A0' : char)
 						))
+					)
 					)
 				),
 
@@ -5271,7 +5545,9 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 
 					// Lyrics Box
 				react.createElement('div', {
-					style: s.lyricsBox,
+					style: hasCurrentParallelParts
+						? { ...s.lyricsBox, ...s.lyricsBoxParallelScrollable }
+						: s.lyricsBox,
 					onMouseDown: hasCurrentParallelParts ? undefined : handleContainerMouseDown,
 					onTouchStart: hasCurrentParallelParts ? undefined : handleContainerMouseDown,
 					ref: lyricsScrollRef
