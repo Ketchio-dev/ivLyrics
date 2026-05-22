@@ -8,11 +8,19 @@ function getCreatorProfileCopy() {
 		back: I18n.t("creatorProfile.back") || "Back",
 		contributions: I18n.t("creatorProfile.contributions") || "Sync Contributions",
 		tracks: I18n.t("creatorProfile.tracks") || "Synced tracks",
+		totalViews: I18n.t("creatorProfile.totalViews") || "Total plays",
 		likes: I18n.t("creatorProfile.likes") || "Likes",
 		like: I18n.t("creatorProfile.like") || "Like",
 		liked: I18n.t("creatorProfile.liked") || "Liked",
 		likeActionFailed: I18n.t("creatorProfile.likeActionFailed") || "Failed to update creator like.",
 		likeLoginRequired: I18n.t("creatorProfile.likeLoginRequired") || "Discord login is required to like creators.",
+		addGreeting: I18n.t("creatorProfile.addGreeting") || "Add greeting",
+		editGreeting: I18n.t("creatorProfile.editGreeting") || "Edit greeting",
+		saveGreeting: I18n.t("creatorProfile.saveGreeting") || "Save",
+		cancelGreeting: I18n.t("creatorProfile.cancelGreeting") || "Cancel",
+		greetingPlaceholder: I18n.t("creatorProfile.greetingPlaceholder") || "Write a greeting for your profile.",
+		greetingSaveFailed: I18n.t("creatorProfile.greetingSaveFailed") || "Failed to update creator greeting.",
+		greetingSaveSuccess: I18n.t("creatorProfile.greetingSaveSuccess") || "Greeting updated.",
 		ownProfile: I18n.t("creatorProfile.ownProfile") || "This is your profile.",
 		loadMore: I18n.t("creatorProfile.loadMore") || "Load more",
 		loadingMore: I18n.t("creatorProfile.loadingMore") || "Loading more...",
@@ -24,6 +32,7 @@ function getCreatorProfileCopy() {
 		noArtistStats: I18n.t("creatorProfile.noArtistStats") || "No artist stats yet.",
 		sortLabel: I18n.t("creatorProfile.sortLabel") || "Sort",
 		sortRecent: I18n.t("creatorProfile.sortRecent") || "Recent",
+		sortPopular: I18n.t("creatorProfile.sortPopular") || "Popular",
 		sortTitle: I18n.t("creatorProfile.sortTitle") || "Title",
 		sortArtist: I18n.t("creatorProfile.sortArtist") || "Artist",
 		clearArtistFilter: I18n.t("creatorProfile.clearArtistFilter") || "Clear artist filter",
@@ -176,6 +185,161 @@ function getCreatorPublicProfileUrl(profileData, contributor) {
 
 const CREATOR_PROFILE_PAGE_SIZE = 12;
 
+function normalizeCreatorCoverText(value) {
+	return String(value || "")
+		.toLowerCase()
+		.normalize("NFKD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.replace(/\([^)]*\)|\[[^\]]*\]/g, " ")
+		.replace(/[^a-z0-9가-힣ぁ-ゔァ-ヴー一-龯]+/g, " ")
+		.replace(/\s+/g, " ")
+		.trim();
+}
+
+function getCreatorCoverFirstArtist(value) {
+	return String(value || "")
+		.split(/,|&|\bfeat\.?\b|\bfeaturing\b|\bwith\b|\bx\b/i)[0]
+		.trim();
+}
+
+function upgradeCreatorItunesArtwork(url) {
+	return String(url || "").replace(/\/\d+x\d+bb(?=\.(jpg|jpeg|png|webp)(\?|$))/i, "/600x600bb");
+}
+
+async function fetchCreatorProfileJson(url) {
+	const response = await fetch(url, { headers: { Accept: "application/json" } });
+	if (!response.ok) {
+		throw new Error("Cover lookup failed");
+	}
+	return await response.json();
+}
+
+async function searchCreatorItunesCover(title, artist) {
+	const term = [title, getCreatorCoverFirstArtist(artist)].filter(Boolean).join(" ").trim();
+	if (!term) return null;
+
+	const url = new URL("https://itunes.apple.com/search");
+	url.searchParams.set("term", term);
+	url.searchParams.set("media", "music");
+	url.searchParams.set("entity", "song");
+	url.searchParams.set("limit", "8");
+
+	const data = await fetchCreatorProfileJson(url.toString());
+	const results = Array.isArray(data.results) ? data.results : [];
+	if (!results.length) return null;
+
+	const wantedTitle = normalizeCreatorCoverText(title);
+	const wantedArtist = normalizeCreatorCoverText(getCreatorCoverFirstArtist(artist));
+	const best = results.find((item) => {
+		const itemTitle = normalizeCreatorCoverText(item.trackName);
+		const itemArtist = normalizeCreatorCoverText(item.artistName);
+		return itemTitle === wantedTitle && (!wantedArtist || itemArtist.includes(wantedArtist) || wantedArtist.includes(itemArtist));
+	}) || results.find((item) => normalizeCreatorCoverText(item.trackName) === wantedTitle) || results[0];
+
+	return best?.artworkUrl100 ? upgradeCreatorItunesArtwork(best.artworkUrl100) : null;
+}
+
+function escapeCreatorMusicBrainzQuery(value) {
+	return String(value || "").replace(/["\\]/g, " ").trim();
+}
+
+async function searchCreatorMusicBrainzCover(title, artist) {
+	const safeTitle = escapeCreatorMusicBrainzQuery(title);
+	const safeArtist = escapeCreatorMusicBrainzQuery(getCreatorCoverFirstArtist(artist));
+	if (!safeTitle) return null;
+
+	const query = safeArtist
+		? `recording:"${safeTitle}" AND artist:"${safeArtist}"`
+		: `recording:"${safeTitle}"`;
+	const url = new URL("https://musicbrainz.org/ws/2/recording/");
+	url.searchParams.set("query", query);
+	url.searchParams.set("fmt", "json");
+	url.searchParams.set("limit", "5");
+
+	const data = await fetchCreatorProfileJson(url.toString());
+	const releaseIds = [];
+	for (const recording of data.recordings || []) {
+		for (const release of recording.releases || []) {
+			if (release.id && !releaseIds.includes(release.id)) {
+				releaseIds.push(release.id);
+			}
+		}
+	}
+
+	for (const releaseId of releaseIds.slice(0, 4)) {
+		try {
+			const coverData = await fetchCreatorProfileJson(`https://coverartarchive.org/release/${encodeURIComponent(releaseId)}`);
+			const images = Array.isArray(coverData.images) ? coverData.images : [];
+			const image = images.find((item) => item.front) || images[0];
+			const thumbs = image?.thumbnails || {};
+			const coverUrl = thumbs.large || thumbs["500"] || thumbs.small || image?.image;
+			if (coverUrl) return coverUrl;
+		} catch (error) {
+			// Try the next release when Cover Art Archive has no image.
+		}
+	}
+
+	return null;
+}
+
+async function findCreatorTrackCover(title, artist) {
+	try {
+		const itunesCover = await searchCreatorItunesCover(title, artist);
+		if (itunesCover) return itunesCover;
+	} catch (error) {
+		// Fall through to MusicBrainz.
+	}
+
+	try {
+		return await searchCreatorMusicBrainzCover(title, artist);
+	} catch (error) {
+		return null;
+	}
+}
+
+const CreatorProfileTrackCover = react.memo(({ title, artist }) => {
+	const [coverUrl, setCoverUrl] = useState(null);
+	const [failed, setFailed] = useState(false);
+	const cacheKey = useMemo(() => (
+		`${normalizeCreatorCoverText(title)}|${normalizeCreatorCoverText(getCreatorCoverFirstArtist(artist))}`
+	), [artist, title]);
+
+	useEffect(() => {
+		let cancelled = false;
+		setCoverUrl(null);
+		setFailed(false);
+		if (!title) return undefined;
+
+		findCreatorTrackCover(title, artist).then((url) => {
+			if (!cancelled && url) {
+				setCoverUrl(url);
+			}
+		}).catch(() => {
+			if (!cancelled) {
+				setFailed(true);
+			}
+		});
+
+		return () => {
+			cancelled = true;
+		};
+	}, [artist, cacheKey, title]);
+
+	return react.createElement(
+		"div",
+		{ className: `lyrics-creator-profile-track-cover ${coverUrl && !failed ? "is-loaded" : ""}`.trim() },
+		react.createElement("div", { className: "lyrics-creator-profile-track-cover-ph" }),
+		react.createElement("div", { className: "lyrics-creator-profile-track-cover-glyph" }, "♪"),
+		coverUrl && !failed && react.createElement("img", {
+			src: coverUrl,
+			alt: "",
+			loading: "lazy",
+			decoding: "async",
+			onError: () => setFailed(true)
+		})
+	);
+});
+
 function createCreatorProfileShell(contributor, options = {}) {
 	const sort = typeof options.sort === "string" && options.sort.trim() ? options.sort.trim() : "recent";
 	const artist = typeof options.artist === "string" && options.artist.trim() ? options.artist.trim() : null;
@@ -222,10 +386,12 @@ const SyncCreatorProfileModal = react.memo(({
 	loading,
 	error,
 	likePending,
+	greetingPending,
 	loadMorePending,
 	listRefreshing,
 	onClose,
 	onToggleLike,
+	onSaveGreeting,
 	onLoadMore,
 	onTrackClick,
 	activeSortMode,
@@ -244,6 +410,7 @@ const SyncCreatorProfileModal = react.memo(({
 	const initial = (displayName || copy.anonymous).charAt(0).toUpperCase();
 	const trackCount = Number(profileData.stats?.trackCount || 0);
 	const likeCount = Number(profileData.stats?.likeCount || 0);
+	const loadCreditCount = Number(profileData.stats?.loadCreditCount || 0);
 	const artistGroupCount = Number(profileData.stats?.artistGroupCount || 0);
 	const totalContributionCount = Number(profileData.pagination?.totalCount || trackCount || 0);
 	const loadedContributionCount = contributions.length;
@@ -251,11 +418,16 @@ const SyncCreatorProfileModal = react.memo(({
 	const bodyRef = react.useRef(null);
 	const loadMoreLockRef = react.useRef(false);
 	const [failedAvatarUrl, setFailedAvatarUrl] = react.useState(null);
+	const rawGreeting = typeof profileData.greeting === "string" ? profileData.greeting : "";
+	const [isEditingGreeting, setIsEditingGreeting] = react.useState(false);
+	const [greetingDraft, setGreetingDraft] = react.useState(rawGreeting);
 	const canLike = !!profileData.viewer?.canLike;
 	const liked = !!profileData.viewer?.liked;
 	const isOwnProfile = !!profileData.viewer?.isOwnProfile;
 	const avatarFailed = !!avatarUrl && failedAvatarUrl === avatarUrl;
 	const subtitle = handle || (account?.displayName && account.displayName !== displayName ? account.displayName : null);
+	const greeting = rawGreeting.trim();
+	const canEditGreeting = isOwnProfile && typeof onSaveGreeting === "function";
 	const publicProfileUrl = getCreatorPublicProfileUrl(profileData, contributor);
 	const likeButtonLabel = likePending ? "..." : liked ? copy.liked : copy.like;
 	const likeButtonTitle = !profileData.viewer?.authenticated && !isOwnProfile
@@ -268,9 +440,20 @@ const SyncCreatorProfileModal = react.memo(({
 	const showSectionLoading = loading && !error && !hasLoadedProfileData;
 	const sortOptions = [
 		{ key: "recent", label: copy.sortRecent },
-		{ key: "title", label: copy.sortTitle },
-		{ key: "artist", label: copy.sortArtist }
+		{ key: "popular", label: copy.sortPopular }
 	];
+	const handleGreetingSave = react.useCallback(async () => {
+		if (!canEditGreeting || typeof onSaveGreeting !== "function") {
+			return;
+		}
+
+		try {
+			await onSaveGreeting(greetingDraft);
+			setIsEditingGreeting(false);
+		} catch (error) {
+			// The parent handler owns user-facing error messaging.
+		}
+	}, [canEditGreeting, greetingDraft, onSaveGreeting]);
 	const closeIcon = react.createElement(
 		"svg",
 		{
@@ -326,6 +509,18 @@ const SyncCreatorProfileModal = react.memo(({
 		maybeLoadMore();
 	}, [maybeLoadMore, loadedContributionCount]);
 
+	react.useEffect(() => {
+		if (!isEditingGreeting) {
+			setGreetingDraft(rawGreeting);
+		}
+	}, [isEditingGreeting, rawGreeting]);
+
+	react.useEffect(() => {
+		if (!canEditGreeting && isEditingGreeting) {
+			setIsEditingGreeting(false);
+		}
+	}, [canEditGreeting, isEditingGreeting]);
+
 	const content = react.createElement(
 		react.Fragment,
 		null,
@@ -362,35 +557,102 @@ const SyncCreatorProfileModal = react.memo(({
 						react.createElement("h2", { className: "lyrics-creator-profile-name" }, displayName),
 						subtitle && react.createElement("div", { className: "lyrics-creator-profile-handle" }, subtitle)
 					),
+				react.createElement(
+					"div",
+					{ className: "lyrics-creator-profile-actions" },
+					publicProfileUrl && react.createElement(
+						"a",
+						{
+							className: "lyrics-creator-profile-public-link",
+							href: publicProfileUrl,
+							target: "_blank",
+							rel: "noopener noreferrer",
+							title: copy.openProfile
+						},
+						copy.openProfile
+					),
 					react.createElement(
-						"div",
-						{ className: "lyrics-creator-profile-actions" },
-						react.createElement(
-							"button",
-							{
-								type: "button",
+						"button",
+						{
+							type: "button",
 								className: `lyrics-creator-profile-like-inline ${liked ? "is-liked" : ""} ${likePending ? "is-loading" : ""}`.trim(),
 								onClick: onToggleLike,
 								disabled: likePending || !canLike,
 								title: likeButtonTitle,
 								"aria-label": likeButtonLabel
-							},
-							likeIcon,
-							react.createElement("span", null, likeButtonLabel)
-						),
-						publicProfileUrl && react.createElement(
-							"a",
-							{
-								className: "lyrics-creator-profile-public-link",
-								href: publicProfileUrl,
-								target: "_blank",
-								rel: "noopener noreferrer",
-								title: copy.openProfile
-							},
-							copy.openProfile
-						)
+						},
+						likeIcon,
+						react.createElement("span", null, likeButtonLabel)
 					)
+				)
 				),
+			(greeting || canEditGreeting) && react.createElement(
+				"div",
+				{ className: "lyrics-creator-profile-greeting-block" },
+				canEditGreeting && isEditingGreeting
+					? react.createElement(
+							"div",
+							{ className: "lyrics-creator-profile-greeting-editor" },
+							react.createElement("textarea", {
+								className: "lyrics-creator-profile-greeting-input",
+								value: greetingDraft,
+								maxLength: 400,
+								rows: 4,
+								placeholder: copy.greetingPlaceholder,
+								disabled: greetingPending,
+								onChange: (event) => setGreetingDraft(event.currentTarget.value)
+							}),
+							react.createElement(
+								"div",
+								{ className: "lyrics-creator-profile-greeting-editor-bar" },
+								react.createElement("span", { className: "lyrics-creator-profile-greeting-count" }, `${greetingDraft.length}/400`),
+								react.createElement(
+									"div",
+									{ className: "lyrics-creator-profile-greeting-editor-actions" },
+									react.createElement(
+										"button",
+										{
+											type: "button",
+											className: "lyrics-creator-profile-greeting-cancel",
+											disabled: greetingPending,
+											onClick: () => {
+												setGreetingDraft(rawGreeting);
+												setIsEditingGreeting(false);
+											}
+										},
+										copy.cancelGreeting
+									),
+									react.createElement(
+										"button",
+										{
+											type: "button",
+											className: "lyrics-creator-profile-greeting-save",
+											disabled: greetingPending,
+											onClick: handleGreetingSave
+										},
+										greetingPending ? "..." : copy.saveGreeting
+									)
+								)
+							)
+						)
+					: react.createElement(
+							react.Fragment,
+							null,
+							greeting && react.createElement("p", { className: "lyrics-creator-profile-bio" }, greeting),
+							canEditGreeting && react.createElement(
+								"button",
+								{
+									type: "button",
+									className: "lyrics-creator-profile-greeting-edit",
+									onClick: () => {
+										setGreetingDraft(rawGreeting);
+										setIsEditingGreeting(true);
+									}
+								},
+								greeting ? copy.editGreeting : copy.addGreeting
+							)
+						)
+			),
 			hasLoadedProfileData
 				? react.createElement(
 						"div",
@@ -398,20 +660,20 @@ const SyncCreatorProfileModal = react.memo(({
 						react.createElement(
 							"div",
 							{ className: "lyrics-creator-profile-stat" },
-							react.createElement("strong", null, trackCount),
+							react.createElement("strong", null, trackCount.toLocaleString()),
 							react.createElement("span", null, copy.tracks)
 						),
 						react.createElement(
 							"div",
 							{ className: "lyrics-creator-profile-stat" },
-							react.createElement("strong", null, likeCount),
-							react.createElement("span", null, copy.likes)
+							react.createElement("strong", null, loadCreditCount.toLocaleString()),
+							react.createElement("span", null, copy.totalViews)
 						),
 						react.createElement(
 							"div",
 							{ className: "lyrics-creator-profile-stat" },
-							react.createElement("strong", null, artistGroupCount),
-							react.createElement("span", null, copy.artistGroups)
+							react.createElement("strong", null, likeCount.toLocaleString()),
+							react.createElement("span", null, copy.likes)
 						)
 					)
 					: react.createElement(
@@ -532,10 +794,14 @@ const SyncCreatorProfileModal = react.memo(({
 											key: `${item.trackId}:${item.provider}`,
 											className: "lyrics-creator-profile-track",
 											onClick: () => onTrackClick(item.trackId)
-										},
-										react.createElement(
-											"div",
-											{ className: "lyrics-creator-profile-track-main" },
+						},
+						react.createElement(CreatorProfileTrackCover, {
+							title: item.trackName || copy.unknownTrack,
+							artist: item.artists || item.trackId
+						}),
+						react.createElement(
+							"div",
+							{ className: "lyrics-creator-profile-track-main" },
 											react.createElement("div", { className: "lyrics-creator-profile-track-title" }, item.trackName || copy.unknownTrack),
 											react.createElement("div", { className: "lyrics-creator-profile-track-artist" }, item.artists || item.trackId)
 										),
@@ -637,6 +903,7 @@ const CreditFooter = react.memo(({ provider, contributors }) => {
 	const [profileLoading, setProfileLoading] = useState(false);
 	const [profileError, setProfileError] = useState(null);
 	const [likePending, setLikePending] = useState(false);
+	const [greetingPending, setGreetingPending] = useState(false);
 	const [profileLoadingMore, setProfileLoadingMore] = useState(false);
 	const [profileListRefreshing, setProfileListRefreshing] = useState(false);
 	const [profileSort, setProfileSort] = useState("recent");
@@ -650,6 +917,7 @@ const CreditFooter = react.memo(({ provider, contributors }) => {
 		setProfileLoading(false);
 		setProfileError(null);
 		setLikePending(false);
+		setGreetingPending(false);
 		setProfileLoadingMore(false);
 		setProfileListRefreshing(false);
 		setProfileSort("recent");
@@ -870,6 +1138,34 @@ const CreditFooter = react.memo(({ provider, contributors }) => {
 		}
 	}, [copy.likeActionFailed, copy.likeLoginRequired, creatorProfile]);
 
+	const handleSaveGreeting = useCallback(async (nextGreeting) => {
+		if (!creatorProfile?.userHash || !creatorProfile.viewer?.isOwnProfile) {
+			return null;
+		}
+
+		setGreetingPending(true);
+		try {
+			const result = await Utils.setSyncCreatorGreeting(nextGreeting, {
+				creatorUserHash: creatorProfile.userHash
+			});
+			const savedGreeting = typeof result?.greeting === "string" ? result.greeting : "";
+			setCreatorProfile((currentProfile) => currentProfile
+				? {
+					...currentProfile,
+					greeting: savedGreeting
+				}
+				: currentProfile
+			);
+			Toast.success(copy.greetingSaveSuccess);
+			return result;
+		} catch (error) {
+			Toast.error(error.message || copy.greetingSaveFailed);
+			throw error;
+		} finally {
+			setGreetingPending(false);
+		}
+	}, [copy.greetingSaveFailed, copy.greetingSaveSuccess, creatorProfile]);
+
 	const handleTrackClick = useCallback((trackId) => {
 		if (!trackId) {
 			return;
@@ -984,10 +1280,12 @@ const CreditFooter = react.memo(({ provider, contributors }) => {
 			loading: profileLoading,
 			error: profileError,
 			likePending,
+			greetingPending,
 			loadMorePending: profileLoadingMore,
 			listRefreshing: profileListRefreshing,
 			onClose: closeProfile,
 			onToggleLike: handleToggleLike,
+			onSaveGreeting: handleSaveGreeting,
 			onLoadMore: handleLoadMore,
 			onTrackClick: handleTrackClick,
 			activeSortMode: profileSort,
@@ -1207,17 +1505,26 @@ const getTrackPositionFPS = () => {
 
 const getPositionQuantizeMs = () => Math.max(1, Math.round(1000 / getTrackPositionFPS()));
 
+const getCurrentLyricsPlaybackPosition = (trackOffset = 0, globalOffset = getGlobalSyncOffsetValue()) => {
+	const newPos = window.Utils?.getSafePlayerProgress?.()
+		?? (Spicetify.Player?.getProgress?.() || 0);
+	const delay = CONFIG.visual.delay + trackOffset + globalOffset;
+	const quantizeMs = getPositionQuantizeMs();
+	return Math.round((newPos + delay) / quantizeMs) * quantizeMs;
+};
+
 const useLyricsPlaybackPosition = () => {
-	const [position, setPosition] = useState(0);
 	const trackOffset = useTrackOffsetState();
 	const globalOffset = useGlobalSyncOffsetState();
+	const [position, setPosition] = useState(() => getCurrentLyricsPlaybackPosition(0, getGlobalSyncOffsetValue()));
+
+	useEffect(() => {
+		const next = getCurrentLyricsPlaybackPosition(trackOffset, globalOffset);
+		setPosition((prev) => (prev === next ? prev : next));
+	}, [trackOffset, globalOffset]);
 
 	useTrackPosition(() => {
-		const newPos = window.Utils?.getSafePlayerProgress?.()
-			?? (Spicetify.Player.getProgress?.() || 0);
-		const delay = CONFIG.visual.delay + trackOffset + globalOffset;
-		const quantizeMs = getPositionQuantizeMs();
-		const next = Math.round((newPos + delay) / quantizeMs) * quantizeMs;
+		const next = getCurrentLyricsPlaybackPosition(trackOffset, globalOffset);
 		setPosition((prev) => (prev === next ? prev : next));
 	});
 
@@ -2831,13 +3138,62 @@ const useSyncedLyricsEngine = ({
 	// each time. Now scoped to the events that can actually change the offset:
 	// active line shifts, scrolling state flips, compact mode toggles.
 	const [compactOffset, setCompactOffset] = useState(0);
-	useSyncedLayoutEffect(() => {
+	const syncCompactOffset = useCallback(() => {
 		if (!compact) {
 			setCompactOffset(0);
 			return;
 		}
-		setCompactOffset(getCompactSyncedOffset(containerRef.current, activeLineRef.current, isScrolling));
-	}, [compact, activeLineIndex, isScrolling, activeTrailingInterludeKey]);
+
+		const nextOffset = getCompactSyncedOffset(containerRef.current, activeLineRef.current, isScrolling);
+		setCompactOffset((prevOffset) => (
+			Math.abs(prevOffset - nextOffset) < 0.5 ? prevOffset : nextOffset
+		));
+	}, [compact, containerRef, activeLineRef, isScrolling]);
+
+	useSyncedLayoutEffect(() => {
+		syncCompactOffset();
+	}, [syncCompactOffset, activeLineIndex, activeTrailingInterludeKey, containerReady, lyricsId, preparedLyrics, settingsRevision]);
+
+	useSyncedLayoutEffect(() => {
+		if (!compact || isScrolling || typeof ResizeObserver === "undefined") {
+			return undefined;
+		}
+
+		const container = containerRef.current;
+		const activeLine = activeLineRef.current;
+		if (!container || !activeLine) {
+			return undefined;
+		}
+
+		const raf = typeof requestAnimationFrame === "function"
+			? requestAnimationFrame
+			: (callback) => setTimeout(callback, 0);
+		const cancelRaf = typeof cancelAnimationFrame === "function"
+			? cancelAnimationFrame
+			: clearTimeout;
+		let frameId = null;
+		const scheduleOffsetSync = () => {
+			if (frameId !== null) {
+				cancelRaf(frameId);
+			}
+			frameId = raf(() => {
+				frameId = null;
+				syncCompactOffset();
+			});
+		};
+
+		const observer = new ResizeObserver(scheduleOffsetSync);
+		observer.observe(activeLine);
+		observer.observe(container);
+		scheduleOffsetSync();
+
+		return () => {
+			observer.disconnect();
+			if (frameId !== null) {
+				cancelRaf(frameId);
+			}
+		};
+	}, [compact, isScrolling, activeLineIndex, activeTrailingInterludeKey, containerReady, lyricsId, preparedLyrics, settingsRevision, syncCompactOffset]);
 
 	useEffect(() => {
 		const actualIndex = Math.max(0, activeLineIndex - leadingEmptyLines);
@@ -2868,7 +3224,7 @@ const useSyncedLyricsEngine = ({
 		}
 
 		return undefined;
-	}, [compact, activeLineIndex, isScrolling, containerRef, activeLineRef, activeTrailingInterludeKey]);
+	}, [compact, activeLineIndex, isScrolling, containerRef, activeLineRef, activeTrailingInterludeKey, preparedLyrics]);
 
 	useEffect(() => {
 		if (compact || !isScrolling || !activeLineRef.current) {
@@ -2880,7 +3236,47 @@ const useSyncedLyricsEngine = ({
 		}, 0);
 
 		return () => clearTimeout(timeoutId);
-	}, [compact, activeLineIndex, isScrolling, containerRef, activeLineRef, activeTrailingInterludeKey]);
+	}, [compact, activeLineIndex, isScrolling, containerRef, activeLineRef, activeTrailingInterludeKey, preparedLyrics]);
+
+	useEffect(() => {
+		if (compact || isScrolling || typeof ResizeObserver === "undefined") {
+			return undefined;
+		}
+
+		const container = containerRef.current;
+		const activeLine = activeLineRef.current;
+		if (!container || !activeLine) {
+			return undefined;
+		}
+
+		const raf = typeof requestAnimationFrame === "function"
+			? requestAnimationFrame
+			: (callback) => setTimeout(callback, 0);
+		const cancelRaf = typeof cancelAnimationFrame === "function"
+			? cancelAnimationFrame
+			: clearTimeout;
+		let frameId = null;
+		const scheduleScrollSync = () => {
+			if (frameId !== null) {
+				cancelRaf(frameId);
+			}
+			frameId = raf(() => {
+				frameId = null;
+				scrollSyncedContainerToActiveLine(containerRef.current, activeLineRef.current, "auto");
+			});
+		};
+
+		const observer = new ResizeObserver(scheduleScrollSync);
+		observer.observe(activeLine);
+		observer.observe(container);
+
+		return () => {
+			observer.disconnect();
+			if (frameId !== null) {
+				cancelRaf(frameId);
+			}
+		};
+	}, [compact, isScrolling, activeLineIndex, activeTrailingInterludeKey, containerRef, activeLineRef, preparedLyrics]);
 
 	const renderItems = useMemo(() => {
 		if (compact && isScrolling) {
@@ -3247,6 +3643,7 @@ const useTrackPosition = (callback) => {
 
 		// Add to global animation manager
 		AnimationManager.addCallback(wrappedCallback);
+		wrappedCallback();
 
 		// Add visibility listener
 		const visibilityCallback = (isVisible) => {

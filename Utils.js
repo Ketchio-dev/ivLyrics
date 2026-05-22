@@ -1887,6 +1887,37 @@ const Utils = {
     return data.data;
   },
 
+  async setSyncCreatorGreeting(greeting, options = {}) {
+    if (!this.getAuthToken()) {
+      throw new Error(
+        I18n.t("creatorProfile.greetingLoginRequired") ||
+          "Discord login is required to edit your creator profile."
+      );
+    }
+
+    const response = await fetch(`${this.getAccountApiBase()}/creator-profile/greeting`, {
+      method: "POST",
+      headers: this.getApiHeaders({
+        "Content-Type": "application/json",
+      }),
+      body: JSON.stringify({
+        creatorUserHash: options.creatorUserHash || this.getUserHash(),
+        greeting,
+      }),
+    });
+    const data = await response.json();
+
+    if (!response.ok || !data.success || !data.data) {
+      throw new Error(
+        data.error ||
+          I18n.t("creatorProfile.greetingSaveFailed") ||
+          "Failed to update creator greeting."
+      );
+    }
+
+    return data.data;
+  },
+
   async setSyncCreatorLike(creatorUserHash, liked) {
     if (!this.getAuthToken()) {
       throw new Error(
