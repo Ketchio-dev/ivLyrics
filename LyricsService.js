@@ -1518,6 +1518,7 @@
         const _syncDataCache = new Map();
         const _inflightRequests = new Map(); // 진행 중인 요청 추적
         const _fullyLoadedTracks = new Set(); // 전체 목록이 로드된 트랙 ID
+        const _usageReportCache = new Set(); // 세션 내 중복 사용량 보고 방지
 
         /**
          * 사용 가능한 sync-data provider 목록 조회
@@ -1595,11 +1596,12 @@
 
                         const syncData = {
                             trackId,
-                            provider,
+                            provider: data.provider || provider,
                             syncData: syncDataBody,
                             contributors: data.contributors || [],
                             createdAt: data.createdAt || null,
-                            updatedAt: data.updatedAt || null
+                            updatedAt: data.updatedAt || null,
+                            loadCount: data.loadCount || 0
                         };
                         _syncDataCache.set(specificKey, syncData);
                         return syncData;
@@ -1642,6 +1644,44 @@
             } else {
                 _syncDataCache.clear();
                 _fullyLoadedTracks.clear();
+                _usageReportCache.clear();
+            }
+        }
+
+        async function reportSyncDataUsage(syncData) {
+            if (!syncData?.trackId || !syncData?.provider) return null;
+
+            const usageDate = new Date().toISOString().slice(0, 10);
+            const cacheKey = `${syncData.trackId}:${syncData.provider}:${usageDate}`;
+            if (_usageReportCache.has(cacheKey)) {
+                return null;
+            }
+            _usageReportCache.add(cacheKey);
+
+            try {
+                const listenerHash = getUserHash();
+                const response = await fetch(`${API_BASE}/lyrics/sync-data/usage`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    keepalive: true,
+                    body: JSON.stringify({
+                        trackId: syncData.trackId,
+                        provider: syncData.provider,
+                        listenerHash
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status}`);
+                }
+
+                return await response.json().catch(() => null);
+            } catch (e) {
+                _usageReportCache.delete(cacheKey);
+                console.warn(`[SyncDataService] Failed to report sync usage for ${syncData.trackId}:${syncData.provider}`, e);
+                return null;
             }
         }
 
@@ -2045,6 +2085,7 @@
             getAvailableProviders,
             hasSyncData,
             submitSyncData,
+            reportSyncDataUsage,
             applySyncDataToLyrics,
             convertKaraokeToSynced,
             clearCache
@@ -4130,6 +4171,10 @@
             if (!trackId || !provider) return null;
 
             try {
+                if (window.SyncDataService?.getSyncData) {
+                    return await window.SyncDataService.getSyncData(trackId, provider);
+                }
+
                 // provider가 spotify인 경우 내부 provider(abc 등)가 붙어있지 않다면 붙여준다
                 // 하지만 호출하는 쪽에서 이미 처리가 되어있어야 함.
                 // 여기서는 있는 그대로 호출.
@@ -4160,7 +4205,10 @@
             const trackId = result.uri.split(':')[2];
             const syncData = await this.getIvLyricsSyncData(trackId, result.provider);
 
-            if (syncData && syncData.provider === result.provider) {
+            const isProviderMatch = syncData?.provider === result.provider
+                || (typeof result.provider === 'string' && result.provider.startsWith('spotify-') && syncData?.provider === 'spotify');
+
+            if (syncData && isProviderMatch) {
                 const baseLyrics = result.synced || result.unsynced;
                 const karaoke = window.SyncDataService.applySyncDataToLyrics(baseLyrics, syncData);
 
@@ -4179,6 +4227,8 @@
                     if (syncData.contributors || syncData.syncData?.contributors) {
                         result.contributors = syncData.contributors || syncData.syncData.contributors;
                     }
+
+                    window.SyncDataService.reportSyncDataUsage?.(syncData);
                 }
             }
 

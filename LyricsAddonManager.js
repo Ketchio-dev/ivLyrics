@@ -608,6 +608,8 @@
                                             result.contributors = syncData.contributors || syncData.syncData.contributors;
                                         }
 
+                                        window.SyncDataService.reportSyncDataUsage?.(syncData);
+
                                         // sync-data에서 synced도 업데이트 (더 정확한 타이밍)
                                         if (window.SyncDataService.convertKaraokeToSynced) {
                                             const syncedFromKaraoke = window.SyncDataService.convertKaraokeToSynced(karaoke);
