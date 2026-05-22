@@ -285,7 +285,7 @@
     const LRCLIB_ARTIST_MATCH_THRESHOLD = 0.9;
     const LRCLIB_FALLBACK_TITLE_MATCH_THRESHOLD = 0.98;
     const LRCLIB_ENABLE_INEXACT_SEARCH = true;
-    const LRCLIB_CACHE_VERSION_BASE = '2026-03-28-sync-line-match-priority-1';
+    const LRCLIB_CACHE_VERSION_BASE = '2026-05-22-sync-source-direct-get-1';
     const LRCLIB_ENGLISH_ACCEPT_LANGUAGE = 'en-US,en;q=0.9';
     const LRCLIB_ORIGINAL_SCRIPT_REGEX = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\u1100-\u11ff\u3130-\u318f\uac00-\ud7af]/;
     const LRCLIB_MEANINGFUL_TEXT_REGEX = /\p{L}|\p{N}/u;
@@ -901,6 +901,164 @@
         return `${sourceLabel}:${index}:${buildLrclibCandidateSignature(candidate)}`;
     }
 
+    function getLyricsTextFingerprint(text) {
+        const value = String(text || '').normalize('NFC');
+        let hash = 2166136261;
+        for (const char of Array.from(value)) {
+            hash ^= char.codePointAt(0) || 0;
+            hash = Math.imul(hash, 16777619);
+        }
+        return `lrclib-${(hash >>> 0).toString(36)}-${Array.from(value).length.toString(36)}`;
+    }
+
+    function getSyncDataLrclibSource(syncData) {
+        const body = syncData?.syncData || syncData;
+        const source = body?.source || body?.lyricsSource || null;
+        if (!source || source.provider !== ADDON_INFO.id) return null;
+        return source;
+    }
+
+    function getComparableCandidateText(candidate, preferredSource) {
+        return getComparableLyricsLines(getCandidateLyricsText(candidate, preferredSource)).join('\n');
+    }
+
+    function getCandidateSourceMatch(candidate, source) {
+        if (!source) {
+            return {
+                syncSourceMatchScore: 0,
+                syncSourceIdMatch: false,
+                syncSourceTextMatch: false,
+                syncSourceLineCountMatch: false
+            };
+        }
+
+        const candidateId = candidate?.id === undefined || candidate?.id === null ? '' : String(candidate.id);
+        const sourceId = source.lrclibId === undefined || source.lrclibId === null ? '' : String(source.lrclibId);
+        const preferredSource = source.preferredLyricsSource || candidate?.preferredLyricsSource || null;
+        const candidateText = getComparableCandidateText(candidate, preferredSource);
+        const candidateFingerprint = getLyricsTextFingerprint(candidateText);
+        const candidateLineCounts = getLineCharCounts(getComparableLyricsLines(candidateText));
+        const sourceLineCounts = Array.isArray(source.lineCharCounts) ? source.lineCharCounts : null;
+        const sourceIdMatch = !!sourceId && !!candidateId && sourceId === candidateId;
+        const sourceTextMatch = !!source.lyricsFingerprint && source.lyricsFingerprint === candidateFingerprint;
+        const sourceLineCountMatch = hasExactLineCharCountMatch(sourceLineCounts, candidateLineCounts);
+        const score = sourceIdMatch
+            ? 100
+            : (sourceTextMatch
+                ? 90
+                : (sourceLineCountMatch ? 60 : 0));
+
+        return {
+            syncSourceMatchScore: score,
+            syncSourceIdMatch: sourceIdMatch,
+            syncSourceTextMatch: sourceTextMatch,
+            syncSourceLineCountMatch: sourceLineCountMatch
+        };
+    }
+
+    function getSyncDataLrclibId(source) {
+        if (!source || source.provider !== ADDON_INFO.id) return '';
+        const id = source.lrclibId ?? source.id;
+        if (id === undefined || id === null) return '';
+        return String(id).trim();
+    }
+
+    async function fetchLrclibCandidateById(source, headers) {
+        const lrclibId = getSyncDataLrclibId(source);
+        if (!lrclibId) return null;
+
+        const response = await fetchWithTimeout(`${LRCLIB_API_BASE}/get/${encodeURIComponent(lrclibId)}`, { headers }, 35000);
+        if (!response || !response.ok) {
+            window.__ivLyricsDebugLog?.(`[LR-DEBUG] Direct LRCLIB get failed for id=${lrclibId}: ${response?.status || 'network'}`);
+            return null;
+        }
+
+        const candidate = await response.json();
+        if (!candidate || (!candidate.syncedLyrics && !candidate.plainLyrics && !candidate.instrumental)) {
+            window.__ivLyricsDebugLog?.(`[LR-DEBUG] Direct LRCLIB get returned no lyrics for id=${lrclibId}`);
+            return null;
+        }
+
+        return candidate;
+    }
+
+    function decorateDirectCandidate(candidate, source, trackDurationSec = 0) {
+        if (!candidate) return null;
+        const preferredLyricsSource = source?.preferredLyricsSource
+            || (candidate.syncedLyrics ? 'synced' : (candidate.plainLyrics ? 'plain' : null));
+        const lyricsText = getCandidateLyricsText(candidate, preferredLyricsSource);
+        const lyricsMix = analyzeLyricsLanguageMix(lyricsText);
+        const durationDiff = Math.abs(Number(candidate?.duration || 0) - trackDurationSec);
+        const sourceMatch = getCandidateSourceMatch({
+            ...candidate,
+            preferredLyricsSource
+        }, source);
+
+        return {
+            ...candidate,
+            preferredLyricsSource,
+            artistScore: 1,
+            titleScore: 1,
+            durationDiff,
+            exactDurationMatch: hasExactDurationMatch(trackDurationSec, Number(candidate?.duration || 0)),
+            artistMatched: true,
+            titleDrivenMatch: false,
+            syncLineExactMatch: true,
+            exactSyncedLineMatch: preferredLyricsSource === 'synced',
+            exactPlainLineMatch: preferredLyricsSource === 'plain',
+            lyricsMix,
+            hasInterleavedTranslations: lyricsMix.hasInterleavedTranslations,
+            matchReason: 'sync-source',
+            ...sourceMatch
+        };
+    }
+
+    function buildDirectPreviewCandidate(candidate) {
+        if (!candidate) return null;
+        const previewText = getCandidateLyricsText(candidate, candidate.preferredLyricsSource);
+        const previewLines = getComparableLyricsLines(previewText);
+        return {
+            ...candidate,
+            candidateKey: buildLrclibCandidateKey(candidate, 'source', 0),
+            searchSource: 'source',
+            previewText,
+            previewLineCount: previewLines.length,
+            hasSyncedLyrics: !!candidate?.syncedLyrics,
+            hasPlainLyrics: !!candidate?.plainLyrics,
+            isSelectedByDefault: true
+        };
+    }
+
+    function applyCandidateLyricsToResult(result, candidate) {
+        if (!result || !candidate) return false;
+
+        if (candidate.instrumental) {
+            result.synced = [{ startTime: 0, text: '♪ Instrumental ♪' }];
+            result.unsynced = [{ text: '♪ Instrumental ♪' }];
+            return true;
+        }
+
+        if (candidate.preferredLyricsSource === 'plain' && candidate.plainLyrics) {
+            result.unsynced = parsePlainLyrics(candidate.plainLyrics);
+        }
+        else if (candidate.syncedLyrics) {
+            const parsed = parseLRC(candidate.syncedLyrics);
+            result.synced = parsed.synced;
+            if (!result.unsynced) {
+                result.unsynced = parsed.unsynced;
+            }
+        }
+        else if (candidate.plainLyrics) {
+            result.unsynced = parsePlainLyrics(candidate.plainLyrics);
+        }
+
+        if (!result.synced && candidate.plainLyrics && !result.unsynced) {
+            result.unsynced = parsePlainLyrics(candidate.plainLyrics);
+        }
+
+        return !!(result.synced || result.unsynced);
+    }
+
     function buildPreviewCandidateList(primarySearchFlow, englishSearchFlow, selectedCandidate) {
         const selectedSignature = selectedCandidate ? buildLrclibCandidateSignature(selectedCandidate) : null;
         const seen = new Set();
@@ -1062,13 +1220,39 @@
                 const headers = { 'x-user-agent': `spicetify v${Spicetify.Config?.version || 'unknown'}` };
                 const trackId = info?.uri?.split?.(':')?.[2] || '';
                 let syncDataLineCharCounts = null;
+                let syncDataSource = null;
 
                 if (trackId && window.SyncDataService?.getSyncData) {
                     try {
                         const existingSyncData = await window.SyncDataService.getSyncData(trackId, ADDON_INFO.id);
                         syncDataLineCharCounts = getSyncDataLineCharCounts(existingSyncData);
+                        syncDataSource = getSyncDataLrclibSource(existingSyncData);
                     } catch (e) {
                         window.__ivLyricsDebugLog?.('[LR-DEBUG] Failed to fetch sync-data for exact line matching:', e?.message || e);
+                    }
+                }
+
+                if (getSyncDataLrclibId(syncDataSource)) {
+                    const directCandidate = decorateDirectCandidate(
+                        await fetchLrclibCandidateById(syncDataSource, headers),
+                        syncDataSource,
+                        trackDurationSec
+                    );
+                    const previewCandidate = buildDirectPreviewCandidate(directCandidate);
+
+                    if (previewCandidate) {
+                        return {
+                            success: true,
+                            error: null,
+                            candidates: [previewCandidate],
+                            selectedCandidateKey: previewCandidate.candidateKey,
+                            selectedSource: 'source-direct',
+                            searchMode: 'source-direct',
+                            totalResults: 1,
+                            usedFallbackQuery: false,
+                            syncDataLineCount: syncDataLineCharCounts?.length || 0,
+                            directLrclibId: getSyncDataLrclibId(syncDataSource)
+                        };
                     }
                 }
 
@@ -1159,8 +1343,7 @@
                             const titleDrivenMatch = allowTitleDrivenMatch
                                 && titleScore >= LRCLIB_FALLBACK_TITLE_MATCH_THRESHOLD
                                 && exactDurationMatch;
-
-                            return {
+                            const rankedItem = {
                                 ...item,
                                 artistScore,
                                 titleScore,
@@ -1176,6 +1359,12 @@
                                 hasInterleavedTranslations: lyricsMix.hasInterleavedTranslations,
                                 matchReason: artistMatched ? 'artist' : (titleDrivenMatch ? 'title' : 'rejected')
                             };
+                            const sourceMatch = getCandidateSourceMatch(rankedItem, syncDataSource);
+
+                            return {
+                                ...rankedItem,
+                                ...sourceMatch
+                            };
                         })
                         .filter(item => {
                             if (!item?.syncedLyrics && !item?.plainLyrics && !item?.instrumental) return false;
@@ -1184,6 +1373,9 @@
                             return false;
                         })
                         .sort((a, b) => {
+                            if (a.syncSourceMatchScore !== b.syncSourceMatchScore) {
+                                return Number(b.syncSourceMatchScore || 0) - Number(a.syncSourceMatchScore || 0);
+                            }
                             if (a.syncLineExactMatch !== b.syncLineExactMatch) {
                                 return Number(b.syncLineExactMatch) - Number(a.syncLineExactMatch);
                             }
@@ -1264,6 +1456,7 @@
                     }
 
                     const withinTolerance = item => item?.durationDiff <= LRCLIB_DURATION_TOLERANCE_SEC;
+                    const sourceMatchedCandidates = rankedCandidates.filter(item => Number(item?.syncSourceMatchScore || 0) > 0);
                     const exactMatchCandidates = rankedCandidates.filter(item => item.syncLineExactMatch);
                     const nativeScriptCandidates = rankedCandidates.filter(item => hasOriginalLyricsScript(getCandidateLyricsText(item, item.preferredLyricsSource)));
                     const fallbackScriptCandidates = rankedCandidates.filter(item => !hasOriginalLyricsScript(getCandidateLyricsText(item, item.preferredLyricsSource)));
@@ -1280,6 +1473,15 @@
                         rankedCandidates,
                         hasExactSyncLineMatch: exactMatchCandidates.length > 0,
                         usedFallbackQuery,
+                        bestSourceSyncedCandidate: sourceMatchedCandidates.find(item => withinTolerance(item) && item.syncedLyrics)
+                            || sourceMatchedCandidates.find(item => item.syncedLyrics)
+                            || null,
+                        bestSourcePlainCandidate: sourceMatchedCandidates.find(item => withinTolerance(item) && item.plainLyrics)
+                            || sourceMatchedCandidates.find(item => item.plainLyrics)
+                            || null,
+                        bestSourceInstrumentalCandidate: sourceMatchedCandidates.find(item => withinTolerance(item) && item.instrumental)
+                            || sourceMatchedCandidates.find(item => item.instrumental)
+                            || null,
                         bestExactNativeSyncedCandidate: exactNativeScriptCandidates.find(item => withinTolerance(item) && item.preferredLyricsSource === 'synced')
                             || exactNativeScriptCandidates.find(item => item.preferredLyricsSource === 'synced')
                             || null,
@@ -1360,8 +1562,49 @@
                     return englishSearchFlow;
                 };
 
+                if (syncDataSource) {
+                    if (primarySearchFlow.bestSourceSyncedCandidate) {
+                        body = primarySearchFlow.bestSourceSyncedCandidate;
+                        selectedFlow = primarySearchFlow;
+                        selectedSource = 'primary-source-synced';
+                    }
+
+                    if (!body) {
+                        await ensureEnglishSearchFlow();
+                        if (englishSearchFlow?.bestSourceSyncedCandidate) {
+                            body = englishSearchFlow.bestSourceSyncedCandidate;
+                            selectedFlow = englishSearchFlow;
+                            selectedSource = 'english-source-synced';
+                        }
+                    }
+
+                    if (!body && primarySearchFlow.bestSourcePlainCandidate) {
+                        body = primarySearchFlow.bestSourcePlainCandidate;
+                        selectedFlow = primarySearchFlow;
+                        selectedSource = 'primary-source-plain';
+                    }
+
+                    if (!body && englishSearchFlow?.bestSourcePlainCandidate) {
+                        body = englishSearchFlow.bestSourcePlainCandidate;
+                        selectedFlow = englishSearchFlow;
+                        selectedSource = 'english-source-plain';
+                    }
+
+                    if (!body && primarySearchFlow.bestSourceInstrumentalCandidate) {
+                        body = primarySearchFlow.bestSourceInstrumentalCandidate;
+                        selectedFlow = primarySearchFlow;
+                        selectedSource = 'primary-source-instrumental';
+                    }
+
+                    if (!body && englishSearchFlow?.bestSourceInstrumentalCandidate) {
+                        body = englishSearchFlow.bestSourceInstrumentalCandidate;
+                        selectedFlow = englishSearchFlow;
+                        selectedSource = 'english-source-instrumental';
+                    }
+                }
+
                 if (shouldPreferExactSyncLineMatch) {
-                    if (primarySearchFlow.bestExactNativeSyncedCandidate) {
+                    if (!body && primarySearchFlow.bestExactNativeSyncedCandidate) {
                         body = primarySearchFlow.bestExactNativeSyncedCandidate;
                         selectedFlow = primarySearchFlow;
                         selectedSource = 'primary-exact-native-synced';
@@ -1664,13 +1907,38 @@
                 const headers = { 'x-user-agent': `spicetify v${Spicetify.Config?.version || 'unknown'}` };
                 const trackId = info?.uri?.split?.(':')?.[2] || '';
                 let syncDataLineCharCounts = null;
+                let syncDataSource = null;
 
                 if (trackId && window.SyncDataService?.getSyncData) {
                     try {
                         const existingSyncData = await window.SyncDataService.getSyncData(trackId, ADDON_INFO.id);
                         syncDataLineCharCounts = getSyncDataLineCharCounts(existingSyncData);
+                        syncDataSource = getSyncDataLrclibSource(existingSyncData);
                     } catch (e) {
                         window.__ivLyricsDebugLog?.('[LR-DEBUG] Failed to fetch sync-data for exact line matching:', e?.message || e);
+                    }
+                }
+
+                if (getSyncDataLrclibId(syncDataSource)) {
+                    const directCandidate = decorateDirectCandidate(
+                        await fetchLrclibCandidateById(syncDataSource, headers),
+                        syncDataSource,
+                        trackDurationSec
+                    );
+
+                    if (directCandidate && applyCandidateLyricsToResult(result, directCandidate)) {
+                        logDebug('Success', {
+                            directLrclibId: getSyncDataLrclibId(syncDataSource),
+                            hasSynced: !!result.synced,
+                            hasUnsynced: !!result.unsynced,
+                            durationDiff: directCandidate.durationDiff.toFixed(2),
+                            exactDurationMatch: directCandidate.exactDurationMatch,
+                            syncDataLineCount: syncDataLineCharCounts?.length || 0,
+                            syncSourceMatchScore: directCandidate.syncSourceMatchScore,
+                            preferredLyricsSource: directCandidate.preferredLyricsSource,
+                            selectedSource: 'source-direct'
+                        });
+                        return result;
                     }
                 }
 
@@ -1761,8 +2029,7 @@
                             const titleDrivenMatch = allowTitleDrivenMatch
                                 && titleScore >= LRCLIB_FALLBACK_TITLE_MATCH_THRESHOLD
                                 && exactDurationMatch;
-
-                            return {
+                            const rankedItem = {
                                 ...item,
                                 artistScore,
                                 titleScore,
@@ -1778,6 +2045,12 @@
                                 hasInterleavedTranslations: lyricsMix.hasInterleavedTranslations,
                                 matchReason: artistMatched ? 'artist' : (titleDrivenMatch ? 'title' : 'rejected')
                             };
+                            const sourceMatch = getCandidateSourceMatch(rankedItem, syncDataSource);
+
+                            return {
+                                ...rankedItem,
+                                ...sourceMatch
+                            };
                         })
                         .filter(item => {
                             if (!item?.syncedLyrics && !item?.plainLyrics && !item?.instrumental) return false;
@@ -1786,6 +2059,9 @@
                             return false;
                         })
                         .sort((a, b) => {
+                            if (a.syncSourceMatchScore !== b.syncSourceMatchScore) {
+                                return Number(b.syncSourceMatchScore || 0) - Number(a.syncSourceMatchScore || 0);
+                            }
                             if (a.syncLineExactMatch !== b.syncLineExactMatch) {
                                 return Number(b.syncLineExactMatch) - Number(a.syncLineExactMatch);
                             }
@@ -1866,6 +2142,7 @@
                     }
 
                     const withinTolerance = item => item?.durationDiff <= LRCLIB_DURATION_TOLERANCE_SEC;
+                    const sourceMatchedCandidates = rankedCandidates.filter(item => Number(item?.syncSourceMatchScore || 0) > 0);
                     const exactMatchCandidates = rankedCandidates.filter(item => item.syncLineExactMatch);
                     const nativeScriptCandidates = rankedCandidates.filter(item => hasOriginalLyricsScript(getCandidateLyricsText(item, item.preferredLyricsSource)));
                     const fallbackScriptCandidates = rankedCandidates.filter(item => !hasOriginalLyricsScript(getCandidateLyricsText(item, item.preferredLyricsSource)));
@@ -1882,6 +2159,15 @@
                         rankedCandidates,
                         hasExactSyncLineMatch: exactMatchCandidates.length > 0,
                         usedFallbackQuery,
+                        bestSourceSyncedCandidate: sourceMatchedCandidates.find(item => withinTolerance(item) && item.syncedLyrics)
+                            || sourceMatchedCandidates.find(item => item.syncedLyrics)
+                            || null,
+                        bestSourcePlainCandidate: sourceMatchedCandidates.find(item => withinTolerance(item) && item.plainLyrics)
+                            || sourceMatchedCandidates.find(item => item.plainLyrics)
+                            || null,
+                        bestSourceInstrumentalCandidate: sourceMatchedCandidates.find(item => withinTolerance(item) && item.instrumental)
+                            || sourceMatchedCandidates.find(item => item.instrumental)
+                            || null,
                         bestExactNativeSyncedCandidate: exactNativeScriptCandidates.find(item => withinTolerance(item) && item.preferredLyricsSource === 'synced')
                             || exactNativeScriptCandidates.find(item => item.preferredLyricsSource === 'synced')
                             || null,
@@ -1963,8 +2249,49 @@
                     return englishSearchFlow;
                 };
 
+                if (syncDataSource) {
+                    if (primarySearchFlow.bestSourceSyncedCandidate) {
+                        body = primarySearchFlow.bestSourceSyncedCandidate;
+                        selectedFlow = primarySearchFlow;
+                        selectedSource = 'primary-source-synced';
+                    }
+
+                    if (!body) {
+                        await ensureEnglishSearchFlow();
+                        if (englishSearchFlow?.bestSourceSyncedCandidate) {
+                            body = englishSearchFlow.bestSourceSyncedCandidate;
+                            selectedFlow = englishSearchFlow;
+                            selectedSource = 'english-source-synced';
+                        }
+                    }
+
+                    if (!body && primarySearchFlow.bestSourcePlainCandidate) {
+                        body = primarySearchFlow.bestSourcePlainCandidate;
+                        selectedFlow = primarySearchFlow;
+                        selectedSource = 'primary-source-plain';
+                    }
+
+                    if (!body && englishSearchFlow?.bestSourcePlainCandidate) {
+                        body = englishSearchFlow.bestSourcePlainCandidate;
+                        selectedFlow = englishSearchFlow;
+                        selectedSource = 'english-source-plain';
+                    }
+
+                    if (!body && primarySearchFlow.bestSourceInstrumentalCandidate) {
+                        body = primarySearchFlow.bestSourceInstrumentalCandidate;
+                        selectedFlow = primarySearchFlow;
+                        selectedSource = 'primary-source-instrumental';
+                    }
+
+                    if (!body && englishSearchFlow?.bestSourceInstrumentalCandidate) {
+                        body = englishSearchFlow.bestSourceInstrumentalCandidate;
+                        selectedFlow = englishSearchFlow;
+                        selectedSource = 'english-source-instrumental';
+                    }
+                }
+
                 if (shouldPreferExactSyncLineMatch) {
-                    if (primarySearchFlow.bestExactNativeSyncedCandidate) {
+                    if (!body && primarySearchFlow.bestExactNativeSyncedCandidate) {
                         body = primarySearchFlow.bestExactNativeSyncedCandidate;
                         selectedFlow = primarySearchFlow;
                         selectedSource = 'primary-exact-native-synced';

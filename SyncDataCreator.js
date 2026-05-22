@@ -1066,6 +1066,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 	const [availableProviders, setAvailableProviders] = useState([]);
 	const [lrclibCandidates, setLrclibCandidates] = useState([]);
 	const [selectedLrclibCandidateKey, setSelectedLrclibCandidateKey] = useState('');
+	const [selectedLrclibSource, setSelectedLrclibSource] = useState(null);
 	const [previewLrclibCandidateKey, setPreviewLrclibCandidateKey] = useState('');
 	const [lrclibSearchMeta, setLrclibSearchMeta] = useState(null);
 	const [showLrclibCandidates, setShowLrclibCandidates] = useState(true);
@@ -1144,19 +1145,61 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			.join('\n'));
 	}, [stripLrclibTimestamp]);
 
+	const getSyncCreatorLyricsFingerprint = useCallback((text) => {
+		const value = String(text || '').normalize('NFC');
+		let hash = 2166136261;
+		for (const char of Array.from(value)) {
+			hash ^= char.codePointAt(0) || 0;
+			hash = Math.imul(hash, 16777619);
+		}
+		return `lrclib-${(hash >>> 0).toString(36)}-${Array.from(value).length.toString(36)}`;
+	}, []);
+
+	const buildLrclibSyncSource = useCallback((candidate) => {
+		if (!candidate) return null;
+		const text = getLrclibCandidateText(candidate).normalize('NFC');
+		const comparableLines = text
+			.split('\n')
+			.map(line => line.trim().normalize('NFC'))
+			.filter(Boolean);
+		const comparableText = comparableLines.join('\n');
+		const lineCharCounts = comparableLines
+			.map(line => Array.from(line).length);
+		const preferredLyricsSource = candidate.preferredLyricsSource
+			|| (candidate.syncedLyrics ? 'synced' : (candidate.plainLyrics ? 'plain' : 'unknown'));
+
+		return {
+			provider: 'lrclib',
+			lrclibId: candidate.id ?? null,
+			candidateKey: candidate.candidateKey || '',
+			searchSource: candidate.searchSource || '',
+			preferredLyricsSource,
+			trackName: candidate.trackName || candidate.name || '',
+			artistName: candidate.artistName || '',
+			albumName: candidate.albumName || '',
+			duration: Number(candidate.duration || 0) || 0,
+			lyricsFingerprint: getSyncCreatorLyricsFingerprint(comparableText),
+			lineCharCounts,
+			lineCount: lineCharCounts.length,
+			textCharCount: Array.from(comparableLines.join('')).length
+		};
+	}, [getLrclibCandidateText, getSyncCreatorLyricsFingerprint]);
+
 	const buildSyntheticLrclibResult = useCallback((candidate) => {
 		const text = getLrclibCandidateText(candidate);
 		const lines = buildLineObjectsFromText(text);
 		return {
 			provider: 'lrclib',
+			lrclibSource: buildLrclibSyncSource(candidate),
 			synced: candidate?.preferredLyricsSource === 'synced' ? lines : null,
 			unsynced: lines
 		};
-	}, [buildLineObjectsFromText, getLrclibCandidateText]);
+	}, [buildLineObjectsFromText, buildLrclibSyncSource, getLrclibCandidateText]);
 
 	const clearLrclibCandidateState = useCallback(() => {
 		setLrclibCandidates([]);
 		setSelectedLrclibCandidateKey('');
+		setSelectedLrclibSource(null);
 		setPreviewLrclibCandidateKey('');
 		setLrclibSearchMeta(null);
 	}, []);
@@ -1174,6 +1217,9 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		setProvider(finalProvider);
 		setAddonId(usedProvider);
 		setLyrics(result);
+		if (finalProvider === 'lrclib' && result?.lrclibSource) {
+			setSelectedLrclibSource(result.lrclibSource);
+		}
 
 		if (window.SyncDataService && trackId) {
 			try {
@@ -1254,6 +1300,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			const syntheticResult = buildSyntheticLrclibResult(candidate);
 			await applyLoadedLyricsResult(syntheticResult, 'lrclib');
 			setSelectedLrclibCandidateKey(candidate.candidateKey);
+			setSelectedLrclibSource(syntheticResult.lrclibSource || buildLrclibSyncSource(candidate));
 			setPreviewLrclibCandidateKey(candidate.candidateKey);
 		} catch (e) {
 			console.error('[SyncDataCreator] Failed to apply LRCLIB candidate:', e);
@@ -1261,7 +1308,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		}
 
 		setIsLoading(false);
-	}, [applyLoadedLyricsResult, buildSyntheticLrclibResult, lrclibCandidates]);
+	}, [applyLoadedLyricsResult, buildLrclibSyncSource, buildSyntheticLrclibResult, lrclibCandidates]);
 
 	// 가사를 줄 단위로 파싱
 	// NFC 정규화를 적용하여 결합 문자(NFD)를 합성 문자로 변환
@@ -3862,6 +3909,27 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		Spicetify.Player.seek(Math.max(0, Spicetify.Player.getProgress() + offsetMs));
 	}, []);
 
+	const attachSelectedLrclibSource = useCallback((data) => {
+		const sanitized = sanitizeSyncCreatorSyncData(data);
+		if (!sanitized || provider !== 'lrclib' || !selectedLrclibSource) {
+			return sanitized;
+		}
+		return {
+			...sanitized,
+			source: {
+				...selectedLrclibSource,
+				provider: 'lrclib'
+			}
+		};
+	}, [provider, selectedLrclibSource]);
+
+	const clearLyricsCachesAfterSyncSubmit = useCallback(() => {
+		window.SyncDataService?.clearCache?.(trackId);
+		window.LyricsService?.clearTrackCache?.(trackId)?.catch?.((error) => {
+			console.warn('[SyncDataCreator] Failed to clear lyrics cache after sync-data submit:', error);
+		});
+	}, [trackId]);
+
 	const handleSubmit = useCallback(async () => {
 		if (!syncData || !syncData.lines || syncData.lines.length === 0) {
 			Toast.error(I18n.t('syncCreator.noSyncData'));
@@ -3916,7 +3984,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			if (!confirm(I18n.t('syncCreator.incompleteConfirm'))) return;
 		}
 
-		const syncDataToSubmit = sanitizeSyncCreatorSyncData({
+		const syncDataToSubmit = attachSelectedLrclibSource({
 			...syncData,
 			lines: syncData.lines.map(line => {
 				const speaker = normalizeSyncCreatorSpeaker(line.speaker) || SYNC_CREATOR_DEFAULT_SPEAKER;
@@ -3961,7 +4029,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				if (result) {
 					Toast.success(I18n.t('syncCreator.submitSuccess'));
 					// 캐시 무효화
-					window.SyncDataService?.clearCache(trackId);
+					clearLyricsCachesAfterSyncSubmit();
 					// 가사 페이지 새로고침
 					setTimeout(() => {
 						if (typeof window.reloadLyrics === 'function') {
@@ -3984,7 +4052,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				if (response.ok) {
 					Toast.success(I18n.t('syncCreator.submitSuccess'));
 					// 캐시 무효화
-					window.SyncDataService?.clearCache(trackId);
+					clearLyricsCachesAfterSyncSubmit();
 					// 가사 페이지 새로고침
 					setTimeout(() => {
 						if (typeof window.reloadLyrics === 'function') {
@@ -4004,7 +4072,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		}
 
 		setIsSubmitting(false);
-	}, [syncData, lyricsLines, lineCharOffsets, multiVocalMode, trackId, provider, trackName, artistName, onClose, getParallelTemplateForLineData, getMergedLineIndexesForStart, isLineCoveredByMergedPrevious]);
+	}, [syncData, lyricsLines, lineCharOffsets, multiVocalMode, trackId, provider, trackName, artistName, onClose, attachSelectedLrclibSource, clearLyricsCachesAfterSyncSubmit, getParallelTemplateForLineData, getMergedLineIndexesForStart, isLineCoveredByMergedPrevious]);
 
 	// 싱크 데이터 내보내기 (JSON 파일로 저장)
 	const exportSyncData = useCallback(() => {
@@ -4013,7 +4081,8 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			return;
 		}
 
-		const blob = new Blob([JSON.stringify(sanitizeSyncCreatorSyncData(syncData), null, 2)], { type: 'application/json' });
+		const exportData = attachSelectedLrclibSource(syncData);
+		const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement('a');
 		a.href = url;
@@ -4024,7 +4093,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		URL.revokeObjectURL(url);
 
 		Toast.success(I18n.t('syncCreator.exportSuccess') || 'Exported sync data');
-	}, [syncData, trackId]);
+	}, [attachSelectedLrclibSource, syncData, trackId]);
 
 	// 싱크 데이터 불러오기 (JSON 파일에서)
 	const importSyncData = useCallback(() => {
@@ -4045,7 +4114,11 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				}
 
 				// 싱크 데이터 적용
-				setSyncData(sanitizeSyncCreatorSyncData(importedData));
+				const sanitizedData = sanitizeSyncCreatorSyncData(importedData);
+				setSyncData(sanitizedData);
+				if (sanitizedData?.source?.provider === 'lrclib') {
+					setSelectedLrclibSource(sanitizedData.source);
+				}
 
 				Toast.success(I18n.t('syncCreator.importSuccess') || 'Imported sync data');
 			} catch (err) {
