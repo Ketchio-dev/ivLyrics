@@ -7023,6 +7023,10 @@ class LyricsContainer extends react.Component {
             isEnabled: canRegenerateTranslation,
             isLoading: this.state.isTranslationLoading || this.state.isPhoneticLoading,
           }),
+          window.IvLyricsLearningMode?.StudyButton &&
+          react.createElement(window.IvLyricsLearningMode.StudyButton, {
+            disabled: !hasLyrics || this.state.isLoading,
+          }),
           react.createElement(SyncAdjustButtonFluent, {
             trackUri: this.currentTrackUri,
             provider: this.state.provider, // Pass provider
@@ -7182,7 +7186,17 @@ class LyricsContainer extends react.Component {
         )
       ),
       cacheEditModal,
-      activeLyricsPage
+      activeLyricsPage,
+      !this.state.showMarketplace &&
+      window.IvLyricsLearningMode?.StudyPanel &&
+      react.createElement(window.IvLyricsLearningMode.StudyPanel, {
+        trackUri: this.state.uri,
+        title: this.state.title,
+        artist: this.state.artist,
+        provider: this.state.provider,
+        lyrics: this.state.currentLyrics || [],
+        activeLineIndex: this.state.currentLyricIndex || 0,
+      })
     );
 
     const dom = ensureReactDOM();

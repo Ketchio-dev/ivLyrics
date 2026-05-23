@@ -20,6 +20,7 @@
         TRANSLATE: 'translate',    // 가사 번역/발음
         METADATA: 'metadata',      // 메타데이터 번역
         TMI: 'tmi',                // TMI 생성
+        LYRICS_STUDY: 'lyricsStudy', // 가사 기반 학습 모드 생성
         CHARACTER_PRONUNCIATION: 'characterPronunciation' // 문자별 발음
     };
 
@@ -167,7 +168,7 @@
          * - author: string (제작자)
          * - description: string | { en: string, ko: string, ... } (설명)
          * - version: string (버전)
-         * - supports: { translate: boolean, metadata: boolean, tmi: boolean, characterPronunciation: boolean } (지원 기능)
+         * - supports: { translate: boolean, metadata: boolean, tmi: boolean, lyricsStudy: boolean, characterPronunciation: boolean } (지원 기능)
          * 
          * 필수 메서드:
          * - getSettingsUI(): React.Component (설정 UI)
@@ -176,6 +177,7 @@
          * - translateLyrics(params): Promise<Object> (supports.translate = true인 경우)
          * - translateMetadata(params): Promise<Object> (supports.metadata = true인 경우)
          * - generateTMI(params): Promise<Object> (supports.tmi = true인 경우)
+         * - generateLyricsStudy(params): Promise<Object> (supports.lyricsStudy = true인 경우)
          * - generateCharacterPronunciation(params): Promise<Object> (supports.characterPronunciation = true인 경우)
          */
         register(addon) {
@@ -199,6 +201,7 @@
                     translate: typeof addon.translateLyrics === 'function',
                     metadata: typeof addon.translateMetadata === 'function',
                     tmi: typeof addon.generateTMI === 'function',
+                    lyricsStudy: typeof addon.generateLyricsStudy === 'function',
                     characterPronunciation: typeof addon.generateCharacterPronunciation === 'function'
                 };
             }
@@ -214,7 +217,7 @@
 
             this._addons.set(addon.id, addon);
             window.__ivLyricsDebugLog?.(`[AIAddonManager] Registered addon: ${addon.id} (${addon.name})`);
-            window.__ivLyricsDebugLog?.(`[AIAddonManager] Supports: translate=${addon.supports.translate}, metadata=${addon.supports.metadata}, tmi=${addon.supports.tmi}, characterPronunciation=${addon.supports.characterPronunciation}`);
+            window.__ivLyricsDebugLog?.(`[AIAddonManager] Supports: translate=${addon.supports.translate}, metadata=${addon.supports.metadata}, tmi=${addon.supports.tmi}, lyricsStudy=${addon.supports.lyricsStudy}, characterPronunciation=${addon.supports.characterPronunciation}`);
 
             // 이미 초기화 완료된 경우, 새 Addon도 초기화
             if (this._initialized && typeof addon.init === 'function') {
@@ -256,7 +259,7 @@
             }
 
             // 기능 메서드 중 최소 하나는 있어야 함
-            const featureMethods = ['translateLyrics', 'translateMetadata', 'generateTMI', 'generateCharacterPronunciation'];
+            const featureMethods = ['translateLyrics', 'translateMetadata', 'generateTMI', 'generateLyricsStudy', 'generateCharacterPronunciation'];
             const hasAnyFeature = featureMethods.some(m => typeof addon[m] === 'function');
             if (!hasAnyFeature) {
                 errors.push(`Must implement at least one of: ${featureMethods.join(', ')}`);
@@ -422,7 +425,7 @@
 
         /**
          * 특정 기능을 지원하는 활성화된 Provider 목록 (순서대로)
-         * @param {'translate'|'metadata'|'tmi'|'characterPronunciation'} capability - 기능 유형
+         * @param {'translate'|'metadata'|'tmi'|'lyricsStudy'|'characterPronunciation'} capability - 기능 유형
          * @returns {Object[]}
          */
         getEnabledProvidersFor(capability) {
@@ -1215,6 +1218,67 @@
 
             const errorMsg = truncationError?.message || lastError?.message || this._t('aiProviders.allProvidersFailed', 'All AI providers failed to process the request.');
             this.emit('ai:request:error', { type: 'characterPronunciation', error: errorMsg });
+            throw new Error(errorMsg);
+        }
+
+        /**
+         * 가사 학습 모드 생성 (활성화된 Provider 순서대로 시도)
+         * @param {Object} params - { trackId, title, artist, targetLang, sourceLang, lines }
+         * @returns {Promise<Object>}
+         */
+        async generateLyricsStudy(params) {
+            const providers = this.getEnabledProvidersFor('lyricsStudy');
+
+            if (providers.length === 0) {
+                console.warn('[AIAddonManager] No lyrics study providers enabled');
+                throw new Error(this._t('aiProviders.noEnabledProviders', 'No AI providers enabled. Please enable at least one provider in settings.'));
+            }
+
+            if (window.AddonDebug?.isEnabled()) {
+                window.AddonDebug.log('ai', 'generateLyricsStudy called', {
+                    providers: providers.map(p => p.id),
+                    targetLang: params.targetLang,
+                    sourceLang: params.sourceLang,
+                    lineCount: Array.isArray(params.lines) ? params.lines.length : 0
+                });
+                window.AddonDebug.time('ai', 'generateLyricsStudy');
+            }
+
+            this.emit('ai:request:start', {
+                type: 'lyricsStudy',
+                providers: providers.map(p => p.id),
+                params: { ...params, lines: '[...]' }
+            });
+
+            let lastError = null;
+
+            for (const addon of providers) {
+                if (typeof addon.generateLyricsStudy !== 'function') continue;
+
+                try {
+                    window.__ivLyricsDebugLog?.(`[AIAddonManager] Trying lyrics study provider: ${addon.id}`);
+                    const result = await addon.generateLyricsStudy(params);
+
+                    if (window.AddonDebug?.isEnabled()) {
+                        window.AddonDebug.timeEnd('ai', 'generateLyricsStudy');
+                    }
+
+                    this.emit('ai:request:success', { type: 'lyricsStudy', provider: addon.id });
+                    return result;
+                } catch (e) {
+                    console.warn(`[AIAddonManager] Provider ${addon.id} failed for generateLyricsStudy:`, e.message);
+                    lastError = e;
+                    continue;
+                }
+            }
+
+            if (window.AddonDebug?.isEnabled()) {
+                window.AddonDebug.timeEnd('ai', 'generateLyricsStudy');
+                window.AddonDebug.error('ai', 'generateLyricsStudy all providers failed');
+            }
+
+            const errorMsg = lastError?.message || this._t('aiProviders.allProvidersFailed', 'All AI providers failed to process the request.');
+            this.emit('ai:request:error', { type: 'lyricsStudy', error: errorMsg });
             throw new Error(errorMsg);
         }
 
