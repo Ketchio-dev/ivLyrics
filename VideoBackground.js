@@ -20,6 +20,24 @@ const getVideoSyncOffsetSeconds = (captionStartTime, lyricsStartTime, videoInfo)
     return parsedCaptionStartTime - lyricsStartTime;
 };
 
+const disableYouTubeCaptions = (player) => {
+    if (!player) return;
+
+    try {
+        if (typeof player.unloadModule === "function") {
+            player.unloadModule("captions");
+            player.unloadModule("cc");
+        }
+    } catch (e) { }
+
+    try {
+        if (typeof player.setOption === "function") {
+            player.setOption("captions", "track", {});
+            player.setOption("cc", "track", {});
+        }
+    } catch (e) { }
+};
+
 const VideoBackground = ({ trackUri, firstLyricTime, brightness, blurAmount, coverMode, externalVideoInfo }) => {
     const { useState, useEffect, useRef, useCallback } = react;
     const VIDEO_BACKGROUND_DEBUG = false;
@@ -78,6 +96,7 @@ const VideoBackground = ({ trackUri, firstLyricTime, brightness, blurAmount, cov
     const abortDownloadRef = useRef(null); // abort function for helper download
     const playerInitRetryRef = useRef(null);
     const statusMessageTimeoutRef = useRef(null);
+    const lastCaptionDisableRef = useRef(0);
     const clearStatusMessageTimeout = useCallback(() => {
         if (statusMessageTimeoutRef.current) {
             clearTimeout(statusMessageTimeoutRef.current);
@@ -775,6 +794,16 @@ const VideoBackground = ({ trackUri, firstLyricTime, brightness, blurAmount, cov
         if (!videoInfo || !videoInfo.youtubeVideoId || !containerRef.current) return;
 
         let isCancelled = false;
+        const captionDisableTimers = [];
+        const scheduleCaptionDisable = (player) => {
+            disableYouTubeCaptions(player);
+            [250, 1000, 2500].forEach((delay) => {
+                const timer = setTimeout(() => {
+                    if (!isCancelled) disableYouTubeCaptions(player);
+                }, delay);
+                captionDisableTimers.push(timer);
+            });
+        };
 
         // Double check cleanup
         if (playerRef.current) {
@@ -821,6 +850,7 @@ const VideoBackground = ({ trackUri, firstLyricTime, brightness, blurAmount, cov
                     fs: 0,
                     rel: 0,
                     iv_load_policy: 3,
+                    cc_load_policy: 0,
                     mute: 1,
                     origin: window.location.origin,
                 },
@@ -834,8 +864,15 @@ const VideoBackground = ({ trackUri, firstLyricTime, brightness, blurAmount, cov
                         }
                         playerRef.current = event.target;
                         setIsPlayerReady(true);
+                        scheduleCaptionDisable(event.target);
                         event.target.mute();
                         event.target.playVideo();
+                    },
+                    onStateChange: (event) => {
+                        const state = event?.data;
+                        if (state === window.YT?.PlayerState?.PLAYING || state === window.YT?.PlayerState?.CUED) {
+                            disableYouTubeCaptions(event.target);
+                        }
                     },
                 },
             });
@@ -853,6 +890,7 @@ const VideoBackground = ({ trackUri, firstLyricTime, brightness, blurAmount, cov
                 clearTimeout(playerInitRetryRef.current);
                 playerInitRetryRef.current = null;
             }
+            captionDisableTimers.forEach((timer) => clearTimeout(timer));
 
             if (playerRef.current) {
                 try {
@@ -876,7 +914,14 @@ const VideoBackground = ({ trackUri, firstLyricTime, brightness, blurAmount, cov
 
             try {
                 const st = player.getPlayerState();
-                if (st === 1 || st === 3) applyFixedQuality(player);
+                if (st === 1 || st === 3) {
+                    applyFixedQuality(player);
+                    const now = Date.now();
+                    if (now - lastCaptionDisableRef.current > 5000) {
+                        lastCaptionDisableRef.current = now;
+                        disableYouTubeCaptions(player);
+                    }
+                }
             } catch (e) {}
 
             const spotifyTime = Spicetify.Player.getProgress() / 1000;

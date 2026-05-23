@@ -554,6 +554,7 @@
             url.searchParams.set("playsinline", "1");
             url.searchParams.set("fs", "0");
             url.searchParams.set("disablekb", "1");
+            url.searchParams.set("cc_load_policy", "0");
             url.searchParams.set("origin", window.location.origin);
             return url.toString();
         } catch (err) {
@@ -897,6 +898,31 @@
         ["loadVideoById", "cueVideoById", "loadPlaylist", "cuePlaylist"].forEach(wrap);
     };
 
+    const disableYouTubeCaptions = (player) => {
+        if (!player) return;
+
+        try {
+            if (typeof player.unloadModule === "function") {
+                player.unloadModule("captions");
+                player.unloadModule("cc");
+            }
+        } catch (e) { }
+
+        try {
+            if (typeof player.setOption === "function") {
+                player.setOption("captions", "track", {});
+                player.setOption("cc", "track", {});
+            }
+        } catch (e) { }
+    };
+
+    const scheduleCaptionDisable = (player) => {
+        disableYouTubeCaptions(player);
+        [250, 1000, 2500].forEach((delay) => {
+            setTimeout(() => disableYouTubeCaptions(player), delay);
+        });
+    };
+
     const patchYouTubePlayer = () => {
         if (!window.YT || !window.YT.Player || window.YT.Player.__ytAdBlockWrapped) {
             if (!moduleState.playerPatchTimer) {
@@ -932,7 +958,8 @@
             };
             mergedConfig.playerVars = {
                 ...forcedPlayerVars,
-                ...config.playerVars
+                ...config.playerVars,
+                cc_load_policy: 0
             };
             const forcedFeatureFlags = [
                 "disable_persistent_ads=true",
@@ -950,6 +977,7 @@
             mergedConfig.events = mergedConfig.events || {};
             const originalOnReady = mergedConfig.events.onReady;
             mergedConfig.events.onReady = (event) => {
+                scheduleCaptionDisable(event?.target);
                 attachAdSkipper(event?.target);
                 if (typeof originalOnReady === "function") {
                     originalOnReady(event);
@@ -957,6 +985,10 @@
             };
             const originalOnStateChange = mergedConfig.events.onStateChange;
             mergedConfig.events.onStateChange = (event) => {
+                const state = event?.data;
+                if (state === window.YT?.PlayerState?.PLAYING || state === window.YT?.PlayerState?.CUED) {
+                    disableYouTubeCaptions(event?.target);
+                }
                 attachAdSkipper(event?.target);
                 if (typeof originalOnStateChange === "function") {
                     return originalOnStateChange(event);
@@ -967,6 +999,7 @@
             const instance = new OriginalPlayer(element, mergedConfig);
             trackVideoRequests(instance, mergedConfig);
             attachAdSkipper(instance);
+            scheduleCaptionDisable(instance);
             return instance;
         };
 
