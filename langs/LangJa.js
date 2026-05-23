@@ -1917,7 +1917,7 @@ window.LANG_JA = {
     "loadLyrics": "歌詞を読み込む",
     "reload": "再読み込み",
     "loadingLyrics": "歌詞を読み込み中...",
-    "selectProvider": "Please select a lyrics provider from the top right",
+    "selectProvider": "左サイドバーから歌詞プロバイダーを選択してください",
     "noLyrics": "歌詞が見つかりません",
     "loadError": "歌詞読み込み中にエラーが発生しました",
     "currentLine": "現在の歌詞",

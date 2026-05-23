@@ -1917,7 +1917,7 @@ window.LANG_FR = {
     "loadLyrics": "Charger paroles",
     "reload": "Recharger",
     "loadingLyrics": "Chargement des paroles...",
-    "selectProvider": "Please select a lyrics provider from the top right",
+    "selectProvider": "Veuillez sélectionner un fournisseur de paroles dans la barre latérale gauche",
     "noLyrics": "Paroles introuvables",
     "loadError": "Erreur chargement paroles",
     "currentLine": "Ligne actuelle",

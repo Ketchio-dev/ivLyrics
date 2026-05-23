@@ -1917,7 +1917,7 @@ window.LANG_KO = {
     "loadLyrics": "가사 불러오기",
     "reload": "다시 로드",
     "loadingLyrics": "가사를 불러오는 중...",
-    "selectProvider": "우측 상단에서 가사 제공자를 선택해주세요",
+    "selectProvider": "왼쪽 사이드바에서 가사 제공자를 선택해주세요",
     "noLyrics": "가사를 찾을 수 없습니다",
     "loadError": "가사 로드 중 오류가 발생했습니다",
     "currentLine": "현재 가사",

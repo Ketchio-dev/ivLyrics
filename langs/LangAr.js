@@ -1916,7 +1916,7 @@ window.LANG_AR = {
     "loadLyrics": "تحميل الكلمات",
     "reload": "إعادة التحميل",
     "loadingLyrics": "جارٍ تحميل الكلمات...",
-    "selectProvider": "Please select a lyrics provider from the top right",
+    "selectProvider": "يرجى اختيار موفر كلمات الأغاني من الشريط الجانبي الأيسر",
     "noLyrics": "تعذر العثور على الكلمات",
     "loadError": "حدث خطأ أثناء تحميل الكلمات",
     "currentLine": "السطر الحالي",

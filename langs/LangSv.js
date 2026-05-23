@@ -1916,7 +1916,7 @@ window.LANG_SV = {
     "loadLyrics": "Ladda sångtexter",
     "reload": "Ladda om",
     "loadingLyrics": "Laddar sångtexter...",
-    "selectProvider": "Välj en textleverantör uppe till höger",
+    "selectProvider": "Välj en textleverantör i vänstra sidofältet",
     "noLyrics": "Texten hittades inte",
     "loadError": "Det gick inte att läsa in texten",
     "currentLine": "Nuvarande linje",

@@ -1917,7 +1917,7 @@ window.LANG_ZH_TW = {
     "loadLyrics": "載入歌詞",
     "reload": "重新載入",
     "loadingLyrics": "正在載入歌詞...",
-    "selectProvider": "Please select a lyrics provider from the top right",
+    "selectProvider": "請從左側邊欄選擇歌詞提供者",
     "noLyrics": "找不到歌詞",
     "loadError": "歌詞載入錯誤",
     "currentLine": "目前歌詞",

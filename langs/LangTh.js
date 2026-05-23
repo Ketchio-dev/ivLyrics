@@ -1917,7 +1917,7 @@ window.LANG_TH = {
     "loadLyrics": "โหลดเนื้อเพลง",
     "reload": "โหลดใหม่",
     "loadingLyrics": "กำลังโหลดเนื้อเพลง...",
-    "selectProvider": "Please select a lyrics provider from the top right",
+    "selectProvider": "โปรดเลือกผู้ให้บริการเนื้อเพลงจากแถบด้านข้างซ้าย",
     "noLyrics": "ไม่พบเนื้อเพลง",
     "loadError": "เกิดข้อผิดพลาดในการโหลดเนื้อเพลง",
     "currentLine": "เนื้อเพลงปัจจุบัน",

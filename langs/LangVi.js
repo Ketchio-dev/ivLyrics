@@ -1917,7 +1917,7 @@ window.LANG_VI = {
     "loadLyrics": "Tải lời bài hát",
     "reload": "Tải lại",
     "loadingLyrics": "Đang tải lời bài hát...",
-    "selectProvider": "Please select a lyrics provider from the top right",
+    "selectProvider": "Vui lòng chọn nhà cung cấp lời bài hát ở thanh bên trái",
     "noLyrics": "Không tìm thấy lời bài hát",
     "loadError": "Lỗi khi tải lời bài hát",
     "currentLine": "Lời hiện tại",

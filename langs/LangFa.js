@@ -1916,7 +1916,7 @@ window.LANG_FA = {
     "loadLyrics": "بارگذاری متن",
     "reload": "بارگذاری مجدد",
     "loadingLyrics": "در حال دریافت متن...",
-    "selectProvider": "Please select a lyrics provider from the top right",
+    "selectProvider": "لطفاً ارائه‌دهندهٔ متن ترانه را از نوار کناری سمت چپ انتخاب کنید",
     "noLyrics": "متن آهنگ یافت نشد",
     "loadError": "خطا در بارگذاری متن",
     "currentLine": "متن جاری",

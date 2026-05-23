@@ -1917,7 +1917,7 @@ window.LANG_RU = {
     "loadLyrics": "Загрузить текст",
     "reload": "Перезагрузить",
     "loadingLyrics": "Загрузка текста...",
-    "selectProvider": "Please select a lyrics provider from the top right",
+    "selectProvider": "Выберите поставщика текстов песен на левой боковой панели",
     "noLyrics": "Текст не найден",
     "loadError": "Ошибка загрузки текста",
     "currentLine": "Текущая строка",

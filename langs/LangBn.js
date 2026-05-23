@@ -1917,7 +1917,7 @@ window.LANG_BN = {
     "loadLyrics": "লিরিক্স লোড করুন",
     "reload": "রিলোড",
     "loadingLyrics": "লিরিক্স লোড হচ্ছে...",
-    "selectProvider": "Please select a lyrics provider from the top right",
+    "selectProvider": "বাম পাশের সাইডবার থেকে লিরিক্স প্রদানকারী নির্বাচন করুন",
     "noLyrics": "লিরিক্স পাওয়া যায়নি",
     "loadError": "লিরিক্স লোড করতে ত্রুটি ঘটেছে",
     "currentLine": "বর্তমান লিরিক্স",

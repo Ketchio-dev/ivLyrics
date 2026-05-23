@@ -1917,7 +1917,7 @@ window.LANG_ES = {
     "loadLyrics": "Cargar letras",
     "reload": "Recargar",
     "loadingLyrics": "Cargando letras...",
-    "selectProvider": "Please select a lyrics provider from the top right",
+    "selectProvider": "Selecciona un proveedor de letras en la barra lateral izquierda",
     "noLyrics": "No se encontraron letras",
     "loadError": "Error al cargar letras",
     "currentLine": "Letra actual",

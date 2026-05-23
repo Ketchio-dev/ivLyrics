@@ -1917,7 +1917,7 @@ window.LANG_ZH_CN = {
     "loadLyrics": "加载歌词",
     "reload": "重新加载",
     "loadingLyrics": "正在加载歌词...",
-    "selectProvider": "Please select a lyrics provider from the top right",
+    "selectProvider": "请从左侧边栏选择歌词提供者",
     "noLyrics": "找不到歌词",
     "loadError": "加载歌词时发生错误",
     "currentLine": "当前歌词",

@@ -1916,7 +1916,7 @@ window.LANG_HI = {
     "loadLyrics": "लिरिक्स लोड करें",
     "reload": "रीलोड",
     "loadingLyrics": "लिरिक्स लोड हो रहे हैं...",
-    "selectProvider": "Please select a lyrics provider from the top right",
+    "selectProvider": "कृपया बाएँ साइडबार से बोल प्रदाता चुनें",
     "noLyrics": "लिरिक्स नहीं मिले",
     "loadError": "लिरिक्स लोड त्रुटि",
     "currentLine": "वर्तमान लाइन",

@@ -1916,7 +1916,7 @@ window.LANG_DE = {
     "loadLyrics": "Songtext laden",
     "reload": "Neu laden",
     "loadingLyrics": "Lade Songtext...",
-    "selectProvider": "Please select a lyrics provider from the top right",
+    "selectProvider": "Bitte wähle links in der Seitenleiste einen Liedtextanbieter aus",
     "noLyrics": "Songtext nicht gefunden",
     "loadError": "Fehler beim Laden des Songtextes",
     "currentLine": "Aktuelle Zeile",

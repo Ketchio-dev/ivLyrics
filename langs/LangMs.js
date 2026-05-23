@@ -1926,7 +1926,7 @@ window.LANG_MS = {
     "loadLyrics": "Muat Lirik",
     "reload": "Muat Semula",
     "loadingLyrics": "Memuatkan lirik...",
-    "selectProvider": "Sila pilih penyedia lirik di sudut kanan atas",
+    "selectProvider": "Sila pilih penyedia lirik di bar sisi kiri",
     "noLyrics": "Lirik tidak ditemui",
     "loadError": "Ralat berlaku semasa memuatkan lirik",
     "currentLine": "Baris Semasa",

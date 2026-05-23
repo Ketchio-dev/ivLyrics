@@ -1917,7 +1917,7 @@ window.LANG_IT = {
     "loadLyrics": "Carica testo",
     "reload": "Ricarica",
     "loadingLyrics": "Caricamento testo...",
-    "selectProvider": "Please select a lyrics provider from the top right",
+    "selectProvider": "Seleziona un fornitore di testi dalla barra laterale sinistra",
     "noLyrics": "Testo non trovato",
     "loadError": "Errore caricamento testo",
     "currentLine": "Riga corrente",

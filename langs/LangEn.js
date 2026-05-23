@@ -1917,7 +1917,7 @@ window.LANG_EN = {
     "loadLyrics": "Load Lyrics",
     "reload": "Reload",
     "loadingLyrics": "Loading lyrics...",
-    "selectProvider": "Please select a lyrics provider from the top right",
+    "selectProvider": "Please select a lyrics provider from the left sidebar",
     "noLyrics": "Lyrics not found",
     "loadError": "Error loading lyrics",
     "currentLine": "Current Line",
