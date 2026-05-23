@@ -612,6 +612,7 @@ window.LANG_IT = {
     "empty": "Vuoto",
     "pronunciationPlaceholder": "Una riga per ogni riga del testo",
     "translationPlaceholder": "Una riga per ogni riga del testo",
+    "shiftDown": "Sposta questa riga e quelle sotto di una riga",
     "cancel": "Annulla",
     "saving": "Salvataggio...",
     "save": "Salva cache",

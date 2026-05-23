@@ -612,6 +612,7 @@ window.LANG_MS = {
     "empty": "Kosong",
     "pronunciationPlaceholder": "Masukkan satu baris sebutan untuk setiap baris lirik",
     "translationPlaceholder": "Masukkan satu baris terjemahan untuk setiap baris lirik",
+    "shiftDown": "Alih baris ini dan semua di bawahnya satu baris ke bawah",
     "cancel": "Batal",
     "saving": "Menyimpan...",
     "save": "Simpan Cache",

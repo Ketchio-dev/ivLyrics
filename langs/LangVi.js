@@ -612,6 +612,7 @@ window.LANG_VI = {
     "empty": "Trống",
     "pronunciationPlaceholder": "Mỗi dòng lời bài hát tương ứng một dòng",
     "translationPlaceholder": "Mỗi dòng lời bài hát tương ứng một dòng",
+    "shiftDown": "Dịch dòng này và các dòng bên dưới xuống một dòng",
     "cancel": "Hủy",
     "saving": "Đang lưu...",
     "save": "Lưu cache",

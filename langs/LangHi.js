@@ -612,6 +612,7 @@ window.LANG_HI = {
     "empty": "खाली",
     "pronunciationPlaceholder": "गीत की हर पंक्ति के लिए एक पंक्ति",
     "translationPlaceholder": "गीत की हर पंक्ति के लिए एक पंक्ति",
+    "shiftDown": "इस पंक्ति और नीचे की पंक्तियों को एक पंक्ति नीचे खिसकाएँ",
     "cancel": "रद्द करें",
     "saving": "सहेजा जा रहा है...",
     "save": "कैश सहेजें",

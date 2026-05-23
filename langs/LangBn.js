@@ -612,6 +612,7 @@ window.LANG_BN = {
     "empty": "খালি",
     "pronunciationPlaceholder": "প্রতি লিরিক্স লাইনের জন্য এক লাইন",
     "translationPlaceholder": "প্রতি লিরিক্স লাইনের জন্য এক লাইন",
+    "shiftDown": "এই লাইন ও নিচের সব লাইন এক লাইন নিচে সরান",
     "cancel": "বাতিল",
     "saving": "সংরক্ষণ করা হচ্ছে...",
     "save": "ক্যাশে সংরক্ষণ",

@@ -612,6 +612,7 @@ window.LANG_ES = {
     "empty": "Vacío",
     "pronunciationPlaceholder": "Una línea por cada línea de la letra",
     "translationPlaceholder": "Una línea por cada línea de la letra",
+    "shiftDown": "Desplazar esta línea y las siguientes una línea abajo",
     "cancel": "Cancelar",
     "saving": "Guardando...",
     "save": "Guardar caché",

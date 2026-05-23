@@ -612,6 +612,7 @@ window.LANG_RU = {
     "empty": "Пусто",
     "pronunciationPlaceholder": "Одна строка на каждую строку текста",
     "translationPlaceholder": "Одна строка на каждую строку текста",
+    "shiftDown": "Сдвинуть эту строку и все ниже на одну строку вниз",
     "cancel": "Отмена",
     "saving": "Сохранение...",
     "save": "Сохранить кэш",

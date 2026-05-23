@@ -340,9 +340,19 @@ const { useState, useEffect, useCallback, useMemo, useRef } = react;
 
 const getNonSectionLyricsText = (lyrics = []) =>
   lyrics
-    .map((line) => line?.text || "")
+    .map((line) => line?.originalText || line?.text || "")
     .filter((line) => line && !Utils.isSectionHeader(line))
     .join("\n");
+
+const getTranslationSourceCacheHash = (text) => {
+  const value = String(text || "").normalize("NFC");
+  let hash = 2166136261;
+  for (const char of value) {
+    hash ^= char.codePointAt(0) || 0;
+    hash = Math.imul(hash, 16777619);
+  }
+  return `src-${(hash >>> 0).toString(36)}-${value.length.toString(36)}`;
+};
 
 const normalizeTranslationOutputLines = (outText) => {
   if (Array.isArray(outText)) {
@@ -2729,6 +2739,17 @@ const LyricsCacheEditModal = ({
     onChange(nextLines.join("\n"));
   };
 
+  const shiftLinesDownFrom = (lines, index, onChange) => {
+    const nextLines = Array.from({ length: expectedLineCount }, (_, lineIndex) =>
+      String(lines[lineIndex] ?? "")
+    );
+    for (let lineIndex = expectedLineCount - 1; lineIndex > index; lineIndex--) {
+      nextLines[lineIndex] = nextLines[lineIndex - 1] ?? "";
+    }
+    nextLines[index] = "";
+    onChange(nextLines.join("\n"));
+  };
+
   const handleOverlayClick = (event) => {
     if (event.target === event.currentTarget && !isSaving) {
       onClose();
@@ -2882,6 +2903,23 @@ const LyricsCacheEditModal = ({
                           "span",
                           null,
                           I18n.t("menu.pronunciation")
+                        ),
+                        react.createElement(
+                          "button",
+                          {
+                            type: "button",
+                            className: "ivlyrics-cache-edit-shift-button",
+                            onClick: () =>
+                              shiftLinesDownFrom(
+                                pronunciationLines,
+                                index,
+                                onPronunciationChange
+                              ),
+                            disabled: isSaving || index >= expectedLineCount - 1,
+                            title: I18n.t("lyricsCacheEditor.shiftDown"),
+                            "aria-label": I18n.t("lyricsCacheEditor.shiftDown"),
+                          },
+                          "↓"
                         )
                       ),
                       react.createElement("textarea", {
@@ -2916,6 +2954,23 @@ const LyricsCacheEditModal = ({
                           "span",
                           null,
                           I18n.t("menu.translationLabel")
+                        ),
+                        react.createElement(
+                          "button",
+                          {
+                            type: "button",
+                            className: "ivlyrics-cache-edit-shift-button",
+                            onClick: () =>
+                              shiftLinesDownFrom(
+                                translationLines,
+                                index,
+                                onTranslationChange
+                              ),
+                            disabled: isSaving || index >= expectedLineCount - 1,
+                            title: I18n.t("lyricsCacheEditor.shiftDown"),
+                            "aria-label": I18n.t("lyricsCacheEditor.shiftDown"),
+                          },
+                          "↓"
                         )
                       ),
                       react.createElement("textarea", {
@@ -3032,6 +3087,7 @@ class LyricsContainer extends react.Component {
       lyricsEditOriginalLines: [],
       lyricsEditPronunciationText: "",
       lyricsEditTranslationText: "",
+      lyricsEditSourceHash: "",
       lyricsEditHasPronunciationCache: false,
       lyricsEditHasTranslationCache: false,
       lyricsEditError: "",
@@ -3266,6 +3322,8 @@ class LyricsContainer extends react.Component {
 
   async openLyricsEditModal() {
     const sourceLines = this.getEditableCacheSourceLines();
+    const sourceText = getNonSectionLyricsText(this.getEditingBaseLyrics());
+    const sourceHash = getTranslationSourceCacheHash(sourceText);
     const trackId = this.state.uri?.split(":")[2];
 
     if (!trackId || sourceLines.length === 0) {
@@ -3283,22 +3341,32 @@ class LyricsContainer extends react.Component {
       lyricsEditOriginalLines: sourceLines,
       lyricsEditPronunciationText: "",
       lyricsEditTranslationText: "",
+      lyricsEditSourceHash: sourceHash,
       lyricsEditHasPronunciationCache: false,
       lyricsEditHasTranslationCache: false,
       lyricsEditError: "",
     });
 
     try {
-      const [phoneticCache, translationCache] = await Promise.all([
+      const [
+        phoneticCache,
+        translationCache,
+        legacyPhoneticCache,
+        legacyTranslationCache,
+      ] = await Promise.all([
+        LyricsCache.getTranslation(trackId, userLang, true, provider, sourceHash),
+        LyricsCache.getTranslation(trackId, userLang, false, provider, sourceHash),
         LyricsCache.getTranslation(trackId, userLang, true, provider),
         LyricsCache.getTranslation(trackId, userLang, false, provider),
       ]);
+      const activePhoneticCache = phoneticCache || legacyPhoneticCache;
+      const activeTranslationCache = translationCache || legacyTranslationCache;
 
-      const phoneticLines = Array.isArray(phoneticCache?.phonetic)
-        ? phoneticCache.phonetic
+      const phoneticLines = Array.isArray(activePhoneticCache?.phonetic)
+        ? activePhoneticCache.phonetic
         : [];
-      const translationLines = Array.isArray(translationCache?.translation)
-        ? translationCache.translation
+      const translationLines = Array.isArray(activeTranslationCache?.translation)
+        ? activeTranslationCache.translation
         : [];
 
       this.setState({
@@ -3377,6 +3445,9 @@ class LyricsContainer extends react.Component {
 
     const userLang = this.getTranslationTargetLanguage();
     const provider = this.state.provider || null;
+    const sourceHash =
+      this.state.lyricsEditSourceHash ||
+      getTranslationSourceCacheHash(getNonSectionLyricsText(this.getEditingBaseLyrics()));
 
     this.setState({
       isLyricsEditSaving: true,
@@ -3390,14 +3461,16 @@ class LyricsContainer extends react.Component {
           userLang,
           true,
           { phonetic: pronunciationLines },
-          provider
+          provider,
+          sourceHash
         ),
         LyricsCache.setTranslation(
           trackId,
           userLang,
           false,
           { translation: translationLines },
-          provider
+          provider,
+          sourceHash
         ),
       ]);
 

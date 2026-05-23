@@ -612,6 +612,7 @@ window.LANG_SV = {
     "empty": "Tom",
     "pronunciationPlaceholder": "En rad per lyrikrad",
     "translationPlaceholder": "En rad per lyrikrad",
+    "shiftDown": "Flytta den här raden och alla under en rad ned",
     "cancel": "Avbryt",
     "saving": "Sparar...",
     "save": "Spara cache",

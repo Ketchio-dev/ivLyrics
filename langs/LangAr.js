@@ -612,6 +612,7 @@ window.LANG_AR = {
     "empty": "فارغ",
     "pronunciationPlaceholder": "سطر واحد لكل سطر من الكلمات",
     "translationPlaceholder": "سطر واحد لكل سطر من الكلمات",
+    "shiftDown": "إزاحة هذا السطر وما بعده سطرًا واحدًا لأسفل",
     "cancel": "إلغاء",
     "saving": "جارٍ الحفظ...",
     "save": "حفظ التخزين المؤقت",

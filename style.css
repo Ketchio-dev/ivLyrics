@@ -8581,6 +8581,32 @@ ruby rt {
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.ivlyrics-cache-edit-shift-button {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.86);
+  background: rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.ivlyrics-cache-edit-shift-button:hover:not(:disabled) {
+  border-color: rgba(var(--spice-rgb-accent, 30, 215, 96), 0.42);
+  background: rgba(var(--spice-rgb-accent, 30, 215, 96), 0.14);
+}
+
+.ivlyrics-cache-edit-shift-button:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
 .ivlyrics-cache-edit-original-line,
 .ivlyrics-cache-edit-line-input {
   padding: 14px;

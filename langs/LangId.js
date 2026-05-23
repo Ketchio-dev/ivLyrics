@@ -612,6 +612,7 @@ window.LANG_ID = {
     "empty": "Kosong",
     "pronunciationPlaceholder": "Satu baris untuk setiap baris lirik",
     "translationPlaceholder": "Satu baris untuk setiap baris lirik",
+    "shiftDown": "Geser baris ini dan semua di bawahnya turun satu baris",
     "cancel": "Batal",
     "saving": "Menyimpan...",
     "save": "Simpan cache",

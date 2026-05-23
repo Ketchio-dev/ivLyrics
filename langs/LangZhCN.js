@@ -612,6 +612,7 @@ window.LANG_ZH_CN = {
     "empty": "空",
     "pronunciationPlaceholder": "每行歌词对应一行",
     "translationPlaceholder": "每行歌词对应一行",
+    "shiftDown": "将此行及以下下移一行",
     "cancel": "取消",
     "saving": "保存中...",
     "save": "保存缓存",

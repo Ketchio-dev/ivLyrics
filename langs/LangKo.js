@@ -612,6 +612,7 @@ window.LANG_KO = {
     "empty": "비어 있음",
     "pronunciationPlaceholder": "가사 한 줄당 한 줄씩 입력",
     "translationPlaceholder": "가사 한 줄당 한 줄씩 입력",
+    "shiftDown": "이 줄부터 아래로 한 줄 밀기",
     "cancel": "취소",
     "saving": "저장 중...",
     "save": "캐시 저장",

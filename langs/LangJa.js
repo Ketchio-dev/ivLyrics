@@ -612,6 +612,7 @@ window.LANG_JA = {
     "empty": "空",
     "pronunciationPlaceholder": "歌詞1行ごとに1行入力",
     "translationPlaceholder": "歌詞1行ごとに1行入力",
+    "shiftDown": "この行以降を1行下へずらす",
     "cancel": "キャンセル",
     "saving": "保存中...",
     "save": "キャッシュを保存",

@@ -612,6 +612,7 @@ window.LANG_FR = {
     "empty": "Vide",
     "pronunciationPlaceholder": "Une ligne par ligne de paroles",
     "translationPlaceholder": "Une ligne par ligne de paroles",
+    "shiftDown": "Décaler cette ligne et les suivantes d'une ligne vers le bas",
     "cancel": "Annuler",
     "saving": "Enregistrement...",
     "save": "Enregistrer le cache",

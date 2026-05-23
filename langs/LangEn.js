@@ -612,6 +612,7 @@ window.LANG_EN = {
     "empty": "Empty",
     "pronunciationPlaceholder": "One line per lyric line",
     "translationPlaceholder": "One line per lyric line",
+    "shiftDown": "Shift this line and everything below down",
     "cancel": "Cancel",
     "saving": "Saving...",
     "save": "Save Cache",

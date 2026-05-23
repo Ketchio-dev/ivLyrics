@@ -612,6 +612,7 @@ window.LANG_FA = {
     "empty": "خالی",
     "pronunciationPlaceholder": "برای هر خط از متن، یک خط وارد کنید",
     "translationPlaceholder": "برای هر خط از متن، یک خط وارد کنید",
+    "shiftDown": "این خط و خطوط بعدی را یک خط به پایین ببرید",
     "cancel": "لغو",
     "saving": "در حال ذخیره...",
     "save": "ذخیره کش",

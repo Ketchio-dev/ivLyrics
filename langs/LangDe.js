@@ -612,6 +612,7 @@ window.LANG_DE = {
     "empty": "Leer",
     "pronunciationPlaceholder": "Eine Zeile pro Liedzeile",
     "translationPlaceholder": "Eine Zeile pro Liedzeile",
+    "shiftDown": "Diese und alle folgenden Zeilen nach unten verschieben",
     "cancel": "Abbrechen",
     "saving": "Wird gespeichert...",
     "save": "Cache speichern",
