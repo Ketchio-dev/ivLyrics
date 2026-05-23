@@ -971,6 +971,128 @@ const TrackLanguageDB = {
 // TrackLanguageDB를 window에 등록 (다른 컴포넌트에서 사용 가능)
 window.TrackLanguageDB = TrackLanguageDB;
 
+// IndexedDB for track lyrics provider overrides (곡별 가사 제공자 오버라이드)
+const PROVIDER_DB_NAME = "ivLyrics-provider-db";
+const PROVIDER_DB_VERSION = 1;
+const PROVIDER_STORE_NAME = "track-lyrics-provider-overrides";
+
+let providerDbInstance = null;
+
+const initProviderDB = () => {
+  return new Promise((resolve, reject) => {
+    if (providerDbInstance) {
+      resolve(providerDbInstance);
+      return;
+    }
+
+    const request = indexedDB.open(PROVIDER_DB_NAME, PROVIDER_DB_VERSION);
+
+    request.onerror = () => {
+      console.error("[ivLyrics] Provider IndexedDB error:", request.error);
+      reject(request.error);
+    };
+
+    request.onsuccess = () => {
+      providerDbInstance = request.result;
+      ivLyricsDebug("[ivLyrics] Provider IndexedDB initialized");
+      resolve(providerDbInstance);
+    };
+
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains(PROVIDER_STORE_NAME)) {
+        db.createObjectStore(PROVIDER_STORE_NAME);
+        ivLyricsDebug("[ivLyrics] Provider IndexedDB object store created");
+      }
+    };
+  });
+};
+
+const TrackLyricsProviderDB = {
+  async getProvider(trackUri) {
+    try {
+      const db = await initProviderDB();
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction([PROVIDER_STORE_NAME], "readonly");
+        const store = transaction.objectStore(PROVIDER_STORE_NAME);
+        const request = store.get(trackUri);
+
+        request.onsuccess = () => resolve(request.result || null);
+        request.onerror = () => reject(request.error);
+      });
+    } catch (error) {
+      console.error("[ivLyrics] Failed to get provider override:", error);
+      return null;
+    }
+  },
+
+  async setProvider(trackUri, providerId) {
+    try {
+      const db = await initProviderDB();
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction([PROVIDER_STORE_NAME], "readwrite");
+        const store = transaction.objectStore(PROVIDER_STORE_NAME);
+        const request = store.put(providerId, trackUri);
+
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+    } catch (error) {
+      console.error("[ivLyrics] Failed to set provider override:", error);
+    }
+  },
+
+  async clearProvider(trackUri) {
+    try {
+      const db = await initProviderDB();
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction([PROVIDER_STORE_NAME], "readwrite");
+        const store = transaction.objectStore(PROVIDER_STORE_NAME);
+        const request = store.delete(trackUri);
+
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+    } catch (error) {
+      console.error("[ivLyrics] Failed to clear provider override:", error);
+    }
+  },
+
+  async getAllOverrides() {
+    try {
+      const db = await initProviderDB();
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction([PROVIDER_STORE_NAME], "readonly");
+        const store = transaction.objectStore(PROVIDER_STORE_NAME);
+        const request = store.getAllKeys();
+
+        request.onsuccess = () => {
+          const keys = request.result;
+          const getAllRequest = store.getAll();
+
+          getAllRequest.onsuccess = () => {
+            const values = getAllRequest.result;
+            const result = {};
+            keys.forEach((key, index) => {
+              result[key] = values[index];
+            });
+            resolve(result);
+          };
+
+          getAllRequest.onerror = () => reject(getAllRequest.error);
+        };
+
+        request.onerror = () => reject(request.error);
+      });
+    } catch (error) {
+      console.error("[ivLyrics] Failed to get all provider overrides:", error);
+      return {};
+    }
+  },
+};
+
+window.TrackLyricsProviderDB = TrackLyricsProviderDB;
+
 // Migrate from localStorage to IndexedDB
 (async () => {
   try {
@@ -3056,6 +3178,7 @@ class LyricsContainer extends react.Component {
       tw: null,
       uri: "",
       provider: "",
+      trackLyricsProviderOverride: null,
       contributors: null,
       colors: {
         background: "",
@@ -3110,6 +3233,7 @@ class LyricsContainer extends react.Component {
     this.languageOverride = CONFIG.visual["translate:detect-language-override"];
     // 트랙별 언어 오버라이드 (IndexedDB에서 로드)
     this.trackLanguageOverride = null;
+    this.trackLyricsProviderOverride = null;
     this.reRenderLyricsPage = false;
     this.displayMode = null;
 
@@ -3171,6 +3295,8 @@ class LyricsContainer extends react.Component {
 
     // Bind regenerate translation method
     this.regenerateTranslation = this.regenerateTranslation.bind(this);
+    this.handleRegenerateTranslationRequest = this.handleRegenerateTranslationRequest.bind(this);
+    this.selectLyricsProviderForCurrentTrack = this.selectLyricsProviderForCurrentTrack.bind(this);
   }
 
   shouldReduceMotion() {
@@ -3663,18 +3789,18 @@ class LyricsContainer extends react.Component {
   /**
    * 번역 재생성 메서드 - ignore_cache를 true로 설정하여 새로운 번역 요청
    */
-  async regenerateTranslation() {
-    // 번역이 활성화되어 있는지 확인
+  getRegenerationTargets() {
     const provider = CONFIG.visual["translate:translated-lyrics-source"];
 
     if (!provider || provider === "none") {
-      return;
-    }
-
-    // 현재 가사가 있는지 확인
-    if (!this.state.currentLyrics || this.state.currentLyrics.length === 0) {
-      Toast.error(I18n.t("notifications.noLyricsLoaded"));
-      return;
+      return {
+        provider,
+        mode1: null,
+        mode2: null,
+        needPhonetic: false,
+        needTranslation: false,
+        isGeminiMode: false,
+      };
     }
 
     const originalLanguage = this.provideLanguageCode(this.state.currentLyrics);
@@ -3691,14 +3817,66 @@ class LyricsContainer extends react.Component {
     const isGeminiMode =
       mode1?.startsWith("gemini") || mode2?.startsWith("gemini");
 
+    return {
+      provider,
+      mode1,
+      mode2,
+      needPhonetic: mode1 === "gemini_romaji" || mode2 === "gemini_romaji",
+      needTranslation: mode1 === "gemini_ko" || mode2 === "gemini_ko",
+      isGeminiMode,
+    };
+  }
+
+  handleRegenerateTranslationRequest() {
+    const targets = this.getRegenerationTargets();
+    if (targets.needPhonetic && targets.needTranslation && typeof openRegenerateTranslationChoiceModal === "function") {
+      openRegenerateTranslationChoiceModal({
+        onSelect: (target) => this.regenerateTranslation(target),
+      });
+      return;
+    }
+
+    if (targets.needPhonetic) {
+      this.regenerateTranslation("phonetic");
+      return;
+    }
+
+    if (targets.needTranslation) {
+      this.regenerateTranslation("translation");
+      return;
+    }
+
+    this.regenerateTranslation("all");
+  }
+
+  async regenerateTranslation(target = "all") {
+    // 번역이 활성화되어 있는지 확인
+    const { provider, mode1, mode2, needPhonetic: configuredNeedPhonetic, needTranslation: configuredNeedTranslation, isGeminiMode } =
+      this.getRegenerationTargets();
+
+    if (!provider || provider === "none") {
+      return;
+    }
+
+    // 현재 가사가 있는지 확인
+    if (!this.state.currentLyrics || this.state.currentLyrics.length === 0) {
+      Toast.error(I18n.t("notifications.noLyricsLoaded"));
+      return;
+    }
+
     if (!isGeminiMode) {
       Toast.error(I18n.t("notifications.translationRegenerateGeminiOnly"));
       return;
     }
 
     // 발음과 번역 중 어떤 것이 필요한지 확인
-    const needPhonetic = mode1 === "gemini_romaji" || mode2 === "gemini_romaji";
-    const needTranslation = mode1 === "gemini_ko" || mode2 === "gemini_ko";
+    const needPhonetic = configuredNeedPhonetic && (target === "all" || target === "phonetic");
+    const needTranslation = configuredNeedTranslation && (target === "all" || target === "translation");
+
+    if (!needPhonetic && !needTranslation) {
+      Toast.error(I18n.t("notifications.translationRegenerateGeminiOnly"));
+      return;
+    }
 
     // trackId 가져오기
     const trackId = Spicetify.Player.data?.item?.uri?.split(':')[2];
@@ -3708,23 +3886,21 @@ class LyricsContainer extends react.Component {
     }
 
     try {
-      this.startTranslationLoading();
+      if (needPhonetic) {
+        this.startPhoneticLoading();
+      }
+      if (needTranslation) {
+        this.startTranslationLoading();
+      }
 
       Toast.show(I18n.t("notifications.regeneratingTranslation"), false, 2000);
 
-      // 먼저 로컬 캐시에서 해당 트랙의 번역 캐시 삭제
-      const userLang = I18n.getCurrentLanguage();
+      // 진행 중인 동일 트랙 요청만 정리하고, 선택하지 않은 캐시 항목은 보존합니다.
       try {
-        // 번역 캐시 삭제 (발음과 번역 모두)
-        await Promise.all([
-          LyricsCache.clearTranslationForTrack(trackId),
-        ]);
-        // 메모리 캐시도 초기화
-        window.Translator.clearMemoryCache(trackId);
         window.Translator.clearInflightRequests(trackId);
-        ivLyricsDebug(`[regenerateTranslation] Cleared local cache for ${trackId}`);
+        ivLyricsDebug(`[regenerateTranslation] Cleared inflight requests for ${trackId}`);
       } catch (e) {
-        console.warn('[regenerateTranslation] Failed to clear cache:', e);
+        console.warn('[regenerateTranslation] Failed to clear inflight requests:', e);
       }
 
       // 원본 가사 가져오기 (번역되지 않은 원문)
@@ -3801,8 +3977,8 @@ class LyricsContainer extends react.Component {
         return outText;
       };
 
-      let streamedLyrics1 = null;
-      let streamedLyrics2 = null;
+      let streamedLyrics1 = this._dmResults[currentUri].mode1 || null;
+      let streamedLyrics2 = this._dmResults[currentUri].mode2 || null;
       const streamedPhoneticLines = [];
       const streamedTranslationLines = [];
 
@@ -3919,8 +4095,8 @@ class LyricsContainer extends react.Component {
       };
 
       // mode1과 mode2 각각 처리 - 둘 다 활성화된 경우 각각의 결과를 올바르게 할당
-      let translatedLyrics1 = null;
-      let translatedLyrics2 = null;
+      let translatedLyrics1 = this._dmResults[currentUri].mode1 || null;
+      let translatedLyrics2 = this._dmResults[currentUri].mode2 || null;
 
       const phoneticOutput = extractGeminiOutput(phoneticResponse, true);
       const translationOutput = extractGeminiOutput(translationResponse, false);
@@ -3962,7 +4138,53 @@ class LyricsContainer extends react.Component {
     } catch (error) {
       Toast.error(`${I18n.t("notifications.translationRegenerateFailed")}: ${error.message}`);
     } finally {
-      this.clearTranslationLoading();
+      if (needPhonetic) {
+        this.clearPhoneticLoading();
+      }
+      if (needTranslation) {
+        this.clearTranslationLoading();
+      }
+    }
+  }
+
+  async selectLyricsProviderForCurrentTrack(providerId) {
+    const trackUri = this.state.uri || Spicetify.Player.data?.item?.uri;
+    if (!trackUri) {
+      Toast.error(I18n.t("notifications.noTrackPlaying"));
+      return;
+    }
+
+    try {
+      const normalizedProviderId = providerId || null;
+      if (normalizedProviderId) {
+        await TrackLyricsProviderDB.setProvider(trackUri, normalizedProviderId);
+      } else {
+        await TrackLyricsProviderDB.clearProvider(trackUri);
+      }
+
+      this.trackLyricsProviderOverride = normalizedProviderId;
+      delete CACHE[trackUri];
+      if (this._dmResults?.[trackUri]) {
+        delete this._dmResults[trackUri];
+      }
+      CacheManager.clearByUri(trackUri);
+      this.lastProcessedUri = null;
+      this.lastProcessedMode = null;
+
+      this.setState(
+        { trackLyricsProviderOverride: normalizedProviderId, isLoading: true },
+        () => {
+          const item = Spicetify.Player.data?.item;
+          if (item) {
+            this.fetchLyrics(item, this.state.explicitMode, true);
+          }
+        }
+      );
+
+      Toast.success(I18n.t("notifications.lyricsProviderSaved"));
+    } catch (error) {
+      console.error("[ivLyrics] Failed to save lyrics provider override:", error);
+      Toast.error(I18n.t("notifications.lyricsProviderSaveFailed"));
     }
   }
 
@@ -4109,7 +4331,12 @@ class LyricsContainer extends react.Component {
   async tryServices(trackInfo, mode = -1) {
     // LyricsService Extension을 통해 가사 로드 (LyricsAddonManager 사용)
     if (window.LyricsService?.getLyricsFromProviders) {
-      const result = await window.LyricsService.getLyricsFromProviders(trackInfo);
+      const result = await window.LyricsService.getLyricsFromProviders(
+        trackInfo,
+        [],
+        mode,
+        this.trackLyricsProviderOverride || null
+      );
       if (!result.uri) result.uri = trackInfo.uri;
       return result;
     }
@@ -4138,26 +4365,41 @@ class LyricsContainer extends react.Component {
 
       // 트랙별 언어 오버라이드 로드 (IndexedDB)
       let trackLanguageOverride = null;
+      let trackLyricsProviderOverride = null;
       try {
-        trackLanguageOverride = await TrackLanguageDB.getLanguage(info.uri);
+        [trackLanguageOverride, trackLyricsProviderOverride] = await Promise.all([
+          TrackLanguageDB.getLanguage(info.uri),
+          TrackLyricsProviderDB.getProvider(info.uri),
+        ]);
       } catch (e) {
-        console.warn("[ivLyrics] Failed to load track language override:", e);
+        console.warn("[ivLyrics] Failed to load track overrides:", e);
         trackLanguageOverride = null;
+        trackLyricsProviderOverride = null;
       }
 
       if (!isLatestLyricsRequest()) {
         return;
       }
       this.trackLanguageOverride = trackLanguageOverride;
+      this.trackLyricsProviderOverride = trackLyricsProviderOverride;
 
       // keep artist/title for prompts
-      this.setState({ artist: info.artist, title: info.title, coverUrl: info.image, translatedMetadata: null });
+      this.setState({
+        artist: info.artist,
+        title: info.title,
+        coverUrl: info.image,
+        translatedMetadata: null,
+        trackLyricsProviderOverride,
+      });
 
       // 메타데이터 번역 요청 (백그라운드에서 비동기로)
       this.fetchMetadataTranslation(info.uri, info.title, info.artist);
 
       // Refresh: Clear memory cache for this track to force re-fetch from providers
       if (refresh && CACHE[info.uri]) {
+        delete CACHE[info.uri];
+      }
+      if (CACHE[info.uri] && (CACHE[info.uri].trackLyricsProviderOverride || null) !== (trackLyricsProviderOverride || null)) {
         delete CACHE[info.uri];
       }
 
@@ -4179,7 +4421,14 @@ class LyricsContainer extends react.Component {
         (mode === -1 && CACHE[info.uri]) ||
         CACHE[info.uri]?.[CONFIG.modes?.[mode]]
       ) {
-        tempState = { provider: "", contributors: null, ...CACHE[info.uri], isLoading: false, isCached };
+        tempState = {
+          provider: "",
+          contributors: null,
+          ...CACHE[info.uri],
+          trackLyricsProviderOverride,
+          isLoading: false,
+          isCached,
+        };
         const cachedMode = CACHE[info.uri]?.mode;
         if (typeof cachedMode === "number" && cachedMode !== -1) {
           tempState = { ...tempState, mode: cachedMode };
@@ -4188,7 +4437,14 @@ class LyricsContainer extends react.Component {
         // Save current mode before loading to maintain UI consistency
         const currentMode = this.getCurrentMode();
         this.lastModeBeforeLoading = currentMode !== -1 ? currentMode : SYNCED;
-        this.setState({ ...emptyState, provider: "", contributors: null, isLoading: true, isCached: false });
+        this.setState({
+          ...emptyState,
+          provider: "",
+          contributors: null,
+          trackLyricsProviderOverride,
+          isLoading: true,
+          isCached: false,
+        });
 
         // 마켓플레이스 에드온 로드 대기
         if (window.MarketplaceManager?.readyPromise) {
@@ -4199,12 +4455,20 @@ class LyricsContainer extends react.Component {
         }
 
         // LyricsService Extension을 통해 가사 로드 (LyricsAddonManager 사용)
-        const resp = await window.LyricsService.getLyricsFromProviders(info);
+        const resp = await window.LyricsService.getLyricsFromProviders(
+          info,
+          [],
+          mode,
+          trackLyricsProviderOverride
+        );
         if (!resp.uri) resp.uri = info.uri;
 
         if (resp.provider) {
           // Cache lyrics
-          CACHE[resp.uri] = resp;
+          CACHE[resp.uri] = {
+            ...resp,
+            trackLyricsProviderOverride: trackLyricsProviderOverride || null,
+          };
         }
 
         // This True when the user presses the Cache Lyrics button and saves it to localStorage.
@@ -4213,7 +4477,14 @@ class LyricsContainer extends react.Component {
         // In case user skips tracks too fast and multiple callbacks
         // set wrong lyrics to current track.
         if (resp.uri === this.currentTrackUri && isLatestLyricsRequest()) {
-          tempState = { provider: "", contributors: null, ...resp, isLoading: false, isCached };
+          tempState = {
+            provider: "",
+            contributors: null,
+            ...resp,
+            trackLyricsProviderOverride,
+            isLoading: false,
+            isCached,
+          };
         } else {
           return;
         }
@@ -6741,10 +7012,16 @@ class LyricsContainer extends react.Component {
             friendlyLanguage,
             hasTranslation: {},
           }),
+          react.createElement(LyricsProviderSelectButton, {
+            currentProvider: this.state.provider,
+            selectedProvider: this.state.trackLyricsProviderOverride,
+            isLoading: this.state.isLoading,
+            onSelectProvider: this.selectLyricsProviderForCurrentTrack,
+          }),
           react.createElement(RegenerateTranslationButton, {
-            onRegenerate: this.regenerateTranslation,
+            onRegenerate: this.handleRegenerateTranslationRequest,
             isEnabled: canRegenerateTranslation,
-            isLoading: this.state.isTranslationLoading,
+            isLoading: this.state.isTranslationLoading || this.state.isPhoneticLoading,
           }),
           react.createElement(SyncAdjustButtonFluent, {
             trackUri: this.currentTrackUri,

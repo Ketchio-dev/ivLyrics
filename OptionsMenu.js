@@ -1796,6 +1796,7 @@ function openOptionsModal(title, items, onChange, eventType = null) {
   host.shell.appendChild(body);
 
   reactDom.render(container, body);
+  return host.closeModal;
 }
 
 // Debounce handle for adjustments modal
@@ -2161,6 +2162,149 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
     )
   );
 });
+
+const LyricsProviderSelectButton = react.memo(
+  ({ currentProvider, selectedProvider, isLoading, onSelectProvider }) => {
+    const open = () => {
+      const providers = window.LyricsAddonManager?.getEnabledProviders?.() || [];
+      const providerOptions = [
+        { key: "auto", value: I18n.t("menu.lyricsProviderAuto") },
+        ...providers.map((provider) => ({
+          key: provider.id,
+          value: provider.name || provider.id,
+        })),
+      ];
+
+      if (
+        selectedProvider &&
+        !providerOptions.some((option) => option.key === selectedProvider)
+      ) {
+        providerOptions.push({
+          key: selectedProvider,
+          value: `${selectedProvider} (${I18n.t("menu.lyricsProviderUnavailable")})`,
+        });
+      }
+
+      const selectedValue = selectedProvider || "auto";
+      const selectedOption =
+        providerOptions.find((option) => option.key === selectedValue) ||
+        providerOptions[0];
+      const currentProviderLabel =
+        providers.find((provider) => provider.id === currentProvider)?.name ||
+        currentProvider ||
+        I18n.t("menu.unknownLanguage");
+
+      const items = [
+        {
+          section: I18n.t("menu.lyricsProviderSelect"),
+          subtitle: I18n.t("menu.lyricsProviderSelectSubtitle"),
+          items: [
+            {
+              desc: react.createElement(SettingRowDescription, {
+                icon: ICONS.provider,
+                text: I18n.t("menu.lyricsProviderCurrent"),
+              }),
+              key: "current-lyrics-provider",
+              type: "info",
+              info: currentProviderLabel,
+            },
+            {
+              desc: react.createElement(SettingRowDescription, {
+                icon: ICONS.provider,
+                text: I18n.t("menu.lyricsProviderSelect"),
+              }),
+              key: "track-lyrics-provider",
+              type: OptionsMenu,
+              options: providerOptions,
+              defaultValue: selectedOption,
+              info: I18n.t("menu.lyricsProviderSelectSubtitle"),
+            },
+          ],
+        },
+      ];
+
+      let closeModal = null;
+      closeModal = openOptionsModal(
+        I18n.t("menu.lyricsProviderSelect"),
+        items,
+        async (name, value) => {
+          if (name !== "track-lyrics-provider") {
+            return;
+          }
+          await onSelectProvider?.(value === "auto" ? null : value);
+          closeModal?.();
+        }
+      );
+    };
+
+    return react.createElement(
+      Spicetify.ReactComponent.TooltipWrapper,
+      { label: I18n.t("menu.lyricsProviderSelect") },
+      react.createElement(
+        "button",
+        {
+          className: "lyrics-config-button",
+          onClick: open,
+          disabled: isLoading,
+        },
+        react.createElement("svg", {
+          width: 20,
+          height: 20,
+          viewBox: "0 0 16 16",
+          fill: "currentColor",
+          dangerouslySetInnerHTML: { __html: ICONS.provider },
+        })
+      )
+    );
+  }
+);
+
+function openRegenerateTranslationChoiceModal({ onSelect }) {
+  let closeModal = null;
+  const makeTargetButton = (key, text, target) => ({
+    desc: react.createElement(SettingRowDescription, {
+      icon: ICONS.language,
+      text,
+    }),
+    key,
+    type: ConfigButton,
+    text: I18n.t("menu.regenerateAction"),
+    onChange: () => {
+      closeModal?.();
+      onSelect?.(target);
+    },
+  });
+
+  const items = [
+    {
+      section: I18n.t("menu.regenerateTranslationOptions"),
+      subtitle: I18n.t("menu.regenerateTranslationOptionsSubtitle"),
+      items: [
+        makeTargetButton(
+          "regenerate-phonetic-only",
+          I18n.t("menu.regeneratePronunciationOnly"),
+          "phonetic"
+        ),
+        makeTargetButton(
+          "regenerate-translation-only",
+          I18n.t("menu.regenerateTranslationOnly"),
+          "translation"
+        ),
+        makeTargetButton(
+          "regenerate-both",
+          I18n.t("menu.regenerateBoth"),
+          "all"
+        ),
+      ],
+    },
+  ];
+
+  closeModal = openOptionsModal(
+    I18n.t("menu.regenerateTranslationOptions"),
+    items,
+    () => {}
+  );
+}
 
 const RegenerateTranslationButton = react.memo(
   ({ onRegenerate, isEnabled, isLoading }) => {

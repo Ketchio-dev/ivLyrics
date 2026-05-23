@@ -483,10 +483,14 @@
          * 6. 허용된 가사가 있으면 반환, 없으면 다음 Provider
          * 
          * @param {Object} info - 트랙 정보 { uri, title, artist, album, duration }
+         * @param {string|null} forcedProviderId - 이 요청에서 강제로 사용할 제공자 ID
          * @returns {Promise<LyricsResult|null>}
          */
-        async getLyrics(info) {
-            const enabledProviders = this.getEnabledProviders();
+        async getLyrics(info, forcedProviderId = null) {
+            const allEnabledProviders = this.getEnabledProviders();
+            const enabledProviders = forcedProviderId
+                ? allEnabledProviders.filter(provider => provider.id === forcedProviderId)
+                : allEnabledProviders;
             const trackId = info.uri?.split(':')[2];
 
             // 디버그 로깅
@@ -495,7 +499,8 @@
                     uri: info.uri,
                     title: info.title,
                     artist: info.artist,
-                    providers: enabledProviders.map(p => p.id)
+                    providers: enabledProviders.map(p => p.id),
+                    forcedProviderId
                 });
                 window.AddonDebug.time('lyrics', 'getLyrics:total');
             }
@@ -504,9 +509,13 @@
             this.emit('lyrics:fetch:start', { uri: info.uri, title: info.title, artist: info.artist });
 
             if (enabledProviders.length === 0) {
-                console.warn('[LyricsAddonManager] No enabled lyrics providers');
-                const error = { error: 'No lyrics providers enabled', uri: info.uri };
-                this.emit('lyrics:fetch:error', { ...error, reason: 'no_providers' });
+                const error = {
+                    error: forcedProviderId ? 'Selected lyrics provider is not available' : 'No lyrics providers enabled',
+                    uri: info.uri,
+                    provider: forcedProviderId || null
+                };
+                console.warn('[LyricsAddonManager]', error.error, forcedProviderId || '');
+                this.emit('lyrics:fetch:error', { ...error, reason: forcedProviderId ? 'provider_unavailable' : 'no_providers' });
                 return error;
             }
 

@@ -3126,7 +3126,7 @@ div.lyrics-tabBar-headerItemLink {
 }
 
 .lyrics-config-button-container {
-  --iv-floating-toolbar-top-gap: 20px;
+  --iv-floating-toolbar-top-gap: 88px;
   --iv-floating-toolbar-bottom-gap: 20px;
   --iv-floating-toolbar-padding: 10px;
   --iv-floating-toolbar-padding-block: 50px;
@@ -8362,8 +8362,18 @@ ruby rt {
   left: auto;
   width: auto;
   height: auto;
-  max-height: calc(100vh - var(--iv-floating-toolbar-top-gap, 20px) - var(--iv-floating-toolbar-bottom-gap, 40px));
-  max-height: calc(100dvh - var(--iv-floating-toolbar-top-gap, 20px) - var(--iv-floating-toolbar-bottom-gap, 40px));
+  max-height: calc(
+    100vh
+    - var(--iv-floating-toolbar-top-gap, 20px)
+    - var(--iv-floating-toolbar-bottom-gap, 40px)
+    - var(--iv-floating-menu-content-top-offset, 0px)
+  );
+  max-height: calc(
+    100dvh
+    - var(--iv-floating-toolbar-top-gap, 20px)
+    - var(--iv-floating-toolbar-bottom-gap, 40px)
+    - var(--iv-floating-menu-content-top-offset, 0px)
+  );
   padding: 10px;
   gap: 10px;
   border-radius: 0;
@@ -8376,8 +8386,20 @@ ruby rt {
 .lyrics-fluent-floating-toolbar.fullscreen-mode-container.menu-closing .lyrics-floating-menu-content {
   flex: 0 1 auto;
   height: auto;
-  max-height: calc(100vh - var(--iv-floating-toolbar-top-gap, 20px) - var(--iv-floating-toolbar-bottom-gap, 40px) - 86px);
-  max-height: calc(100dvh - var(--iv-floating-toolbar-top-gap, 20px) - var(--iv-floating-toolbar-bottom-gap, 40px) - 86px);
+  max-height: calc(
+    100vh
+    - var(--iv-floating-toolbar-top-gap, 20px)
+    - var(--iv-floating-toolbar-bottom-gap, 40px)
+    - var(--iv-floating-menu-content-top-offset, 0px)
+    - 86px
+  );
+  max-height: calc(
+    100dvh
+    - var(--iv-floating-toolbar-top-gap, 20px)
+    - var(--iv-floating-toolbar-bottom-gap, 40px)
+    - var(--iv-floating-menu-content-top-offset, 0px)
+    - 86px
+  );
   min-height: 0;
   margin-top: 0;
 }

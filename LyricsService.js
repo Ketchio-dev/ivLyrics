@@ -4056,12 +4056,13 @@
          * @param {Object} info - 트랙 정보
          * @param {string[]} providerOrder - (deprecated) LyricsAddonManager의 순서 사용
          * @param {number} mode - (deprecated) 가사 모드
+         * @param {string|null} forcedProviderId - 이 트랙에서 강제로 사용할 제공자 ID
          * @returns {Promise<Object>} - 가사 결과
          */
-        async getLyricsFromProviders(info, providerOrder = [], mode = 1) {
+        async getLyricsFromProviders(info, providerOrder = [], mode = 1, forcedProviderId = null) {
             // LyricsAddonManager를 통해 가사 가져오기
             if (window.LyricsAddonManager) {
-                const result = await window.LyricsAddonManager.getLyrics(info);
+                const result = await window.LyricsAddonManager.getLyrics(info, forcedProviderId);
                 return result;
             }
 
