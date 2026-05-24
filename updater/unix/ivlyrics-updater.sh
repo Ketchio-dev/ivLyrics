@@ -3,6 +3,7 @@ set -euo pipefail
 
 URI="${1:-ivlyrics-updater://update}"
 INSTALLER_URL="https://ivlis.kr/ivLyrics/install.sh"
+export PATH="${HOME}/.spicetify:${HOME}/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}"
 
 if [[ "$(uname -s)" == "Darwin" ]]; then
     LOG_ROOT="${HOME}/Library/Logs/ivLyrics"
@@ -40,6 +41,12 @@ log() {
     line="[$(date '+%Y-%m-%d %H:%M:%S')] $*"
     printf '%s\n' "$line" >> "$LOG_PATH"
     printf '%s\n' "$*"
+}
+
+log_stream() {
+    while IFS= read -r line; do
+        log "[installer] $line"
+    done
 }
 
 get_action() {
@@ -81,23 +88,53 @@ open_log() {
 
 run_update() {
     log "Starting ivLyrics update."
+    if command -v spicetify >/dev/null 2>&1; then
+        log "Using spicetify: $(command -v spicetify)"
+    else
+        log "spicetify was not found in PATH before running installer."
+    fi
+
     local temp_root
     temp_root="$(mktemp -d "${TMPDIR:-/tmp}/ivlyrics-updater.XXXXXX")"
     local installer_path="${temp_root}/install.sh"
 
     log "Downloading official installer."
+    local download_status=0
     if command -v curl >/dev/null 2>&1; then
-        curl -fsSL "$INSTALLER_URL" -o "$installer_path"
+        set +e
+        curl -fsSLo "$installer_path" "$INSTALLER_URL" 2>&1 | log_stream
+        download_status=${PIPESTATUS[0]}
+        set -e
     elif command -v wget >/dev/null 2>&1; then
-        wget -qO "$installer_path" "$INSTALLER_URL"
+        set +e
+        wget -O "$installer_path" "$INSTALLER_URL" 2>&1 | log_stream
+        download_status=${PIPESTATUS[0]}
+        set -e
     else
         log "curl or wget is required."
         return 1
     fi
 
+    if [[ "$download_status" -ne 0 ]]; then
+        log "Installer download failed with exit code ${download_status}."
+        rm -rf "$temp_root"
+        return "$download_status"
+    fi
+
     chmod +x "$installer_path"
     log "Running installer."
-    bash "$installer_path"
+    local installer_status=0
+    set +e
+    bash "$installer_path" </dev/null 2>&1 | log_stream
+    installer_status=${PIPESTATUS[0]}
+    set -e
+
+    if [[ "$installer_status" -ne 0 ]]; then
+        log "Installer failed with exit code ${installer_status}."
+        rm -rf "$temp_root"
+        return "$installer_status"
+    fi
+
     rm -rf "$temp_root"
     log "ivLyrics update completed."
     notify_macos "Update completed."
