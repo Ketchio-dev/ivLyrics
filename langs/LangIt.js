@@ -1532,11 +1532,11 @@ window.LANG_IT = {
         },
         "protocol": {
           "desc": "Aggiornamento con un clic",
-          "info": "Esegue ivLyrics Updater registrato. Se non si apre nulla, copia il comando di installazione ed eseguilo manualmente.",
+          "info": "Apre la pagina di aggiornamento di ivLyrics. Proverà ad avviare automaticamente l’updater e mostrerà un link manuale se necessario.",
           "unsupportedInfo": "L’aggiornamento con un clic non è disponibile su questa piattaforma. Premi il pulsante per copiare il comando di installazione.",
-          "button": "Esegui updater",
-          "opening": "Apertura di ivLyrics Updater.",
-          "failed": "Impossibile aprire l’updater.",
+          "button": "Vai all’aggiornamento",
+          "opening": "Apertura della pagina di aggiornamento ivLyrics.",
+          "failed": "Impossibile aprire la pagina di aggiornamento.",
           "unsupportedCopied": "L’aggiornamento con un clic non è disponibile qui, quindi il comando di installazione è stato copiato."
         },
         "copied": "Copiato",

@@ -13270,11 +13270,7 @@ const ConfigModal = ({
 
                   if (resultContainer) {
                     let message,
-                      showUpdateSection = false,
-                      showCopyButton = false;
-                    const platform = Utils.detectPlatform();
-                    const platformName = Utils.getPlatformName();
-                    const installCommand = Utils.getInstallCommand();
+                      showUpdateSection = false;
 
                     if (updateInfo.error) {
                       message = I18n.t("settingsAdvanced.update.checkFailedWithError").replace("{error}", updateInfo.error);
@@ -13324,8 +13320,10 @@ const ConfigModal = ({
                       const safeLatestVersion = escapeSettingsReleaseHtml(
                         updateInfo.latestVersion
                       );
-                      const safePlatformName = escapeSettingsReleaseHtml(platformName);
-                      const safeInstallCommand = escapeSettingsReleaseHtml(installCommand);
+                      const safeUpdatePageInfo = escapeSettingsReleaseHtml(
+                        I18n.t("settingsAdvanced.aboutTab.update.protocol.info")
+                      );
+                      const updatePageHref = "https://lyrics.ivl.is/update";
                       const releaseNotesUrl = sanitizeSettingsReleaseUrl(
                         `https://github.com/ivLis-Studio/ivLyrics/releases/tag/v${encodeURIComponent(String(updateInfo.latestVersion ?? ""))}`
                       );
@@ -13335,8 +13333,8 @@ const ConfigModal = ({
                       const releaseNotesLabel = escapeSettingsReleaseHtml(
                         I18n.t("update.releaseNotes")
                       );
-                      const copyCommandLabel = escapeSettingsReleaseHtml(
-                        I18n.t("update.copyCommand")
+                      const updatePageLabel = escapeSettingsReleaseHtml(
+                        I18n.t("settingsAdvanced.aboutTab.update.protocol.button")
                       );
 
                       resultContainer.innerHTML = `
@@ -13391,19 +13389,14 @@ const ConfigModal = ({
 															color: rgba(255, 255, 255, 0.6);
 															margin-bottom: 8px;
 															font-weight: 500;
-														">${safePlatformName}</div>
-														<code style="
-															font-family: Consolas, Monaco, 'Courier New', monospace;
-															font-size: 12px;
-															color: rgba(255, 255, 255, 0.85);
-															word-break: break-all;
-															line-height: 1.6;
-															user-select: all;
-														">${safeInstallCommand}</code>
+														">${safeUpdatePageInfo}</div>
 													</div>
 													
 													<div style="display: flex; gap: 8px;">
-														<button id="copy-install-command-btn" style="
+														<a href="${updatePageHref}"
+														   target="_blank"
+														   rel="noopener noreferrer"
+														   style="
 															flex: 1;
 															background: rgba(255, 255, 255, 0.1);
 															border: 1px solid rgba(255, 255, 255, 0.15);
@@ -13415,7 +13408,7 @@ const ConfigModal = ({
 															font-weight: 600;
 															transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 															letter-spacing: -0.01em;
-														">${copyCommandLabel}</button>
+														">${updatePageLabel}</a>
 														<a href="${releaseNotesHref}"
 														   target="_blank"
 														   rel="noopener noreferrer"
@@ -13438,31 +13431,6 @@ const ConfigModal = ({
 													</div>
 												</div>
 											`;
-
-                      // Add copy button handler
-                      const copyBtn = resultContainer.querySelector(
-                        "#copy-install-command-btn"
-                      );
-                      if (copyBtn) {
-                        copyBtn.addEventListener("click", async () => {
-                          const success = await Utils.copyToClipboard(
-                            installCommand
-                          );
-                          if (success) {
-                            copyBtn.textContent = I18n.t("settingsAdvanced.aboutTab.update.copied");
-                            copyBtn.style.background =
-                              "rgba(16, 185, 129, 0.15)";
-                            copyBtn.style.border =
-                              "1px solid rgba(16, 185, 129, 0.3)";
-                            copyBtn.style.color = "rgba(16, 185, 129, 1)";
-                            copyBtn.style.cursor = "default";
-                            copyBtn.disabled = true;
-                            Toast.success(I18n.t("settingsAdvanced.aboutTab.update.installCopied"));
-                          } else {
-                            Toast.error(I18n.t("settingsAdvanced.aboutTab.update.copyFailed"));
-                          }
-                        });
-                      }
                     } else {
                       const latestVersionLabel = escapeSettingsReleaseHtml(
                         I18n.t("notifications.latestVersion")
@@ -13548,28 +13516,16 @@ const ConfigModal = ({
             },
             {
               desc: I18n.t("settingsAdvanced.aboutTab.update.protocol.desc"),
-              info: Utils.canUseUpdaterProtocol()
-                ? I18n.t("settingsAdvanced.aboutTab.update.protocol.info")
-                : I18n.t("settingsAdvanced.aboutTab.update.protocol.unsupportedInfo"),
+              info: I18n.t("settingsAdvanced.aboutTab.update.protocol.info"),
               key: "open-updater",
               text: I18n.t("settingsAdvanced.aboutTab.update.protocol.button"),
               type: ConfigButton,
               onChange: async () => {
-                if (Utils.canUseUpdaterProtocol()) {
-                  const opened = Utils.openUpdaterProtocol("update");
-                  if (opened) {
-                    Toast.success(I18n.t("settingsAdvanced.aboutTab.update.protocol.opening"));
-                  } else {
-                    Toast.error(I18n.t("settingsAdvanced.aboutTab.update.protocol.failed"));
-                  }
-                  return;
-                }
-
-                const copied = await Utils.copyToClipboard(Utils.getInstallCommand());
-                if (copied) {
-                  Toast.success(I18n.t("settingsAdvanced.aboutTab.update.protocol.unsupportedCopied"));
+                const opened = Utils.openUpdaterProtocol("update");
+                if (opened) {
+                  Toast.success(I18n.t("settingsAdvanced.aboutTab.update.protocol.opening"));
                 } else {
-                  Toast.error(I18n.t("settingsAdvanced.aboutTab.update.copyFailed"));
+                  Toast.error(I18n.t("settingsAdvanced.aboutTab.update.protocol.failed"));
                 }
               },
             },

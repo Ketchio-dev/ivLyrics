@@ -1532,11 +1532,11 @@ window.LANG_DE = {
         },
         "protocol": {
           "desc": "Ein-Klick-Update",
-          "info": "Startet den registrierten ivLyrics Updater. Wenn nichts geöffnet wird, kopiere den Installationsbefehl und führe ihn manuell aus.",
+          "info": "Öffnet die ivLyrics-Update-Seite. Die Seite versucht, den Updater automatisch zu starten, und zeigt bei Bedarf einen manuellen Update-Link.",
           "unsupportedInfo": "Das Ein-Klick-Update ist auf dieser Plattform nicht verfügbar. Drücke die Taste, um den Installationsbefehl zu kopieren.",
-          "button": "Updater starten",
-          "opening": "ivLyrics Updater wird geöffnet.",
-          "failed": "Der Updater konnte nicht geöffnet werden.",
+          "button": "Zur Aktualisierung",
+          "opening": "Die ivLyrics-Update-Seite wird geöffnet.",
+          "failed": "Die Update-Seite konnte nicht geöffnet werden.",
           "unsupportedCopied": "Das Ein-Klick-Update ist hier nicht verfügbar, daher wurde der Installationsbefehl kopiert."
         },
         "copied": "Kopiert",

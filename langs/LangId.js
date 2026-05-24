@@ -1532,11 +1532,11 @@ window.LANG_ID = {
         },
         "protocol": {
           "desc": "Pembaruan sekali klik",
-          "info": "Menjalankan ivLyrics Updater yang terdaftar. Jika tidak ada yang terbuka, salin perintah instalasi dan jalankan secara manual.",
+          "info": "Buka halaman pembaruan ivLyrics. Halaman ini akan mencoba menjalankan updater otomatis dan menampilkan tautan pembaruan manual jika diperlukan.",
           "unsupportedInfo": "Pembaruan sekali klik tidak tersedia di platform ini. Tekan tombol untuk menyalin perintah instalasi.",
-          "button": "Jalankan updater",
-          "opening": "Membuka ivLyrics Updater.",
-          "failed": "Gagal membuka updater.",
+          "button": "Ke pembaruan",
+          "opening": "Membuka halaman pembaruan ivLyrics.",
+          "failed": "Gagal membuka halaman pembaruan.",
           "unsupportedCopied": "Pembaruan sekali klik tidak tersedia di sini, jadi perintah instalasi telah disalin."
         },
         "copied": "Disalin",

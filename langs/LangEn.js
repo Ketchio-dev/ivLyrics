@@ -1532,11 +1532,11 @@ window.LANG_EN = {
         },
         "protocol": {
           "desc": "One-click update",
-          "info": "Runs the registered ivLyrics Updater. If nothing opens, copy the install command and run it manually.",
+          "info": "Open the ivLyrics update page. It will try to start the updater automatically and show a manual update link if needed.",
           "unsupportedInfo": "One-click update is not available on this platform. Press the button to copy the install command.",
-          "button": "Run updater",
-          "opening": "Opening ivLyrics Updater.",
-          "failed": "Failed to open the updater.",
+          "button": "Go to update",
+          "opening": "Opening the ivLyrics update page.",
+          "failed": "Failed to open the update page.",
           "unsupportedCopied": "One-click update is not available here, so the install command was copied."
         },
         "copied": "Copied",

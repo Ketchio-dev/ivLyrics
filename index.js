@@ -427,30 +427,24 @@ const hasInstrumentalMarker = (lyrics = []) => {
 
 // Update Banner Component - Fluent Design Style
 const UpdateBanner = ({ updateInfo, onDismiss }) => {
-  const [copied, setCopied] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
-  const installCommand = Utils.getInstallCommand();
-  const platformName = Utils.getPlatformName();
-  const canUseUpdaterProtocol = Utils.canUseUpdaterProtocol();
+  const updatePageUrl = "https://lyrics.ivl.is/update";
 
-  const handleCopy = async () => {
-    const success = await Utils.copyToClipboard(installCommand);
-    if (success) {
-      setCopied(true);
-      Toast.success(I18n.t("notifications.installCommandCopied"));
-      setTimeout(() => setCopied(false), 2500);
-    } else {
-      Toast.error(I18n.t("notifications.copyFailed"));
-    }
-  };
-
-  const handleOpenUpdater = () => {
-    const opened = Utils.openUpdaterProtocol("update");
-    if (opened) {
-      Toast.success(I18n.t("settingsAdvanced.aboutTab.update.protocol.opening"));
-    } else {
-      Toast.error(I18n.t("settingsAdvanced.aboutTab.update.protocol.failed"));
-    }
+  const actionButtonStyle = {
+    flex: 1,
+    background: "rgba(255, 255, 255, 0.08)",
+    border: "1px solid rgba(255, 255, 255, 0.15)",
+    color: "rgba(255, 255, 255, 0.9)",
+    padding: "10px 16px",
+    borderRadius: "8px",
+    textDecoration: "none",
+    fontSize: "13px",
+    fontWeight: "600",
+    transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    letterSpacing: "-0.01em",
   };
 
   return react.createElement(
@@ -572,91 +566,39 @@ const UpdateBanner = ({ updateInfo, onDismiss }) => {
       },
       react.createElement(
         "div",
-        { style: { marginTop: "16px" } },
-        react.createElement(
-          "div",
-          {
-            style: {
-              fontSize: "13px",
-              color: "rgba(255, 255, 255, 0.7)",
-              marginBottom: "10px",
-              fontWeight: "500",
-            },
+        {
+          style: {
+            marginTop: "16px",
+            background: "rgba(0, 0, 0, 0.2)",
+            border: "1px solid rgba(255, 255, 255, 0.08)",
+            borderRadius: "8px",
+            padding: "12px 14px",
+            marginBottom: "12px",
+            color: "rgba(255, 255, 255, 0.72)",
+            fontSize: "13px",
+            lineHeight: "1.6",
           },
-          platformName
-        ),
-        react.createElement(
-          "div",
-          {
-            style: {
-              background: "rgba(0, 0, 0, 0.25)",
-              border: "1px solid rgba(255, 255, 255, 0.08)",
-              borderRadius: "8px",
-              padding: "12px 14px",
-              fontFamily: 'Consolas, Monaco, "Courier New", monospace',
-              fontSize: "12px",
-              color: "rgba(255, 255, 255, 0.85)",
-              wordBreak: "break-all",
-              lineHeight: "1.6",
-              marginBottom: "12px",
-              userSelect: "all",
-            },
-          },
-          installCommand
-        )
+        },
+        I18n.t("settingsAdvanced.aboutTab.update.protocol.info")
       ),
       react.createElement(
         "div",
         { style: { display: "flex", gap: "8px", marginTop: "12px" } },
-        canUseUpdaterProtocol &&
         react.createElement(
-          "button",
+          "a",
           {
-            onClick: handleOpenUpdater,
+            href: updatePageUrl,
+            target: "_blank",
+            rel: "noopener noreferrer",
             className: "lyrics-update-button-primary",
             style: {
-              flex: 1,
+              ...actionButtonStyle,
               background: "rgba(74, 222, 128, 0.16)",
               border: "1px solid rgba(74, 222, 128, 0.35)",
               color: "rgba(220, 252, 231, 0.95)",
-              padding: "10px 16px",
-              borderRadius: "8px",
-              cursor: "pointer",
-              fontSize: "13px",
-              fontWeight: "600",
-              transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
-              letterSpacing: "-0.01em",
             },
           },
           I18n.t("settingsAdvanced.aboutTab.update.protocol.button")
-        ),
-        react.createElement(
-          "button",
-          {
-            onClick: handleCopy,
-            className: "lyrics-update-button-secondary",
-            disabled: copied,
-            style: {
-              flex: 1,
-              background: copied
-                ? "rgba(16, 185, 129, 0.15)"
-                : "rgba(255, 255, 255, 0.08)",
-              border: copied
-                ? "1px solid rgba(16, 185, 129, 0.3)"
-                : "1px solid rgba(255, 255, 255, 0.15)",
-              color: copied
-                ? "rgba(16, 185, 129, 1)"
-                : "rgba(255, 255, 255, 0.9)",
-              padding: "10px 16px",
-              borderRadius: "8px",
-              cursor: copied ? "default" : "pointer",
-              fontSize: "13px",
-              fontWeight: "600",
-              transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
-              letterSpacing: "-0.01em",
-            },
-          },
-          copied ? I18n.t("update.copied") : I18n.t("update.copyCommand")
         ),
         react.createElement(
           "a",
@@ -664,22 +606,7 @@ const UpdateBanner = ({ updateInfo, onDismiss }) => {
             href: updateInfo.releaseUrl,
             target: "_blank",
             rel: "noopener noreferrer",
-            style: {
-              flex: 1,
-              background: "rgba(255, 255, 255, 0.08)",
-              border: "1px solid rgba(255, 255, 255, 0.15)",
-              color: "rgba(255, 255, 255, 0.9)",
-              padding: "10px 16px",
-              borderRadius: "8px",
-              textDecoration: "none",
-              fontSize: "13px",
-              fontWeight: "600",
-              transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              letterSpacing: "-0.01em",
-            },
+            style: actionButtonStyle,
           },
           I18n.t("update.releaseNotes")
         )

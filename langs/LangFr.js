@@ -1532,11 +1532,11 @@ window.LANG_FR = {
         },
         "protocol": {
           "desc": "Mise à jour en un clic",
-          "info": "Lance le ivLyrics Updater enregistré. Si rien ne s’ouvre, copiez la commande d’installation et exécutez-la manuellement.",
+          "info": "Ouvre la page de mise à jour ivLyrics. Elle essaiera de lancer l’outil de mise à jour automatiquement et affichera un lien manuel si nécessaire.",
           "unsupportedInfo": "La mise à jour en un clic n’est pas disponible sur cette plateforme. Appuyez sur le bouton pour copier la commande d’installation.",
-          "button": "Lancer la mise à jour",
-          "opening": "Ouverture de ivLyrics Updater.",
-          "failed": "Impossible d’ouvrir l’outil de mise à jour.",
+          "button": "Aller à la mise à jour",
+          "opening": "Ouverture de la page de mise à jour ivLyrics.",
+          "failed": "Impossible d’ouvrir la page de mise à jour.",
           "unsupportedCopied": "La mise à jour en un clic n’est pas disponible ici, la commande d’installation a donc été copiée."
         },
         "copied": "Copié",
