@@ -48,6 +48,9 @@
     async function fetchAvailableModels(apiKey, baseUrl) {
         if (!apiKey) return [];
 
+        const normalizedBaseUrl = (baseUrl || 'https://api.openai.com/v1').replace(/\/$/, '');
+        const isOpenAIBaseUrl = normalizedBaseUrl === 'https://api.openai.com/v1';
+
         // 제외할 모델 패턴 (이미지 생성, 음성, 임베딩 등)
         const excludePatterns = [
             'dall-e',        // 이미지 생성
@@ -70,7 +73,7 @@
         ];
 
         try {
-            const endpoint = `${(baseUrl || 'https://api.openai.com/v1').replace(/\/$/, '')}/models`;
+            const endpoint = `${normalizedBaseUrl}/models`;
             const response = await fetch(endpoint, {
                 method: 'GET',
                 headers: {
@@ -84,57 +87,65 @@
             }
 
             const data = await response.json();
-            const models = (data.data || [])
-                .filter(m => {
-                    if (!m.id) return false;
-                    const id = m.id.toLowerCase();
-                    // GPT 또는 chat 모델만 포함
-                    if (!id.startsWith('gpt') && !id.includes('chat') && !id.includes('o1') && !id.includes('o3')) return false;
-                    // 제외 패턴 체크
-                    for (const pattern of excludePatterns) {
-                        if (id.includes(pattern.toLowerCase())) return false;
-                    }
-                    // realtime 모델 제외
-                    if (id.includes('realtime')) return false;
-                    return true;
-                })
+            let models = (data.data || [])
+                .filter(m => m.id)
                 .map(m => ({
                     id: m.id,
                     name: m.id,
                     owned_by: m.owned_by || ''
-                }))
-                // 정렬: gpt-5 > gpt-4 > o3 > o1 순서
-                .sort((a, b) => {
-                    // GPT 모델과 o-시리즈 구분
-                    const aIsGpt = a.id.startsWith('gpt-');
-                    const bIsGpt = b.id.startsWith('gpt-');
-                    const aIsO = a.id.match(/^o(\d)/);
-                    const bIsO = b.id.match(/^o(\d)/);
+                }));
 
-                    // GPT 모델이 o-시리즈보다 먼저
-                    if (aIsGpt && !bIsGpt) return -1;
-                    if (!aIsGpt && bIsGpt) return 1;
+            // OpenAI 기본 API에서는 기존처럼 채팅용 모델만 추려서 노출한다.
+            // 사용자가 Base URL을 바꾼 OpenAI 호환 서버는 임의 모델명을 쓸 수 있으므로 이름 검사를 건너뛴다.
+            if (isOpenAIBaseUrl) {
+                models = models
+                    .filter(m => {
+                        const id = m.id.toLowerCase();
+                        // GPT 또는 chat 모델만 포함
+                        if (!id.startsWith('gpt') && !id.includes('chat') && !id.includes('o1') && !id.includes('o3')) return false;
+                        // 제외 패턴 체크
+                        for (const pattern of excludePatterns) {
+                            if (id.includes(pattern.toLowerCase())) return false;
+                        }
+                        // realtime 모델 제외
+                        if (id.includes('realtime')) return false;
+                        return true;
+                    })
+                    // 정렬: gpt-5 > gpt-4 > o3 > o1 순서
+                    .sort((a, b) => {
+                        // GPT 모델과 o-시리즈 구분
+                        const aIsGpt = a.id.startsWith('gpt-');
+                        const bIsGpt = b.id.startsWith('gpt-');
+                        const aIsO = a.id.match(/^o(\d)/);
+                        const bIsO = b.id.match(/^o(\d)/);
 
-                    // 둘 다 GPT 모델인 경우: gpt-5 > gpt-4 > gpt-3.5
-                    if (aIsGpt && bIsGpt) {
-                        const aMatch = a.id.match(/gpt-(\d+(?:\.\d+)?)/);
-                        const bMatch = b.id.match(/gpt-(\d+(?:\.\d+)?)/);
-                        const aNum = aMatch ? parseFloat(aMatch[1]) : 0;
-                        const bNum = bMatch ? parseFloat(bMatch[1]) : 0;
-                        if (bNum !== aNum) return bNum - aNum;
+                        // GPT 모델이 o-시리즈보다 먼저
+                        if (aIsGpt && !bIsGpt) return -1;
+                        if (!aIsGpt && bIsGpt) return 1;
 
-                        // 같은 버전이면 turbo, mini 순서
-                        if (a.id.includes('turbo') && !b.id.includes('turbo')) return -1;
-                        if (!a.id.includes('turbo') && b.id.includes('turbo')) return 1;
-                    }
+                        // 둘 다 GPT 모델인 경우: gpt-5 > gpt-4 > gpt-3.5
+                        if (aIsGpt && bIsGpt) {
+                            const aMatch = a.id.match(/gpt-(\d+(?:\.\d+)?)/);
+                            const bMatch = b.id.match(/gpt-(\d+(?:\.\d+)?)/);
+                            const aNum = aMatch ? parseFloat(aMatch[1]) : 0;
+                            const bNum = bMatch ? parseFloat(bMatch[1]) : 0;
+                            if (bNum !== aNum) return bNum - aNum;
 
-                    // 둘 다 o-시리즈인 경우: o3 > o1
-                    if (aIsO && bIsO) {
-                        return parseInt(bIsO[1]) - parseInt(aIsO[1]);
-                    }
+                            // 같은 버전이면 turbo, mini 순서
+                            if (a.id.includes('turbo') && !b.id.includes('turbo')) return -1;
+                            if (!a.id.includes('turbo') && b.id.includes('turbo')) return 1;
+                        }
 
-                    return a.id.localeCompare(b.id);
-                });
+                        // 둘 다 o-시리즈인 경우: o3 > o1
+                        if (aIsO && bIsO) {
+                            return parseInt(bIsO[1]) - parseInt(aIsO[1]);
+                        }
+
+                        return a.id.localeCompare(b.id);
+                    });
+            } else {
+                models.sort((a, b) => a.id.localeCompare(b.id));
+            }
 
             // 첫 번째 모델을 기본값으로 설정
             if (models.length > 0) {
