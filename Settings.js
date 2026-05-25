@@ -3282,7 +3282,6 @@ const NowPlayingPanelPreview = () => {
   const [originalSize, setOriginalSize] = useState(parseInt(CONFIG.visual["panel-lyrics-original-size"], 10) || 18);
   const [phoneticSize, setPhoneticSize] = useState(parseInt(CONFIG.visual["panel-lyrics-phonetic-size"], 10) || 13);
   const [translationSize, setTranslationSize] = useState(parseInt(CONFIG.visual["panel-lyrics-translation-size"], 10) || 13);
-  const [linesCount, setLinesCount] = useState(parseInt(CONFIG.visual["panel-lyrics-lines"], 10) || 5);
 
   // 배경 설정
   const [bgType, setBgType] = useState(CONFIG.visual["panel-bg-type"] || "album");
@@ -3308,7 +3307,6 @@ const NowPlayingPanelPreview = () => {
       if (name === "panel-lyrics-original-size") setOriginalSize(parseInt(value, 10) || 18);
       if (name === "panel-lyrics-phonetic-size") setPhoneticSize(parseInt(value, 10) || 13);
       if (name === "panel-lyrics-translation-size") setTranslationSize(parseInt(value, 10) || 13);
-      if (name === "panel-lyrics-lines") setLinesCount(parseInt(value, 10) || 5);
       // 배경 설정
       if (name === "panel-bg-type") setBgType(value || "album");
       if (name === "panel-bg-color") setBgColor(value || "#6366f1");
@@ -3345,9 +3343,9 @@ const NowPlayingPanelPreview = () => {
     { original: "この気持ちが", phonetic: "kono kimochi ga", translation: "이 마음이" },
   ];
 
-  // 가사 줄 수에 맞춰 표시 (중앙이 active)
-  const activeIndex = Math.floor(linesCount / 2);
-  const sampleLyrics = allSampleLyrics.slice(0, linesCount).map((line, idx) => ({
+  const activeIndex = 4;
+  const previewLineSlotHeight = Math.round(Math.max(68, Math.min(96, originalSize * scale * 3.6)));
+  const sampleLyrics = allSampleLyrics.map((line, idx) => ({
     ...line,
     active: idx === activeIndex
   }));
@@ -3401,7 +3399,13 @@ const NowPlayingPanelPreview = () => {
       {
         style: {
           padding: "16px",
-          background: getBackgroundStyle(),
+          position: "relative",
+          overflow: "hidden",
+          aspectRatio: "1 / 1",
+          boxSizing: "border-box",
+          display: "flex",
+          flexDirection: "column",
+          background: `linear-gradient(rgba(0, 0, 0, 0.38), rgba(0, 0, 0, 0.38)), ${getBackgroundStyle()}`,
           backdropFilter: bgOpacity === 0 ? "none" : "blur(20px)",
           border: getBorderStyle(),
         }
@@ -3413,7 +3417,12 @@ const NowPlayingPanelPreview = () => {
           style: {
             display: "flex",
             alignItems: "center",
-            marginBottom: "12px",
+            position: "absolute",
+            top: "16px",
+            left: "16px",
+            right: "16px",
+            zIndex: 2,
+            marginBottom: 0,
             fontSize: "11px",
             fontWeight: "700",
             color: "rgba(255, 255, 255, 0.85)",
@@ -3429,7 +3438,12 @@ const NowPlayingPanelPreview = () => {
           style: {
             display: "flex",
             flexDirection: "column",
-            gap: "8px",
+            justifyContent: "center",
+            flex: "1 1 auto",
+            gap: "4px",
+            minHeight: 0,
+            overflow: "hidden",
+            zIndex: 1,
           }
         },
         ...sampleLyrics.map((line, idx) =>
@@ -3440,6 +3454,9 @@ const NowPlayingPanelPreview = () => {
               style: {
                 display: "flex",
                 flexDirection: "column",
+                justifyContent: "center",
+                flex: `0 0 ${previewLineSlotHeight}px`,
+                minHeight: `${previewLineSlotHeight}px`,
                 gap: "2px",
                 padding: "4px 0",
                 opacity: line.active ? 1 : 0.5,
@@ -12817,18 +12834,6 @@ const ConfigModal = ({
               key: "panel-lyrics-enabled",
               info: I18n.t("settingsAdvanced.nowPlayingPanel.enabled.desc") || "Display current lyrics in the Now Playing panel",
               type: ConfigSlider,
-            },
-            {
-              desc: I18n.t("settingsAdvanced.nowPlayingPanel.lines.label") || "Lyrics Lines",
-              key: "panel-lyrics-lines",
-              info: I18n.t("settingsAdvanced.nowPlayingPanel.lines.desc") || "Number of lyrics lines to show in the panel",
-              type: ConfigSelection,
-              options: {
-                "3": "3",
-                "5": "5",
-                "7": "7",
-                "9": "9",
-              },
             },
             {
               desc: I18n.t("settingsAdvanced.nowPlayingPanel.fontFamily.label") || "Font Family",

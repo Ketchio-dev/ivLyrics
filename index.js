@@ -1391,8 +1391,6 @@ const CONFIG = {
       "ivLyrics:visual:panel-lyrics-enabled",
       true
     ),
-    "panel-lyrics-lines":
-      StorageManager.getItem("ivLyrics:visual:panel-lyrics-lines") || "5",
     "panel-font-scale":
       StorageManager.getItem("ivLyrics:visual:panel-font-scale") || "100",
     "panel-lyrics-font-family":
