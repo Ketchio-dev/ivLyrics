@@ -338,7 +338,7 @@ body.${PANEL_ACTIVE_BODY_CLASS} [data-testid="lyrics-npv-section"] {
   right: 0 !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: var(--ivlyrics-panel-line-stack-gap, 34px) !important;
+  gap: var(--ivlyrics-panel-line-stack-gap, 10px) !important;
   transform: translateY(var(--ivlyrics-panel-stack-y, 0px)) !important;
   transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1) !important;
   will-change: transform !important;
@@ -734,7 +734,7 @@ body.${PANEL_ACTIVE_BODY_CLASS} [data-testid="lyrics-npv-section"] {
   min-width: 0 !important;
   font-size: calc(var(--ivlyrics-panel-original-size, 26px) * var(--ivlyrics-font-scale, 1)) !important;
   font-weight: 700 !important;
-  line-height: 1.4 !important;
+  line-height: 1.2 !important;
   font-family: var(--ivlyrics-panel-original-font) !important;
   max-height: calc(var(--ivlyrics-panel-original-size, 26px) * var(--ivlyrics-font-scale, 1) * 2.85) !important;
   overflow: hidden !important;
@@ -766,6 +766,12 @@ body.${PANEL_ACTIVE_BODY_CLASS} [data-testid="lyrics-npv-section"] {
   word-break: normal !important;
   overflow-wrap: normal !important;
   unicode-bidi: plaintext !important;
+}
+
+.ivlyrics-panel-line-karaoke.has-word-wrap,
+.ivlyrics-panel-line-karaoke-row.has-word-wrap {
+  word-break: normal !important;
+  overflow-wrap: normal !important;
 }
 
 .ivlyrics-panel-line-karaoke.is-text-run.is-rtl,
@@ -1108,6 +1114,12 @@ body.${PANEL_ACTIVE_BODY_CLASS} [data-testid="lyrics-npv-section"] {
 
 .ivlyrics-panel-karaoke-space {
   margin-right: 5px !important;
+}
+
+.ivlyrics-panel-karaoke-word-group {
+  display: inline-flex !important;
+  flex-wrap: nowrap !important;
+  white-space: pre !important;
 }
 
 /* 노래방 단어 */
@@ -1490,6 +1502,8 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
     const KARAOKE_RTL_STRONG_CHAR_REGEX = /[\u0590-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFC]/u;
     const KARAOKE_LTR_STRONG_CHAR_REGEX = /[A-Za-z\u00C0-\u02AF\u0370-\u052F\u1E00-\u1EFF]/u;
     const KARAOKE_JOINING_SCRIPT_REGEX = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFC]/u;
+    const KARAOKE_NO_WORD_WRAP_LANGUAGE_PREFIXES = ["ja", "zh", "th", "lo", "km", "my"];
+    const KARAOKE_NO_WORD_WRAP_SCRIPT_REGEX = /[\u3040-\u30ff\uff66-\uff9f\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\u0e00-\u0e7f\u0e80-\u0eff\u1780-\u17ff\u1000-\u109f]/u;
     const KARAOKE_TEXT_RUN_FILL_STEPS = 25;
 
     const getKaraokeTextDirection = (text) => {
@@ -1514,6 +1528,56 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
         const normalizedText = typeof text === "string" ? text : "";
         return KARAOKE_RTL_STRONG_CHAR_REGEX.test(normalizedText) ||
             KARAOKE_JOINING_SCRIPT_REGEX.test(normalizedText);
+    };
+
+    const hasDominantNoWordWrapScript = (text) => {
+        const chars = Array.from(typeof text === "string" ? text : "").filter((char) => /\S/u.test(char));
+        if (chars.length === 0) {
+            return false;
+        }
+
+        const matchedCount = chars.reduce(
+            (count, char) => count + (KARAOKE_NO_WORD_WRAP_SCRIPT_REGEX.test(char) ? 1 : 0),
+            0
+        );
+        return matchedCount / chars.length >= 0.45;
+    };
+
+    const getKaraokeDetectedLanguage = (text) => {
+        const normalizedText = typeof text === "string" ? text : "";
+
+        try {
+            const detected = window.Utils?.getDetectedLanguage?.();
+            if (detected) return detected;
+        } catch { }
+
+        try {
+            const detected = window.LyricsService?.detectLanguage?.([{ text: normalizedText }]);
+            if (detected) return detected;
+        } catch { }
+
+        if (/[\u3040-\u30ff\uff66-\uff9f]/u.test(normalizedText)) return "ja";
+        if (/[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/u.test(normalizedText)) return "zh";
+        return null;
+    };
+
+    const shouldWrapKaraokeByWord = (text, language) => {
+        const normalizedText = typeof text === "string" ? text : "";
+        if (!/\S\s+\S/u.test(normalizedText)) {
+            return false;
+        }
+        if (hasDominantNoWordWrapScript(normalizedText)) {
+            return false;
+        }
+
+        const normalizedLanguage = String(language || "").toLowerCase();
+        if (!normalizedLanguage) {
+            return true;
+        }
+
+        return !KARAOKE_NO_WORD_WRAP_LANGUAGE_PREFIXES.some((prefix) =>
+            normalizedLanguage === prefix || normalizedLanguage.startsWith(`${prefix}-`)
+        );
     };
 
     const getKaraokeSyllablesText = (syllables) => (
@@ -1596,6 +1660,62 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
                     text: part
                 }));
         });
+    };
+
+    const buildKaraokeWordGroupElements = (items, wordElements, keyPrefix) => {
+        if (!Array.isArray(items) || !Array.isArray(wordElements) || items.length !== wordElements.length) {
+            return wordElements;
+        }
+
+        const groupedElements = [];
+        let currentWord = [];
+        let currentWordStart = 0;
+
+        const flushWord = () => {
+            if (currentWord.length === 0) {
+                return;
+            }
+
+            groupedElements.push(react.createElement("span", {
+                key: keyPrefix + "-word-group-" + currentWordStart,
+                className: "ivlyrics-panel-karaoke-word-group"
+            }, currentWord));
+            currentWord = [];
+        };
+
+        items.forEach((syllable, idx) => {
+            const text = syllable?.text || "";
+            const element = wordElements[idx];
+            if (!element) {
+                return;
+            }
+
+            if (/\r|\n/.test(text)) {
+                flushWord();
+                groupedElements.push(element);
+                return;
+            }
+
+            const isWhitespace = text.trim() === "";
+            if (!isWhitespace && currentWord.length === 0) {
+                currentWordStart = idx;
+            }
+
+            if (isWhitespace) {
+                if (currentWord.length > 0) {
+                    currentWord.push(element);
+                    flushWord();
+                } else {
+                    groupedElements.push(element);
+                }
+                return;
+            }
+
+            currentWord.push(element);
+        });
+
+        flushWord();
+        return groupedElements;
     };
 
     const getSyllablesFromLine = (line) => {
@@ -2189,15 +2309,23 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
                 );
             }
 
-            return react.createElement("div", { className },
-                items.map((syllable, idx) =>
-                    react.createElement(KaraokeWord, {
-                        key: keyPrefix + "-" + idx,
-                        syllable,
-                        idx,
-                        isLinePast: isPast
-                    })
-                )
+            const wrapByWord = shouldWrapKaraokeByWord(joinedText, getKaraokeDetectedLanguage(joinedText));
+            const wordElements = items.map((syllable, idx) =>
+                react.createElement(KaraokeWord, {
+                    key: keyPrefix + "-" + idx,
+                    syllable,
+                    idx,
+                    isLinePast: isPast
+                })
+            );
+            const renderElements = wrapByWord
+                ? buildKaraokeWordGroupElements(items, wordElements, keyPrefix)
+                : wordElements;
+
+            return react.createElement("div", {
+                className: className + (wrapByWord ? " has-word-wrap" : "")
+            },
+                renderElements
             );
         };
 
@@ -3381,7 +3509,7 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
         const containerStyle = useMemo(() => ({
             '--ivlyrics-font-scale': fontScale / 100,
             '--ivlyrics-panel-visible-lines': visibleLineCount,
-            '--ivlyrics-panel-line-stack-gap': `${Math.round(Math.max(24, Math.min(42, panelLineSlotHeight * 0.48)))}px`,
+            '--ivlyrics-panel-line-stack-gap': '10px',
             '--ivlyrics-panel-line-slot-height': `${panelLineSlotHeight}px`,
             '--ivlyrics-panel-effect-line-slot-height': `${Math.round(panelLineSlotHeight * 0.78)}px`,
             '--ivlyrics-panel-vocal-stack-line-height': `${Math.round(panelLineSlotHeight * 2.3)}px`,
