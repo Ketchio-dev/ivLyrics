@@ -2081,6 +2081,8 @@ window.LANG_ZH_TW = {
     "submitError": "同步資料提交失敗",
     "dragHint": "拖曳以記錄每個字的時機。向左拖曳可取消。",
     "globalOffset": "全域偏移",
+    "lineOffset": "行偏移",
+    "lineOffsetUnavailable": "同步後可調整",
     "synced": "已登錄",
     "notSynced": "未登錄",
     "deleteLine": "刪除此行",

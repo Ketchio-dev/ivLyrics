@@ -2081,6 +2081,8 @@ window.LANG_JA = {
     "submitError": "同期データの提出に失敗しました",
     "dragHint": "ドラッグして文字ごとのタイミングを記録してください。左にドラッグするとキャンセルされます。",
     "globalOffset": "全体オフセット",
+    "lineOffset": "行オフセット",
+    "lineOffsetUnavailable": "同期後に調整可能",
     "synced": "登録済み",
     "notSynced": "未登録",
     "deleteLine": "この行を削除",

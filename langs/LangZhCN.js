@@ -2081,6 +2081,8 @@ window.LANG_ZH_CN = {
     "submitError": "同步数据提交失败",
     "dragHint": "拖动以记录每个字的计时。向左拖动取消。",
     "globalOffset": "全局偏移",
+    "lineOffset": "行偏移",
+    "lineOffsetUnavailable": "同步后可调整",
     "synced": "已注册",
     "notSynced": "未注册",
     "deleteLine": "删除此行",

@@ -2081,6 +2081,8 @@ window.LANG_EN = {
     "submitError": "Failed to submit sync data",
     "dragHint": "Drag to record character timing. Drag left to cancel.",
     "globalOffset": "Global Offset",
+    "lineOffset": "Line Offset",
+    "lineOffsetUnavailable": "Available after syncing",
     "synced": "Registered",
     "notSynced": "Unregistered",
     "deleteLine": "Delete This Line",

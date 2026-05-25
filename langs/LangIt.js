@@ -2081,6 +2081,8 @@ window.LANG_IT = {
     "submitError": "Invio dati sync fallito",
     "dragHint": "Trascina per registrare il timing dei caratteri. Trascina a sinistra per annullare.",
     "globalOffset": "Offset globale",
+    "lineOffset": "Offset riga",
+    "lineOffsetUnavailable": "Disponibile dopo la sincronizzazione",
     "synced": "Registrato",
     "notSynced": "Non registrato",
     "deleteLine": "Elimina riga",

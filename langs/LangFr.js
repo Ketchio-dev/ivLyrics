@@ -2081,6 +2081,8 @@ window.LANG_FR = {
     "submitError": "Échec de l'envoi",
     "dragHint": "Faites glisser pour minuter par caractère. Glisser à gauche pour annuler.",
     "globalOffset": "Décalage global",
+    "lineOffset": "Décalage de ligne",
+    "lineOffsetUnavailable": "Disponible après la synchronisation",
     "synced": "Synchro",
     "notSynced": "Non synchro",
     "deleteLine": "Supprimer ligne",

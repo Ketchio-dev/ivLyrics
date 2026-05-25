@@ -550,6 +550,24 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 	const SYNC_CREATOR_DRAG_INITIAL_BURST_STEPS = 3;
 	const SYNC_CREATOR_DRAG_INTERVAL_MS = 27;
 	const EDGE_INTERPOLATION_GAP_SEC = 0.045;
+	const getSyncCreatorLineTimes = (line) => {
+		const times = [];
+		const appendTimes = (values) => {
+			if (!Array.isArray(values)) return;
+			values.forEach((value) => {
+				if (typeof value === 'number' && Number.isFinite(value)) {
+					times.push(value);
+				}
+			});
+		};
+
+		appendTimes(line?.chars);
+		if (Array.isArray(line?.parallel?.parts)) {
+			line.parallel.parts.forEach(part => appendTimes(part?.chars));
+		}
+
+		return times;
+	};
 	const SYNC_CREATOR_SHORTCUTS = {
 		charForward: { primary: 'sync-creator-char-forward-key', secondary: 'sync-creator-char-forward-alt-key', defaultPrimary: 'right' },
 		charBack: { primary: 'sync-creator-char-back-key', secondary: 'sync-creator-char-back-alt-key', defaultPrimary: 'left' },
@@ -4346,6 +4364,72 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		setGlobalOffset(prev => prev + deltaMs);
 	}, []);
 
+	const adjustCurrentLineOffset = useCallback((deltaMs) => {
+		const requestedDeltaSec = deltaMs / 1000;
+		resetCurrentSyncInput();
+
+		setSyncData(prev => {
+			if (!prev || !Array.isArray(prev.lines) || !Number.isInteger(currentLineStart)) return prev;
+
+			const targetIndex = prev.lines.findIndex(line => line.start === currentLineStart);
+			if (targetIndex < 0) return prev;
+
+			const targetLine = prev.lines[targetIndex];
+			const targetTimes = getSyncCreatorLineTimes(targetLine);
+			if (targetTimes.length === 0) return prev;
+
+			const firstTime = Math.min(...targetTimes);
+			const lastTime = Math.max(...targetTimes);
+			const previousLine = prev.lines
+				.filter(line => line.start < currentLineStart)
+				.sort((a, b) => b.start - a.start)[0] || null;
+			const nextLine = prev.lines
+				.filter(line => line.start > currentLineStart)
+				.sort((a, b) => a.start - b.start)[0] || null;
+			const previousTimes = getSyncCreatorLineTimes(previousLine);
+			const nextTimes = getSyncCreatorLineTimes(nextLine);
+			const minFirstTime = previousTimes.length > 0
+				? Math.max(...previousTimes) + SYNC_CREATOR_MIN_SEQUENTIAL_STEP_SEC
+				: 0;
+			const maxLastTime = nextTimes.length > 0
+				? Math.min(...nextTimes) - SYNC_CREATOR_MIN_SEQUENTIAL_STEP_SEC
+				: Infinity;
+			const minDeltaSec = minFirstTime - firstTime;
+			const maxDeltaSec = Number.isFinite(maxLastTime) ? maxLastTime - lastTime : Infinity;
+			if (Number.isFinite(maxDeltaSec) && maxDeltaSec < minDeltaSec) return prev;
+
+			const boundedDeltaSec = Math.min(Math.max(requestedDeltaSec, minDeltaSec), maxDeltaSec);
+			if ((requestedDeltaSec > 0 && boundedDeltaSec <= 0) || (requestedDeltaSec < 0 && boundedDeltaSec >= 0)) return prev;
+			if (!Number.isFinite(boundedDeltaSec) || Math.abs(boundedDeltaSec) < 0.0005) return prev;
+
+			const shiftTimes = (values) => Array.isArray(values)
+				? values.map(time => (
+					typeof time === 'number' && Number.isFinite(time)
+						? roundSyncTime(Math.max(0, time + boundedDeltaSec))
+						: time
+				))
+				: values;
+			const shiftLine = (line) => ({
+				...line,
+				chars: shiftTimes(line.chars),
+				parallel: line.parallel ? {
+					...line.parallel,
+					parts: Array.isArray(line.parallel.parts)
+						? line.parallel.parts.map(part => ({
+							...part,
+							chars: shiftTimes(part.chars)
+						}))
+						: line.parallel.parts
+				} : line.parallel
+			});
+
+			return {
+				...prev,
+				lines: prev.lines.map((line, index) => index === targetIndex ? shiftLine(line) : line)
+			};
+		});
+	}, [currentLineStart, resetCurrentSyncInput]);
+
 	const resetFromStart = useCallback(() => {
 		setCurrentLineIndex(0);
 		setSyncData(null);
@@ -4950,6 +5034,41 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			fontSize: '10.5px', fontWeight: '600', cursor: 'pointer',
 			fontVariantNumeric: 'tabular-nums'
 		},
+		lineOffsetBox: {
+			display: 'flex',
+			flexDirection: 'column',
+			gap: '8px',
+			marginTop: '10px',
+			padding: '10px',
+			borderRadius: '10px',
+			background: 'rgba(255,255,255,0.032)',
+			border: `1px solid ${TOSS_BORDER}`
+		},
+		lineOffsetHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' },
+		lineOffsetLabel: { fontSize: '11px', color: 'var(--spice-subtext)', fontWeight: '800', letterSpacing: '0.04em', textTransform: 'uppercase' },
+		lineOffsetValue: {
+			fontSize: '11px',
+			color: 'var(--spice-text)',
+			fontWeight: '800',
+			fontVariantNumeric: 'tabular-nums',
+			padding: '3px 8px',
+			borderRadius: '999px',
+			background: TOSS_BLUE_SOFT,
+			border: `1px solid ${TOSS_BLUE_BORDER}`
+		},
+		lineOffsetButtonRow: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '6px' },
+		lineOffsetBtn: {
+			background: 'rgba(255,255,255,0.06)',
+			color: 'var(--spice-text)',
+			border: '1px solid rgba(255,255,255,0.08)',
+			borderRadius: '999px',
+			height: '28px',
+			padding: '0 8px',
+			fontSize: '10.5px',
+			fontWeight: '800',
+			cursor: 'pointer',
+			fontVariantNumeric: 'tabular-nums'
+		},
 		lyricsArea: { flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', padding: '20px 28px', overflow: 'hidden', position: 'relative', zIndex: 1 },
 		lineNav: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', marginBottom: '18px' },
 		navBtn: {
@@ -5467,6 +5586,11 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 	};
 
 	const currentLineData = syncLinesByStart?.get(lineCharOffsets[currentLineIndex]);
+	const currentLineTimes = getSyncCreatorLineTimes(currentLineData);
+	const hasCurrentLineTiming = currentLineTimes.length > 0;
+	const currentLineTimingLabel = hasCurrentLineTiming
+		? `${formatSeconds(Math.min(...currentLineTimes))} - ${formatSeconds(Math.max(...currentLineTimes))}`
+		: (I18n.t('syncCreator.lineOffsetUnavailable') || '싱크 후 조정 가능');
 	const currentLineActivePartData = activeParallelPart
 		? currentLineData?.parallel?.parts?.find(part => part.id === activeParallelPart.id)
 		: null;
@@ -6207,8 +6331,30 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		)
 	);
 
+	const renderLineOffsetControls = () => {
+		const buttonStyle = hasCurrentLineTiming ? s.lineOffsetBtn : { ...s.lineOffsetBtn, opacity: 0.45, cursor: 'not-allowed' };
+		const renderOffsetButton = (deltaMs) => react.createElement('button', {
+			key: deltaMs,
+			type: 'button',
+			style: buttonStyle,
+			disabled: !hasCurrentLineTiming,
+			onClick: () => adjustCurrentLineOffset(deltaMs)
+		}, `${deltaMs > 0 ? '+' : ''}${deltaMs}ms`);
+
+		return react.createElement('div', { style: s.lineOffsetBox },
+			react.createElement('div', { style: s.lineOffsetHeader },
+				react.createElement('span', { style: s.lineOffsetLabel }, I18n.t('syncCreator.lineOffset') || '라인 오프셋'),
+				react.createElement('span', { style: s.lineOffsetValue }, currentLineTimingLabel)
+			),
+			react.createElement('div', { style: s.lineOffsetButtonRow },
+				[-100, -10, 10, 100].map(renderOffsetButton)
+			)
+		);
+	};
+
 	const renderCurrentLineTools = () => lyricsText && lyricsLines.length > 0 && react.createElement('div', { style: s.panel },
 		react.createElement('div', { style: s.panelTitle }, I18n.t('syncCreator.currentLine') || '현재 가사'),
+		renderLineOffsetControls(),
 		react.createElement('div', { style: s.rightActionRow },
 			!multiVocalMode && currentFullLineChars.length > 1 && react.createElement('button', {
 				type: 'button',

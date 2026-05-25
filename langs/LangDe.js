@@ -2080,6 +2080,8 @@ window.LANG_DE = {
     "submitError": "Senden fehlgeschlagen",
     "dragHint": "Ziehen zum Anpassen des Timings. Nach links ziehen zum Abbrechen.",
     "globalOffset": "Globaler Offset",
+    "lineOffset": "Zeilen-Offset",
+    "lineOffsetUnavailable": "Nach dem Synchronisieren verfügbar",
     "synced": "Registriert",
     "notSynced": "Nicht registriert",
     "deleteLine": "Zeile löschen",

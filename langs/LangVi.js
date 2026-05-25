@@ -2081,6 +2081,8 @@ window.LANG_VI = {
     "submitError": "Gửi dữ liệu đồng bộ thất bại",
     "dragHint": "Kéo chuột để ghi lại thời gian cho từng chữ. Kéo sang trái để hủy.",
     "globalOffset": "Offset tổng thể",
+    "lineOffset": "Offset dòng",
+    "lineOffsetUnavailable": "Khả dụng sau khi đồng bộ",
     "synced": "Đã ghi",
     "notSynced": "Chưa ghi",
     "deleteLine": "Xóa dòng này",

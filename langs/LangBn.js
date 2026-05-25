@@ -2081,6 +2081,8 @@ window.LANG_BN = {
     "submitError": "সিঙ্ক ডেটা জমা দিতে ব্যর্থ",
     "dragHint": "অক্ষর অনুযায়ী টাইমিং রেকর্ড করতে ড্র্যাগ করুন। বাম দিকে ড্র্যাগ করলে বাতিল হবে।",
     "globalOffset": "গ্লোবাল অফসেট",
+    "lineOffset": "লাইন অফসেট",
+    "lineOffsetUnavailable": "সিঙ্ক করার পর উপলভ্য",
     "synced": "নিবন্ধিত",
     "notSynced": "অনিবন্ধিত",
     "deleteLine": "এই লাইন মুছুন",

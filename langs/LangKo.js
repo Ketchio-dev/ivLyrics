@@ -2081,6 +2081,8 @@ window.LANG_KO = {
     "submitError": "싱크 데이터 제출에 실패했습니다",
     "dragHint": "드래그하여 글자별 타이밍을 기록하세요. 왼쪽으로 드래그하면 취소됩니다.",
     "globalOffset": "전체 오프셋",
+    "lineOffset": "라인 오프셋",
+    "lineOffsetUnavailable": "싱크 후 조정 가능",
     "synced": "등록됨",
     "notSynced": "미등록",
     "deleteLine": "이 줄 삭제",

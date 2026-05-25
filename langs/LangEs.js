@@ -2081,6 +2081,8 @@ window.LANG_ES = {
     "submitError": "Error al enviar datos de sincronización",
     "dragHint": "Arrastra para grabar el tiempo por carácter. Arrastra a la izquierda para cancelar.",
     "globalOffset": "Desfase global",
+    "lineOffset": "Desfase de línea",
+    "lineOffsetUnavailable": "Disponible después de sincronizar",
     "synced": "Registrado",
     "notSynced": "No registrado",
     "deleteLine": "Eliminar línea",

@@ -2080,6 +2080,8 @@ window.LANG_AR = {
     "submitError": "فشل إرسال بيانات المزامنة",
     "dragHint": "اسحب لتسجيل توقيت كل حرف. السحب لليسار يلغي.",
     "globalOffset": "الإزاحة الكلية",
+    "lineOffset": "إزاحة السطر",
+    "lineOffsetUnavailable": "متاح بعد المزامنة",
     "synced": "مسجل",
     "notSynced": "غير مسجل",
     "deleteLine": "حذف هذا السطر",

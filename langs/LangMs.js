@@ -2090,6 +2090,8 @@ window.LANG_MS = {
     "submitError": "Gagal menyerahkan data senada",
     "dragHint": "Heret (drag) untuk merekodkan pemasaan bagi setiap huruf. Heret ke kiri untuk membatalkan.",
     "globalOffset": "Ofset Keseluruhan",
+    "lineOffset": "Ofset Baris",
+    "lineOffsetUnavailable": "Tersedia selepas penyegerakan",
     "synced": "Berdaftar",
     "notSynced": "Belum Berdaftar",
     "deleteLine": "Padam Baris Ini",

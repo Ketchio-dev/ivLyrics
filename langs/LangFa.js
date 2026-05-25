@@ -2080,6 +2080,8 @@ window.LANG_FA = {
     "submitError": "ارسال داده سینک ناموفق بود",
     "dragHint": "برای ضبط زمان‌بندی حروف درگ کنید. درگ به چپ برای لغو.",
     "globalOffset": "آفست کلی",
+    "lineOffset": "آفست خط",
+    "lineOffsetUnavailable": "پس از همگام‌سازی در دسترس است",
     "synced": "سینک شده",
     "notSynced": "سینک نشده",
     "deleteLine": "حذف این خط",

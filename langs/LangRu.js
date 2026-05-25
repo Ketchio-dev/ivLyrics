@@ -2081,6 +2081,8 @@ window.LANG_RU = {
     "submitError": "Ошибка отправки данных",
     "dragHint": "Тяните для настройки тайминга символов. Влево - отмена.",
     "globalOffset": "Общее смещение",
+    "lineOffset": "Смещение строки",
+    "lineOffsetUnavailable": "Доступно после синхронизации",
     "synced": "Готово",
     "notSynced": "Не готово",
     "deleteLine": "Удалить строку",

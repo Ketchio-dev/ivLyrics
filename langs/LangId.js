@@ -2080,6 +2080,8 @@ window.LANG_ID = {
     "submitError": "Gagal mengirim data sinkronisasi",
     "dragHint": "Seret untuk merekam waktu per karakter. Seret ke kiri untuk membatalkan.",
     "globalOffset": "Offset Global",
+    "lineOffset": "Offset Baris",
+    "lineOffsetUnavailable": "Tersedia setelah disinkronkan",
     "synced": "Tersinkron",
     "notSynced": "Belum Sinkron",
     "deleteLine": "Hapus baris ini",

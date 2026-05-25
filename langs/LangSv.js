@@ -2080,6 +2080,8 @@ window.LANG_SV = {
     "submitError": "Det gick inte att skicka synkroniseringsdata",
     "dragHint": "Dra för att spela in teckentiming. Dra åt vänster för att avbryta.",
     "globalOffset": "Global Offset",
+    "lineOffset": "Radförskjutning",
+    "lineOffsetUnavailable": "Tillgängligt efter synkning",
     "synced": "Registrerad",
     "notSynced": "Oregistrerad",
     "deleteLine": "Ta bort den här raden",

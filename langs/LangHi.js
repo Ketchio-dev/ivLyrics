@@ -2080,6 +2080,8 @@ window.LANG_HI = {
     "submitError": "सिंक डेटा सबमिशन विफल",
     "dragHint": "टाइमिंग रिकॉर्ड करने के लिए ड्रैग करें। रद्द करने के लिए बाईं ओर ड्रैग करें।",
     "globalOffset": "वैश्विक ऑफसेट",
+    "lineOffset": "लाइन ऑफ़सेट",
+    "lineOffsetUnavailable": "सिंक करने के बाद उपलब्ध",
     "synced": "सिंक किया गया",
     "notSynced": "सिंक नहीं",
     "deleteLine": "यह लाइन हटाएं",
