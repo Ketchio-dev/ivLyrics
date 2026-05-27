@@ -2094,6 +2094,7 @@ window.LANG_MS = {
     "linesCompleted": "Baris Selesai",
     "chars": "huruf",
     "reset": "Set Semula",
+    "resetConfirm": "Semua data penyelarasan yang sedang dibuat akan dipadam.\nMulakan semula dari awal?",
     "firstLine": "Ke Baris Pertama",
     "prevLine": "Baris Sebelumnya",
     "nextLineBtn": "Baris Seterusnya",

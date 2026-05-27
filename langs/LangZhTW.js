@@ -2085,6 +2085,7 @@ window.LANG_ZH_TW = {
     "linesCompleted": "行已完成",
     "chars": "字元",
     "reset": "重置",
+    "resetConfirm": "目前編輯中的所有同步資料都會被刪除。\n要從頭重新開始嗎？",
     "firstLine": "回到首行",
     "prevLine": "上一行",
     "nextLineBtn": "下一行",

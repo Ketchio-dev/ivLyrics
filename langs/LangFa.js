@@ -2084,6 +2084,7 @@ window.LANG_FA = {
     "linesCompleted": "خط تکمیل شده",
     "chars": "کاراکتر",
     "reset": "بازنشانی",
+    "resetConfirm": "همه داده‌های همگام‌سازی در حال انجام حذف خواهند شد.\nاز ابتدا دوباره شروع شود؟",
     "firstLine": "به خط اول",
     "prevLine": "خط قبلی",
     "nextLineBtn": "خط بعدی",

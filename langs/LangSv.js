@@ -2084,6 +2084,7 @@ window.LANG_SV = {
     "linesCompleted": "Raderna är klara",
     "chars": "Tecken",
     "reset": "Återställ",
+    "resetConfirm": "Alla pågående synkdata raderas.\nBörja om från början?",
     "firstLine": "Till första raden",
     "prevLine": "Föregående rad",
     "nextLineBtn": "Nästa rad",

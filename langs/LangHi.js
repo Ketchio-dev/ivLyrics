@@ -2084,6 +2084,7 @@ window.LANG_HI = {
     "linesCompleted": "लाइन्स पूर्ण",
     "chars": "अक्षर",
     "reset": "रीसेट",
+    "resetConfirm": "प्रगति में मौजूद सभी सिंक डेटा हटा दिए जाएंगे।\nक्या शुरुआत से फिर शुरू करें?",
     "firstLine": "पहली लाइन",
     "prevLine": "पिछली लाइन",
     "nextLineBtn": "अगली लाइन",

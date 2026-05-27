@@ -2085,6 +2085,7 @@ window.LANG_JA = {
     "linesCompleted": "完了行数",
     "chars": "文字",
     "reset": "初期化",
+    "resetConfirm": "作業中の同期データはすべて削除されます。\n最初からやり直しますか？",
     "firstLine": "最初の行へ",
     "prevLine": "前の行",
     "nextLineBtn": "次の行",

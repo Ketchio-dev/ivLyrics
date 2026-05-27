@@ -2084,6 +2084,7 @@ window.LANG_ID = {
     "linesCompleted": "Baris Selesai",
     "chars": "Karakter",
     "reset": "Atur Ulang",
+    "resetConfirm": "Semua data sinkronisasi yang sedang dikerjakan akan dihapus.\nMulai lagi dari awal?",
     "firstLine": "Ke Baris Pertama",
     "prevLine": "Baris Sebelumnya",
     "nextLineBtn": "Baris Berikutnya",

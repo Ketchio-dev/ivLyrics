@@ -2085,6 +2085,7 @@ window.LANG_VI = {
     "linesCompleted": "Dòng hoàn thành",
     "chars": "Ký tự",
     "reset": "Đặt lại",
+    "resetConfirm": "Tất cả dữ liệu đồng bộ đang thực hiện sẽ bị xóa.\nBắt đầu lại từ đầu?",
     "firstLine": "Về dòng đầu",
     "prevLine": "Dòng trước",
     "nextLineBtn": "Dòng sau",

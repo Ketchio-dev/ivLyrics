@@ -2085,6 +2085,7 @@ window.LANG_FR = {
     "linesCompleted": "Lignes finies",
     "chars": "Caractères",
     "reset": "Reset",
+    "resetConfirm": "Toutes les données de synchronisation en cours seront supprimées.\nRecommencer depuis le début ?",
     "firstLine": "Début",
     "prevLine": "Ligne préc.",
     "nextLineBtn": "Ligne suiv.",

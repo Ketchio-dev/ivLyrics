@@ -2085,6 +2085,7 @@ window.LANG_BN = {
     "linesCompleted": "লাইন সম্পন্ন",
     "chars": "অক্ষর",
     "reset": "রিসেট",
+    "resetConfirm": "চলমান সব সিঙ্ক ডেটা মুছে যাবে।\nশুরু থেকে আবার শুরু করবেন?",
     "firstLine": "প্রথম লাইন",
     "prevLine": "আগের লাইন",
     "nextLineBtn": "পরের লাইন",

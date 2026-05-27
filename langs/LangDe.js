@@ -2084,6 +2084,7 @@ window.LANG_DE = {
     "linesCompleted": "Zeilen fertig",
     "chars": "Zeichen",
     "reset": "Reset",
+    "resetConfirm": "Alle aktuellen Sync-Daten werden gelöscht.\nVon Anfang an neu starten?",
     "firstLine": "Zum Start",
     "prevLine": "Vorherige Zeile",
     "nextLineBtn": "Nächste Zeile",
