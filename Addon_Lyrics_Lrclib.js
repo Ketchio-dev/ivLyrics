@@ -889,13 +889,13 @@
     }
 
     function buildLrclibCandidateSignature(candidate) {
-        const text = getCandidateLyricsText(candidate, candidate?.preferredLyricsSource);
+        const text = getComparableCandidateText(candidate, candidate?.preferredLyricsSource);
         return [
             candidate?.id ?? '',
             normalize(candidate?.trackName || candidate?.name || ''),
             normalize(candidate?.artistName || ''),
             Number(candidate?.duration || 0).toFixed(3),
-            normalize(text.slice(0, 160))
+            getLyricsTextFingerprint(text)
         ].join('|');
     }
 

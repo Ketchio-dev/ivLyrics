@@ -1371,7 +1371,6 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		return {
 			provider: 'lrclib',
 			lrclibId: candidate.id ?? null,
-			candidateKey: candidate.candidateKey || '',
 			searchSource: candidate.searchSource || '',
 			preferredLyricsSource,
 			trackName: candidate.trackName || candidate.name || '',
