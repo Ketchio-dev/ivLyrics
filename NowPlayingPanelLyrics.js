@@ -544,6 +544,7 @@ body.${PANEL_ACTIVE_BODY_CLASS} [data-testid="lyrics-npv-section"] {
 .ivlyrics-panel-line.active {
   background: transparent !important;
   opacity: 1 !important;
+  overflow: visible !important;
 }
 
 /* 지나간 라인 */
@@ -697,8 +698,11 @@ body.${PANEL_ACTIVE_BODY_CLASS} [data-testid="lyrics-npv-section"] {
 }
 
 .ivlyrics-panel-current-line .ivlyrics-panel-line-text,
+.ivlyrics-panel-line.active .ivlyrics-panel-line-text,
 .ivlyrics-panel-current-line .ivlyrics-panel-line-phonetic,
-.ivlyrics-panel-current-line .ivlyrics-panel-line-translation {
+.ivlyrics-panel-line.active .ivlyrics-panel-line-phonetic,
+.ivlyrics-panel-current-line .ivlyrics-panel-line-translation,
+.ivlyrics-panel-line.active .ivlyrics-panel-line-translation {
   display: block !important;
   -webkit-line-clamp: unset !important;
   -webkit-box-orient: initial !important;
@@ -749,9 +753,13 @@ body.${PANEL_ACTIVE_BODY_CLASS} [data-testid="lyrics-npv-section"] {
 }
 
 .ivlyrics-panel-current-line .ivlyrics-panel-line-karaoke,
+.ivlyrics-panel-line.active .ivlyrics-panel-line-karaoke,
 .ivlyrics-panel-current-line .ivlyrics-panel-line-karaoke-stack,
+.ivlyrics-panel-line.active .ivlyrics-panel-line-karaoke-stack,
 .ivlyrics-panel-current-line .ivlyrics-panel-line-karaoke-row,
-.ivlyrics-panel-current-line .ivlyrics-panel-line-karaoke-part {
+.ivlyrics-panel-line.active .ivlyrics-panel-line-karaoke-row,
+.ivlyrics-panel-current-line .ivlyrics-panel-line-karaoke-part,
+.ivlyrics-panel-line.active .ivlyrics-panel-line-karaoke-part {
   max-height: none !important;
   overflow: visible !important;
 }
@@ -3628,7 +3636,7 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
                     visibleLines.map((visLine, idx) =>
                         react.createElement("div", {
                             key: `cell-${visLine.index}-${idx}`,
-                            className: `ivlyrics-panel-line-cell${visLine.isActive ? " current" : ""}`
+                            className: `ivlyrics-panel-line-cell${visLine.isActive ? " current ivlyrics-panel-current-line" : ""}`
                         },
                             renderVisibleLine(visLine, idx, "stack")
                         )
