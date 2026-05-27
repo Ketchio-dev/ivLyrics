@@ -33,6 +33,7 @@ const SYNC_CREATOR_SPEAKER_TEXT_COLORS = {
 const SYNC_CREATOR_DEFAULT_SPEAKER = 'MALE 1';
 const SYNC_CREATOR_DEFAULT_KIND = 'vocal';
 const SYNC_CREATOR_MAX_MERGED_LINES = 5;
+const SYNC_CREATOR_SYNC_DATA_VERSION = 3;
 const SYNC_CREATOR_KIND_OPTIONS = [
 	['vocal', 'syncCreator.kindVocal'],
 	['effect', 'syncCreator.kindEffect'],
@@ -301,6 +302,75 @@ const stripSyncCreatorStandaloneParentheticalLine = (line) => {
 
 	return changed ? value : String(line || '').normalize('NFC');
 };
+
+const trimSyncCreatorCharRangeWhitespace = (chars, start, end, pushHidden = () => {}) => {
+	let nextStart = start;
+	let nextEnd = end;
+
+	while (nextStart <= nextEnd && /\s/u.test(chars[nextStart] || '')) {
+		pushHidden(nextStart);
+		nextStart++;
+	}
+
+	const trailingHiddenIndexes = [];
+	while (nextEnd >= nextStart && /\s/u.test(chars[nextEnd] || '')) {
+		trailingHiddenIndexes.push(nextEnd);
+		nextEnd--;
+	}
+	trailingHiddenIndexes.reverse().forEach(pushHidden);
+
+	return { start: nextStart, end: nextEnd };
+};
+
+const stripSyncCreatorStandaloneParentheticalCharRange = (chars, start, end, pushHidden = () => {}) => {
+	const sourceChars = Array.isArray(chars) ? chars : [];
+	if (!Number.isInteger(start) || !Number.isInteger(end) || start < 0 || end >= sourceChars.length || start > end) {
+		return { start, end, changed: false };
+	}
+
+	let nextStart = start;
+	let nextEnd = end;
+	let changed = false;
+	const pendingHiddenIndexes = [];
+	const queueHidden = (index) => pendingHiddenIndexes.push(index);
+
+	({ start: nextStart, end: nextEnd } = trimSyncCreatorCharRangeWhitespace(sourceChars, nextStart, nextEnd, queueHidden));
+	while (
+		nextStart < nextEnd
+		&& isSyncCreatorStandaloneParentheticalLine(sourceChars.slice(nextStart, nextEnd + 1).join(''))
+	) {
+		queueHidden(nextStart);
+		queueHidden(nextEnd);
+		nextStart++;
+		nextEnd--;
+		changed = true;
+		({ start: nextStart, end: nextEnd } = trimSyncCreatorCharRangeWhitespace(sourceChars, nextStart, nextEnd, queueHidden));
+	}
+
+	if (changed) {
+		[...new Set(pendingHiddenIndexes)]
+			.sort((a, b) => a - b)
+			.forEach(pushHidden);
+	}
+
+	return { start: nextStart, end: nextEnd, changed };
+};
+
+const getSyncCreatorFlatLyricsCharsFromText = (text) => (
+	String(text || '')
+		.normalize('NFC')
+		.split('\n')
+		.map(line => line.trim().normalize('NFC'))
+		.filter(Boolean)
+		.flatMap(line => Array.from(line))
+);
+
+const getSyncCreatorFlatLyricsCharsFromLines = (lines) => (
+	(Array.isArray(lines) ? lines : [])
+		.map(line => String(line || '').trim().normalize('NFC'))
+		.filter(Boolean)
+		.flatMap(line => Array.from(line))
+);
 
 const stripSyncCreatorLeadingParenthesis = (line) => {
 	const value = String(line || '').normalize('NFC');
@@ -946,23 +1016,100 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		return nextParallel;
 	};
 
-	const sanitizeSyncCreatorSyncData = (data) => {
+	const normalizeSyncCreatorParentheticalParallelRanges = (parallel, fullTextChars) => {
+		const sourceChars = Array.isArray(fullTextChars) ? fullTextChars : [];
+		if (!parallel || typeof parallel !== 'object' || !Array.isArray(parallel.parts) || sourceChars.length === 0) {
+			return { parallel: sanitizeSyncCreatorParallel(parallel), changed: false };
+		}
+
+		const hiddenRanges = Array.isArray(parallel.hiddenRanges) ? [...parallel.hiddenRanges] : [];
+		let changed = false;
+		const parts = parallel.parts.map((part) => {
+			if (!part || !Array.isArray(part.ranges) || part.ranges.length !== 1 || !Array.isArray(part.chars)) {
+				return part;
+			}
+
+			const range = part.ranges[0];
+			const start = Number(range?.start);
+			const end = Number(range?.end);
+			if (
+				!Number.isInteger(start)
+				|| !Number.isInteger(end)
+				|| start < 0
+				|| end < start
+				|| end >= sourceChars.length
+				|| part.chars.length !== end - start + 1
+			) {
+				return part;
+			}
+
+			const localChars = sourceChars.slice(start, end + 1);
+			const hiddenLocalIndexes = [];
+			const stripped = stripSyncCreatorStandaloneParentheticalCharRange(
+				localChars,
+				0,
+				localChars.length - 1,
+				index => hiddenLocalIndexes.push(index)
+			);
+			if (!stripped.changed || stripped.start > stripped.end) return part;
+
+			const nextChars = part.chars.slice(stripped.start, stripped.end + 1);
+			if (nextChars.length !== stripped.end - stripped.start + 1) return part;
+
+			changed = true;
+			hiddenLocalIndexes.forEach(index => {
+				const absoluteIndex = start + index;
+				hiddenRanges.push({ start: absoluteIndex, end: absoluteIndex });
+			});
+
+			return {
+				...part,
+				ranges: [{ ...range, start: start + stripped.start, end: start + stripped.end }],
+				chars: nextChars
+			};
+		});
+
+		if (!changed) {
+			return { parallel: sanitizeSyncCreatorParallel(parallel), changed: false };
+		}
+
+		return {
+			parallel: sanitizeSyncCreatorParallel({
+				...parallel,
+				hiddenRanges,
+				parts
+			}),
+			changed: true
+		};
+	};
+
+	const sanitizeSyncCreatorSyncData = (data, fullTextChars = null) => {
 		if (!data || !Array.isArray(data.lines)) return data;
+		let migratedParallelRanges = false;
+		const lines = data.lines.map((line) => {
+			const nextLine = { ...line };
+			if (nextLine.parallel) {
+				const normalized = normalizeSyncCreatorParentheticalParallelRanges(nextLine.parallel, fullTextChars);
+				nextLine.parallel = normalized.parallel;
+				migratedParallelRanges = migratedParallelRanges || normalized.changed;
+			}
+			const hiddenRanges = normalizeSyncCreatorHiddenRanges(nextLine.hiddenRanges);
+			if (hiddenRanges.length > 0) {
+				nextLine.hiddenRanges = hiddenRanges;
+			} else {
+				delete nextLine.hiddenRanges;
+			}
+			return nextLine;
+		});
+		const hasParallelLines = lines.some(line => Array.isArray(line?.parallel?.parts) && line.parallel.parts.length > 1);
+		const version = Number(data.version);
+
 		return {
 			...data,
-			lines: data.lines.map((line) => {
-				const nextLine = { ...line };
-				if (nextLine.parallel) {
-					nextLine.parallel = sanitizeSyncCreatorParallel(nextLine.parallel);
-				}
-				const hiddenRanges = normalizeSyncCreatorHiddenRanges(nextLine.hiddenRanges);
-				if (hiddenRanges.length > 0) {
-					nextLine.hiddenRanges = hiddenRanges;
-				} else {
-					delete nextLine.hiddenRanges;
-				}
-				return nextLine;
-			})
+			...(hasParallelLines || migratedParallelRanges
+				? { version: Math.max(Number.isFinite(version) ? version : 1, SYNC_CREATOR_SYNC_DATA_VERSION) }
+				: {}),
+			lines
 		};
 	};
 
@@ -1184,6 +1331,13 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			}
 			trailingHiddenIndexes.reverse().forEach(pushHidden);
 			if (start > end) continue;
+
+			const stripped = stripSyncCreatorStandaloneParentheticalCharRange(chars, start, end, pushHidden);
+			if (stripped.changed) {
+				start = stripped.start;
+				end = stripped.end;
+				if (start > end) continue;
+			}
 
 			parts.push({
 				id: speakerLabels[parts.length]?.toLowerCase() || `p${parts.length + 1}`,
@@ -1438,7 +1592,10 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			if (normalizedLoadedSyncBody !== loadedSyncBody) {
 				window.__ivLyricsDebugLog?.('[SyncDataCreator] Trimmed leading sync-data source lines for current lyrics');
 			}
-			loadedSyncBody = normalizedLoadedSyncBody;
+			loadedSyncBody = sanitizeSyncCreatorSyncData(
+				normalizedLoadedSyncBody,
+				getSyncCreatorFlatLyricsCharsFromText(text)
+			);
 			if (loadedSyncBody) {
 				setSyncData(loadedSyncBody);
 				Toast.success(I18n.t('syncCreator.loadedExistingSyncData') || 'Loaded existing sync data');
@@ -1713,6 +1870,10 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			.filter(line => line.trim().length > 0)
 			.map(line => line.normalize('NFC'));
 	}, [lyricsText]);
+	const lyricsFullTextChars = useMemo(
+		() => getSyncCreatorFlatLyricsCharsFromLines(lyricsLines),
+		[lyricsLines]
+	);
 
 	useEffect(() => {
 		setCharacterPronunciations(null);
@@ -2561,8 +2722,15 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 						const existingSyncData = await window.SyncDataService.getSyncData(trackId, finalProvider);
 						if (existingSyncData && existingSyncData.syncData && existingSyncData.syncData.lines) {
 							window.__ivLyricsDebugLog?.('[SyncDataCreator] Found matching existing sync data');
-							setSyncData(existingSyncData.syncData);
-							Toast.success(I18n.t('syncCreator.loadedExistingSyncData') || 'Loaded existing sync data');
+							const normalizedSyncBody = normalizeLoadedSyncCreatorBodyForLyrics(existingSyncData.syncData, text);
+							const sanitizedSyncBody = sanitizeSyncCreatorSyncData(
+								normalizedSyncBody,
+								getSyncCreatorFlatLyricsCharsFromText(text)
+							);
+							if (sanitizedSyncBody) {
+								setSyncData(sanitizedSyncBody);
+								Toast.success(I18n.t('syncCreator.loadedExistingSyncData') || 'Loaded existing sync data');
+							}
 						}
 					} catch (e) {
 						console.warn('[SyncDataCreator] Failed to load existing sync data:', e);
@@ -2936,7 +3104,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			lines.sort((a, b) => a.start - b.start);
 			return lines.length > 0 ? {
 				...prev,
-				version: 2,
+				version: SYNC_CREATOR_SYNC_DATA_VERSION,
 				lines
 			} : null;
 		});
@@ -3135,7 +3303,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			return !(line.chars && line.chars[0] < normalizedLastCharTime);
 		});
 
-		setSyncData(validLines.length > 0 ? { version: 2, lines: validLines } : null);
+		setSyncData(validLines.length > 0 ? { version: SYNC_CREATOR_SYNC_DATA_VERSION, lines: validLines } : null);
 		return normalizedLineData;
 	}, [
 		syncData,
@@ -4241,7 +4409,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			lines.push(...restoredLines);
 			lines.sort((a, b) => a.start - b.start);
 			return lines.length > 0
-				? { ...prev, version: lines.some(line => line.parallel) ? 2 : (prev.version || 1), lines }
+				? { ...prev, version: lines.some(line => line.parallel) ? SYNC_CREATOR_SYNC_DATA_VERSION : (prev.version || 1), lines }
 				: null;
 		});
 
@@ -4478,7 +4646,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 	}, []);
 
 	const attachSelectedLrclibSource = useCallback((data) => {
-		const sanitized = sanitizeSyncCreatorSyncData(data);
+		const sanitized = sanitizeSyncCreatorSyncData(data, lyricsFullTextChars);
 		if (!sanitized || provider !== 'lrclib' || !selectedLrclibSource) {
 			return sanitized;
 		}
@@ -4489,7 +4657,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				provider: 'lrclib'
 			}
 		};
-	}, [provider, selectedLrclibSource]);
+	}, [lyricsFullTextChars, provider, selectedLrclibSource]);
 
 	const clearLyricsCachesAfterSyncSubmit = useCallback(async () => {
 		window.SyncDataService?.clearCache?.(trackId);
@@ -4699,7 +4867,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				}
 
 				// 싱크 데이터 적용
-				const sanitizedData = sanitizeSyncCreatorSyncData(importedData);
+				const sanitizedData = sanitizeSyncCreatorSyncData(importedData, lyricsFullTextChars);
 				setSyncData(sanitizedData);
 				if (sanitizedData?.source?.provider === 'lrclib') {
 					setSelectedLrclibSource(sanitizedData.source);
@@ -4712,7 +4880,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			}
 		};
 		input.click();
-	}, []);
+	}, [lyricsFullTextChars]);
 
 	// 가사 전체 복사
 	const copyAllLyrics = useCallback(async () => {

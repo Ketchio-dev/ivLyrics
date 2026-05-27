@@ -2015,6 +2015,120 @@
             ).join('\n')
         );
 
+        const trimSyncDataCharRangeWhitespace = (chars, start, end, pushHidden = () => {}) => {
+            let nextStart = start;
+            let nextEnd = end;
+
+            while (nextStart <= nextEnd && /\s/u.test(chars[nextStart] || '')) {
+                pushHidden(nextStart);
+                nextStart++;
+            }
+
+            const trailingHiddenIndexes = [];
+            while (nextEnd >= nextStart && /\s/u.test(chars[nextEnd] || '')) {
+                trailingHiddenIndexes.push(nextEnd);
+                nextEnd--;
+            }
+            trailingHiddenIndexes.reverse().forEach(pushHidden);
+
+            return { start: nextStart, end: nextEnd };
+        };
+
+        const stripSyncDataStandaloneParentheticalCharRange = (chars, start, end, pushHidden = () => {}) => {
+            const sourceChars = Array.isArray(chars) ? chars : [];
+            if (!Number.isInteger(start) || !Number.isInteger(end) || start < 0 || end >= sourceChars.length || start > end) {
+                return { start, end, changed: false };
+            }
+
+            let nextStart = start;
+            let nextEnd = end;
+            let changed = false;
+            const pendingHiddenIndexes = [];
+            const queueHidden = (index) => pendingHiddenIndexes.push(index);
+
+            ({ start: nextStart, end: nextEnd } = trimSyncDataCharRangeWhitespace(sourceChars, nextStart, nextEnd, queueHidden));
+            while (
+                nextStart < nextEnd
+                && isSyncDataStandaloneParentheticalLine(sourceChars.slice(nextStart, nextEnd + 1).join(''))
+            ) {
+                queueHidden(nextStart);
+                queueHidden(nextEnd);
+                nextStart++;
+                nextEnd--;
+                changed = true;
+                ({ start: nextStart, end: nextEnd } = trimSyncDataCharRangeWhitespace(sourceChars, nextStart, nextEnd, queueHidden));
+            }
+
+            if (changed) {
+                [...new Set(pendingHiddenIndexes)]
+                    .sort((a, b) => a - b)
+                    .forEach(pushHidden);
+            }
+
+            return { start: nextStart, end: nextEnd, changed };
+        };
+
+        const normalizeSyncDataParallelParentheticalRanges = (lines, fullTextChars) => {
+            const sourceChars = Array.isArray(fullTextChars) ? fullTextChars : [];
+            if (!Array.isArray(lines) || sourceChars.length === 0) return lines;
+
+            let changed = false;
+            const normalizedLines = lines.map((line) => {
+                if (!Array.isArray(line?.parallel?.parts)) return line;
+
+                let lineChanged = false;
+                const parts = line.parallel.parts.map((part) => {
+                    if (!part || !Array.isArray(part.ranges) || part.ranges.length !== 1 || !Array.isArray(part.chars)) {
+                        return part;
+                    }
+
+                    const range = part.ranges[0];
+                    const start = Number(range?.start);
+                    const end = Number(range?.end);
+                    if (
+                        !Number.isInteger(start)
+                        || !Number.isInteger(end)
+                        || start < 0
+                        || end < start
+                        || end >= sourceChars.length
+                        || part.chars.length !== end - start + 1
+                    ) {
+                        return part;
+                    }
+
+                    const localChars = sourceChars.slice(start, end + 1);
+                    const stripped = stripSyncDataStandaloneParentheticalCharRange(
+                        localChars,
+                        0,
+                        localChars.length - 1
+                    );
+                    if (!stripped.changed || stripped.start > stripped.end) return part;
+
+                    const nextChars = part.chars.slice(stripped.start, stripped.end + 1);
+                    if (nextChars.length !== stripped.end - stripped.start + 1) return part;
+
+                    changed = true;
+                    lineChanged = true;
+                    return {
+                        ...part,
+                        ranges: [{ ...range, start: start + stripped.start, end: start + stripped.end }],
+                        chars: nextChars
+                    };
+                });
+
+                if (!lineChanged) return line;
+                return {
+                    ...line,
+                    parallel: {
+                        ...line.parallel,
+                        parts
+                    }
+                };
+            });
+
+            return changed ? normalizedLines : lines;
+        };
+
         const getSyncDataBaseLyricsLines = (lyrics, normalizeStandaloneParentheticalLines) => {
             const sourceLines = (Array.isArray(lyrics) ? lyrics : [])
                 .map(line => (line?.text || '').normalize('NFC').trim())
@@ -2124,6 +2238,7 @@
         /**
          * Applies community sync-data to base lyrics and produces karaoke lyrics.
          * sync-data v2 uses offsets from lyrics after standalone parenthetical vocal markers are removed.
+         * sync-data v3 also strips standalone parenthetical wrappers from parallel vocal part ranges.
          */
         function applySyncDataToLyrics(lyrics, syncData) {
             if (!lyrics || !syncData || !syncData.syncData || !syncData.syncData.lines) {
@@ -2196,6 +2311,7 @@
             const fullTextChars = baseLyricsLines
                 .map(line => Array.from(line))
                 .flat();
+            normalizedSyncLines = normalizeSyncDataParallelParentheticalRanges(normalizedSyncLines, fullTextChars);
 
             const result = [];
 

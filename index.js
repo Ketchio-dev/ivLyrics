@@ -2010,7 +2010,7 @@ const emptyState = {
   currentLyrics: null,
 };
 
-const SYNC_DATA_RENDERER_VERSION = "2026-05-21-parenthetical-v2-1";
+const SYNC_DATA_RENDERER_VERSION = "2026-05-28-parenthetical-v3-1";
 
 const getLyricsTextCacheHash = (lyrics = []) => {
   const lines = Array.isArray(lyrics) ? lyrics : [];
