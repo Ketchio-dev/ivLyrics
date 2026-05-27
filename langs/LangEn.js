@@ -2061,6 +2061,7 @@ window.LANG_EN = {
     "linesCompleted": "Lines Completed",
     "chars": "Chars",
     "reset": "Reset",
+    "resetConfirm": "All sync data in progress will be deleted.\nStart over from the beginning?",
     "firstLine": "To First Line",
     "prevLine": "Previous Line",
     "nextLineBtn": "Next Line",

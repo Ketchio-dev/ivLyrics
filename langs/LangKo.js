@@ -2061,6 +2061,7 @@ window.LANG_KO = {
     "linesCompleted": "줄 완료",
     "chars": "글자",
     "reset": "초기화",
+    "resetConfirm": "현재 작업 중인 싱크 데이터가 모두 삭제됩니다.\n정말 처음부터 다시 시작할까요?",
     "firstLine": "첫 줄로",
     "prevLine": "이전 줄",
     "nextLineBtn": "다음 줄",

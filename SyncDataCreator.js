@@ -4430,6 +4430,12 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 	}, [currentLineStart, resetCurrentSyncInput]);
 
 	const resetFromStart = useCallback(() => {
+		const confirmed = window.confirm(
+			I18n.t('syncCreator.resetConfirm')
+			|| '현재 작업 중인 싱크 데이터가 모두 삭제됩니다.\n정말 처음부터 다시 시작할까요?'
+		);
+		if (!confirmed) return;
+
 		setCurrentLineIndex(0);
 		setSyncData(null);
 		setManualParallelSplitDrafts({});
@@ -6067,7 +6073,6 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			)
 		),
 		react.createElement('div', { style: s.actionGrid },
-			react.createElement('button', { style: s.ctrlBtn, onClick: resetFromStart }, I18n.t('syncCreator.reset')),
 			react.createElement('button', { style: s.ctrlBtn, onClick: goToFirstLine, disabled: currentLineIndex <= 0 }, I18n.t('syncCreator.firstLine')),
 			react.createElement('button', {
 				style: {
@@ -6092,7 +6097,12 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			react.createElement('button', { style: s.ctrlBtn, onClick: copyAllLyrics, disabled: !lyricsText }, I18n.t('syncCreator.copyLyrics') || '가사 복사'),
 			react.createElement('button', { style: s.ctrlBtn, onClick: exportSyncData, disabled: !syncData || !syncData.lines || syncData.lines.length === 0 }, I18n.t('syncCreator.export') || '내보내기'),
 			react.createElement('button', { style: s.ctrlBtn, onClick: importSyncData }, I18n.t('syncCreator.import') || '불러오기'),
-			isCurrentLineSynced && react.createElement('button', { style: s.deleteBtn, onClick: deleteCurrentLineSync }, I18n.t('syncCreator.deleteLine'))
+			isCurrentLineSynced && react.createElement('button', { style: s.deleteBtn, onClick: deleteCurrentLineSync }, I18n.t('syncCreator.deleteLine')),
+			react.createElement('button', {
+				style: s.deleteBtn,
+				onClick: resetFromStart,
+				title: I18n.t('syncCreator.resetConfirm') || '현재 작업 중인 싱크 데이터가 모두 삭제됩니다.'
+			}, I18n.t('syncCreator.reset'))
 		)
 	);
 
@@ -6971,7 +6981,6 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 
 		// Controls
 		lyricsText && react.createElement('div', { style: s.controls },
-			react.createElement('button', { style: s.ctrlBtn, onClick: resetFromStart }, I18n.t('syncCreator.reset')),
 			react.createElement('button', { style: s.ctrlBtn, onClick: goToFirstLine, disabled: currentLineIndex <= 0 }, I18n.t('syncCreator.firstLine')),
 
 			// 기록 모드
@@ -7022,6 +7031,15 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			// 현재 줄 삭제
 			isCurrentLineSynced && react.createElement('button', { style: s.deleteBtn, onClick: deleteCurrentLineSync },
 				I18n.t('syncCreator.deleteLine')
+			),
+
+			// 초기화
+			react.createElement('button', {
+				style: s.deleteBtn,
+				onClick: resetFromStart,
+				title: I18n.t('syncCreator.resetConfirm') || '현재 작업 중인 싱크 데이터가 모두 삭제됩니다.'
+			},
+				I18n.t('syncCreator.reset')
 			)
 		),
 
