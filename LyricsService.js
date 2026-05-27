@@ -104,31 +104,45 @@
         return "";
     };
 
-    const getDisplayedVocalPartTexts = (line) => {
+    const getDisplayedVocalParts = (line) => {
         if (!Array.isArray(line?.vocals?.lead?.syllables) || line.vocals.lead.syllables.length === 0) {
             return null;
         }
 
-        const partTexts = [];
+        const parts = [];
         const leadText = getTranslationPartText(line.vocals.lead);
         if (leadText) {
-            partTexts.push(leadText);
+            parts.push({
+                role: 'lead',
+                index: -1,
+                text: leadText
+            });
         }
 
         if (Array.isArray(line.vocals.background)) {
-            line.vocals.background.forEach((part) => {
+            line.vocals.background.forEach((part, index) => {
                 if (!Array.isArray(part?.syllables) || part.syllables.length === 0) {
                     return;
                 }
 
                 const text = getTranslationPartText(part);
                 if (text) {
-                    partTexts.push(text);
+                    parts.push({
+                        role: 'background',
+                        index,
+                        text
+                    });
                 }
             });
         }
 
-        return partTexts.length > 1 ? partTexts : null;
+        return parts.length > 1 ? parts : null;
+    };
+
+    const getDisplayedVocalPartTexts = (line) => {
+        const parts = getDisplayedVocalParts(line);
+        if (!parts) return null;
+        return parts.map(part => part.text);
     };
 
     const getTranslationRequestLineText = (line) => {
@@ -4338,7 +4352,24 @@
 
                     try {
                         // Gemini API를 통한 발음/번역 요청
-                        const lyricsText = lyrics.map(getTranslationRequestLineText).join('\n');
+                        // multi-vocal 라인은 각 파트를 별도 요청 줄로 펼친 뒤 다시 파트별로 매핑한다.
+                        const translationRequests = lyrics.flatMap((line, lineIndex) => {
+                            const vocalParts = getDisplayedVocalParts(line);
+                            if (vocalParts) {
+                                return vocalParts.map((part) => ({
+                                    lineIndex,
+                                    vocalPart: part,
+                                    text: part.text
+                                }));
+                            }
+
+                            return [{
+                                lineIndex,
+                                vocalPart: null,
+                                text: getTranslationRequestLineText(line)
+                            }];
+                        });
+                        const lyricsText = translationRequests.map(request => request.text || '').join('\n');
 
                         // 발음 요청 (mode1 = gemini_romaji)
                         let pronResult = null;
@@ -4375,23 +4406,63 @@
                             const pronLines = Array.isArray(pronResult) ? pronResult : (pronResult ? pronResult.split('\n') : []);
                             const transLines = Array.isArray(transResult) ? transResult : (transResult ? transResult.split('\n') : []);
 
+                            const requestResultsByLine = new Map();
+                            translationRequests.forEach((request, requestIndex) => {
+                                const entry = {
+                                    ...request,
+                                    pronText: pronLines[requestIndex]?.trim() || null,
+                                    transText: transLines[requestIndex]?.trim() || null
+                                };
+                                const entries = requestResultsByLine.get(request.lineIndex) || [];
+                                entries.push(entry);
+                                requestResultsByLine.set(request.lineIndex, entries);
+                            });
+
                             lyrics = lyrics.map((line, idx) => {
                                 const isKaraokeLine = Array.isArray(line.syllables)
                                     || Array.isArray(line.vocals?.lead?.syllables);
                                 const originalText = isKaraokeLine && line.originalText
                                     ? line.originalText
                                     : (line.text || line.originalText || '');
-                                const pronText = pronLines[idx]?.trim() || null;
-                                const transText = transLines[idx]?.trim() || null;
+                                const requestEntries = requestResultsByLine.get(idx) || [];
+                                const pronText = requestEntries.map(entry => entry.pronText).filter(Boolean).join(' / ') || null;
+                                const transText = requestEntries.map(entry => entry.transText).filter(Boolean).join(' / ') || null;
 
                                 // Determine the final original text.
                                 // If pronText exists, the current 'text' is the original.
                                 // If pronText doesn't exist, but line.originalText exists, use that.
                                 // Otherwise, the current 'text' is the original.
                                 const finalOriginal = pronText ? originalText : (line.originalText || originalText);
+                                const vocalPartEntries = requestEntries.filter(entry => entry.vocalPart);
+                                let vocals = line.vocals;
+                                if (vocalPartEntries.length > 0 && line.vocals?.lead) {
+                                    const nextVocals = {
+                                        ...line.vocals,
+                                        lead: { ...line.vocals.lead },
+                                        background: Array.isArray(line.vocals.background)
+                                            ? line.vocals.background.map(part => ({ ...part }))
+                                            : line.vocals.background
+                                    };
+
+                                    vocalPartEntries.forEach((entry) => {
+                                        const target = entry.vocalPart.role === 'lead'
+                                            ? nextVocals.lead
+                                            : nextVocals.background?.[entry.vocalPart.index];
+                                        if (!target) return;
+                                        if (entry.pronText) {
+                                            target.phonetic = entry.pronText;
+                                        }
+                                        if (entry.transText) {
+                                            target.translation = entry.transText;
+                                        }
+                                    });
+
+                                    vocals = nextVocals;
+                                }
 
                                 return {
                                     ...line,
+                                    vocals,
                                     originalText: finalOriginal, // The original text before any phonetic/translation
                                     text: isKaraokeLine ? finalOriginal : (pronText || originalText), // Keep karaoke timing text original.
                                     phoneticText: pronText || line.phoneticText || null,
