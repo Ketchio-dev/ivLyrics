@@ -2603,11 +2603,28 @@ const Prefetcher = {
    */
   async _prefetchVideoBackground(uri) {
     const trackId = uri.split(":")[2];
-    const cacheKey = `prefetch:video:${trackId}`;
+    const spotifyData = SpotifyDataHelper.extractSpotifyData(uri);
+    const metadata = {
+      trackId,
+      trackName: spotifyData?.name || "",
+      title: spotifyData?.name || "",
+      artists: spotifyData?.artists || [],
+      isrc: spotifyData?.isrc || spotifyData?.external_ids?.isrc || ""
+    };
+    const isrc = await window.SyncDataService?.resolveTrackIsrc?.(trackId, metadata)
+      || window.SyncDataService?.getTrackIsrc?.(trackId, metadata)
+      || "";
+
+    if (!isrc) {
+      ivLyricsDebug(`[Prefetcher] Video info skipped: missing ISRC for trackId: ${trackId}`);
+      return null;
+    }
+
+    const cacheKey = `prefetch:video:${isrc}`;
 
     // 이미 캐시에 있으면 스킵
     if (this._prefetchCache.has(cacheKey)) {
-      ivLyricsDebug(`[Prefetcher] Video info already cached for trackId: ${trackId}`);
+      ivLyricsDebug(`[Prefetcher] Video info already cached for ISRC: ${isrc}`);
       const cached = this._prefetchCache.get(cacheKey);
       if (cached?.data?.youtubeVideoId) {
         this._prefetchVideoWithHelper(cached.data.youtubeVideoId);
@@ -2622,19 +2639,18 @@ const Prefetcher = {
 
     const prefetchPromise = (async () => {
       try {
-        ivLyricsDebug(`[Prefetcher] Fetching video info for trackId: ${trackId} (fallback)`);
+        ivLyricsDebug(`[Prefetcher] Fetching video info for ISRC: ${isrc} (fallback)`);
 
         const userHash = Utils.getUserHash();
         // Spotify 트랙 메타데이터를 백엔드에 전달 (백엔드가 Spotify API에 접근 불가하므로)
-        let youtubeApiUrl = `https://lyrics.api.ivl.is/lyrics/youtube?trackId=${trackId}&userHash=${userHash}`;
-        const spotifyData = SpotifyDataHelper.extractSpotifyData(uri);
+        let youtubeApiUrl = `https://lyrics.api.ivl.is/lyrics/youtube?isrc=${encodeURIComponent(isrc)}&trackId=${trackId}&userHash=${userHash}`;
         if (spotifyData?.name) {
           youtubeApiUrl += `&trackName=${encodeURIComponent(spotifyData.name)}`;
           if (spotifyData.artists?.length) {
             youtubeApiUrl += `&trackArtists=${encodeURIComponent(spotifyData.artists.join(', '))}`;
           }
         }
-        if (window.SyncDataService?.shouldBypassServerCache?.(trackId)) {
+        if (window.SyncDataService?.shouldBypassServerCache?.(isrc)) {
           youtubeApiUrl += `&bypassCache=1`;
         }
         const response = await fetch(youtubeApiUrl, { cache: "no-store" });
@@ -2645,7 +2661,7 @@ const Prefetcher = {
             data: data.data,
             timestamp: Date.now(),
           });
-          ivLyricsDebug(`[Prefetcher] Video info cached for trackId: ${trackId}`);
+          ivLyricsDebug(`[Prefetcher] Video info cached for ISRC: ${isrc}`);
           // 헬퍼를 통한 영상 미리 다운로드
           if (data.data?.youtubeVideoId) {
             this._prefetchVideoWithHelper(data.data.youtubeVideoId);
@@ -2746,7 +2762,16 @@ const Prefetcher = {
    */
   getVideoInfo(uri) {
     const trackId = uri.split(":")[2];
-    const cacheKey = `prefetch:video:${trackId}`;
+    const spotifyData = SpotifyDataHelper.extractSpotifyData(uri);
+    const metadata = {
+      trackId,
+      trackName: spotifyData?.name || "",
+      title: spotifyData?.name || "",
+      artists: spotifyData?.artists || [],
+      isrc: spotifyData?.isrc || spotifyData?.external_ids?.isrc || ""
+    };
+    const isrc = window.SyncDataService?.getTrackIsrc?.(trackId, metadata) || "";
+    const cacheKey = `prefetch:video:${isrc || trackId}`;
     const cached = this._prefetchCache.get(cacheKey);
 
     if (cached && Date.now() - cached.timestamp < 30 * 60 * 1000) {

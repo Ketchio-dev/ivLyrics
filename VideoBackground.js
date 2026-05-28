@@ -238,14 +238,36 @@ const VideoBackground = ({ trackUri, firstLyricTime, brightness, blurAmount, cov
                 return;
             }
 
+            const spotifyData = window.SpotifyDataHelper?.extractSpotifyData?.(trackUri);
+            const trackMetadata = {
+                trackId,
+                trackName: spotifyData?.name || "",
+                title: spotifyData?.name || "",
+                artists: spotifyData?.artists || [],
+                isrc: spotifyData?.isrc || spotifyData?.external_ids?.isrc || ""
+            };
+            const trackIsrc = await window.SyncDataService?.resolveTrackIsrc?.(trackId, trackMetadata)
+                || window.SyncDataService?.getTrackIsrc?.(trackId, trackMetadata)
+                || "";
+
+            if (!trackIsrc) {
+                window.__ivLyricsDebugLog?.("[VideoBackground] Missing ISRC for video lookup", { trackId });
+                if (isMounted) {
+                    setIsLoading(false);
+                    setStatusMessage(I18n.t("videoBackground.notFound"));
+                    setVideoInfo(null);
+                }
+                return;
+            }
+
             // 3. 로컬 캐시 확인 (IndexedDB)
             try {
-                const cachedYouTube = await LyricsCache.getYouTube(trackId);
+                const cachedYouTube = await LyricsCache.getYouTube(trackIsrc);
                 if (cachedYouTube && isMounted) {
-                    videoBackgroundDebug(`[VideoBackground] Using cached YouTube info for trackId: ${trackId}`);
+                    videoBackgroundDebug(`[VideoBackground] Using cached YouTube info for ISRC: ${trackIsrc}`);
                     // 캐시 히트 로깅
                     if (window.ApiTracker) {
-                        window.ApiTracker.logCacheHit('youtube', `youtube:${trackId}`, {
+                        window.ApiTracker.logCacheHit('youtube', `youtube:${trackIsrc}`, {
                             videoId: cachedYouTube.youtubeVideoId,
                             hasCaption: cachedYouTube.captionStartTime != null
                         });
@@ -267,26 +289,8 @@ const VideoBackground = ({ trackUri, firstLyricTime, brightness, blurAmount, cov
                     (typeof Utils !== "undefined" && Utils.currentVersion) ||
                     window.CONFIG?.version ||
                     "unknown";
-                // Spotify 트랙 메타데이터를 백엔드에 전달
-                const spotifyData = window.SpotifyDataHelper?.extractSpotifyData?.(trackUri);
-                const trackIsrc = await window.SyncDataService?.resolveTrackIsrc?.(trackId, {
-                    trackId,
-                    trackName: spotifyData?.name || "",
-                    title: spotifyData?.name || "",
-                    artists: spotifyData?.artists || []
-                }) || window.SyncDataService?.getTrackIsrc?.(trackId, {
-                    trackId,
-                    trackName: spotifyData?.name || "",
-                    title: spotifyData?.name || "",
-                    artists: spotifyData?.artists || []
-                }) || "";
-                const useCommunity = !!trackIsrc;
-                let youtubeUrl = `https://lyrics.api.ivl.is/lyrics/youtube?trackId=${trackId}&userHash=${userHash}&useCommunity=${useCommunity ? "true" : "false"}&client=ivLyrics&clientVersion=${encodeURIComponent(clientVersion)}&requestVersion=2`;
-                if (trackIsrc) {
-                    youtubeUrl += `&isrc=${encodeURIComponent(trackIsrc)}`;
-                } else {
-                    window.__ivLyricsDebugLog?.("[VideoBackground] Missing ISRC for community video lookup", { trackId });
-                }
+                const useCommunity = true;
+                let youtubeUrl = `https://lyrics.api.ivl.is/lyrics/youtube?isrc=${encodeURIComponent(trackIsrc)}&trackId=${trackId}&userHash=${userHash}&useCommunity=${useCommunity ? "true" : "false"}&client=ivLyrics&clientVersion=${encodeURIComponent(clientVersion)}&requestVersion=2`;
 
                 if (spotifyData?.name) {
                     youtubeUrl += `&trackName=${encodeURIComponent(spotifyData.name)}`;
@@ -294,7 +298,7 @@ const VideoBackground = ({ trackUri, firstLyricTime, brightness, blurAmount, cov
                         youtubeUrl += `&trackArtists=${encodeURIComponent(spotifyData.artists.join(', '))}`;
                     }
                 }
-                if (window.SyncDataService?.shouldBypassServerCache?.(trackId)) {
+                if (window.SyncDataService?.shouldBypassServerCache?.(trackIsrc)) {
                     youtubeUrl += `&bypassCache=1`;
                 }
 
@@ -325,7 +329,7 @@ const VideoBackground = ({ trackUri, firstLyricTime, brightness, blurAmount, cov
                         }, 'success');
                     }
                     // 로컬 캐시에 저장
-                    LyricsCache.setYouTube(trackId, data.data).catch(() => { });
+                    LyricsCache.setYouTube(trackIsrc, data.data).catch(() => { });
                     setVideoInfo(data.data);
                     setStatusMessage("");
                 } else {
