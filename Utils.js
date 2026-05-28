@@ -2091,19 +2091,67 @@ const Utils = {
   /**
    * 커뮤니티 싱크 오프셋 조회
    */
-  async getCommunityOffset(trackUri, provider) {
+  async getCommunityOffsetIdentity(trackUri) {
     const trackId = this.extractTrackId(trackUri);
     if (!trackId) return null;
 
-    return null;
+    const spotifyData = window.SpotifyDataHelper?.extractSpotifyData?.(trackUri) || null;
+    const metadata = {
+      trackId,
+      trackName: spotifyData?.name || "",
+      title: spotifyData?.name || "",
+      artists: spotifyData?.artists || []
+    };
+    const isrc = await window.SyncDataService?.resolveTrackIsrc?.(trackId, metadata)
+      || window.SyncDataService?.getTrackIsrc?.(trackId, metadata)
+      || "";
+
+    if (!isrc) {
+      window.__ivLyricsDebugLog?.("[ivLyrics] Missing ISRC for community offset request", { trackId });
+      return null;
+    }
+
+    return { isrc, trackId, metadata };
+  },
+
+  async getCommunityOffset(trackUri, provider) {
+    const identity = await this.getCommunityOffsetIdentity(trackUri);
+    if (!identity) return null;
+
+    const userHash = this.getUserHash();
+    const syncUrl = new URL('https://lyrics.api.ivl.is/lyrics/sync');
+    syncUrl.searchParams.set('isrc', identity.isrc);
+    syncUrl.searchParams.set('trackId', identity.trackId);
+    if (userHash) syncUrl.searchParams.set('userHash', userHash);
+    if (provider) syncUrl.searchParams.set('provider', provider);
+
+    try {
+      const response = await fetch(syncUrl.toString(), {
+        cache: 'no-store',
+        headers: this.getApiHeaders({
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        })
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        return data.data;
+      }
+      return null;
+    } catch (error) {
+      console.error("[ivLyrics] Failed to get community offset:", error);
+      return null;
+    }
   },
 
   /**
    * 커뮤니티 싱크 오프셋 제출
    */
   async submitCommunityOffset(trackUri, offsetMs, provider) {
-    const trackId = this.extractTrackId(trackUri);
-    if (!trackId) return null;
+    const identity = await this.getCommunityOffsetIdentity(trackUri);
+    if (!identity) {
+      throw new Error("이 곡의 ISRC를 찾을 수 없어 커뮤니티 오프셋을 등록할 수 없습니다. ivLyrics 클라이언트를 최신 버전으로 업데이트해 주세요.");
+    }
 
     const userHash = this.getUserHash();
     const syncUrl = 'https://lyrics.api.ivl.is/lyrics/sync';
@@ -2111,7 +2159,7 @@ const Utils = {
     // API 요청 로깅
     let logId = null;
     if (window.ApiTracker) {
-      logId = window.ApiTracker.logRequest('sync', syncUrl, { trackId, offsetMs, userHash, provider, method: 'POST' });
+      logId = window.ApiTracker.logRequest('sync', syncUrl, { isrc: identity.isrc, trackId: identity.trackId, offsetMs, userHash, provider, method: 'POST' });
     }
 
     try {
@@ -2119,7 +2167,8 @@ const Utils = {
         method: 'POST',
         headers: this.getApiHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
-          trackId,
+          isrc: identity.isrc,
+          trackId: identity.trackId,
           offsetMs,
           userHash,
           provider
@@ -2151,8 +2200,10 @@ const Utils = {
    * 커뮤니티 싱크 피드백 제출
    */
   async submitCommunityFeedback(trackUri, isPositive, provider) {
-    const trackId = this.extractTrackId(trackUri);
-    if (!trackId) return null;
+    const identity = await this.getCommunityOffsetIdentity(trackUri);
+    if (!identity) {
+      throw new Error("이 곡의 ISRC를 찾을 수 없어 커뮤니티 오프셋 피드백을 등록할 수 없습니다. ivLyrics 클라이언트를 최신 버전으로 업데이트해 주세요.");
+    }
 
     const userHash = this.getUserHash();
 
@@ -2161,7 +2212,8 @@ const Utils = {
         method: 'POST',
         headers: this.getApiHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
-          trackId,
+          isrc: identity.isrc,
+          trackId: identity.trackId,
           userHash,
           isPositive,
           provider
