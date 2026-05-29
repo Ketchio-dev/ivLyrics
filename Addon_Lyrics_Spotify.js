@@ -103,7 +103,8 @@
                 spotifyLyricsProvider: null
             };
 
-            const trackId = window.Utils?.extractTrackId?.(info.uri);
+            const trackId = window.LyricsService?.extractTrackId?.(info.uri)
+                || window.ivLyricsTrackIdentity?.extractTrackId?.(info.uri);
             if (!trackId) {
                 result.error = 'Missing Spotify track ID';
                 return result;

@@ -7,6 +7,40 @@
 (function LyricsServiceExtension() {
     "use strict";
 
+    const TrackIdentity = (() => {
+        const api = {
+            isSpotifyTrackId(value) {
+                return typeof value === "string" && /^[A-Za-z0-9]{22}$/.test(value.trim());
+            },
+
+            isSpotifyTrackUri(uri) {
+                return typeof uri === "string" && /^spotify:track:[A-Za-z0-9]{22}$/.test(uri.trim());
+            },
+
+            isLocalTrackUri(uri) {
+                return typeof uri === "string" && uri.startsWith("spotify:local:");
+            },
+
+            extractTrackId(uri) {
+                if (!uri || typeof uri !== "string") return null;
+                const value = uri.trim();
+                if (api.isSpotifyTrackId(value)) return value;
+
+                const uriMatch = value.match(/^spotify:track:([A-Za-z0-9]{22})(?:$|[?#])/);
+                if (uriMatch) return uriMatch[1];
+
+                const webMatch = value.match(/open\.spotify\.com\/track\/([A-Za-z0-9]{22})(?:[/?#]|$)/);
+                return webMatch ? webMatch[1] : null;
+            }
+        };
+
+        window.ivLyricsTrackIdentity = {
+            ...(window.ivLyricsTrackIdentity || {}),
+            ...api
+        };
+        return window.ivLyricsTrackIdentity;
+    })();
+
     const MODULE_KEY = "__ivLyricsLyricsServiceModule";
     const moduleState = window[MODULE_KEY] || (window[MODULE_KEY] = {
         initialized: false,
@@ -349,6 +383,22 @@
 
         clearSafePlayerProgressCorrection() {
             ensurePlaybackProgressGuard().clearCorrection();
+        },
+
+        isSpotifyTrackId(value) {
+            return TrackIdentity.isSpotifyTrackId(value);
+        },
+
+        isSpotifyTrackUri(uri) {
+            return TrackIdentity.isSpotifyTrackUri(uri);
+        },
+
+        isLocalTrackUri(uri) {
+            return TrackIdentity.isLocalTrackUri(uri);
+        },
+
+        extractTrackId(uri) {
+            return TrackIdentity.extractTrackId(uri);
         },
 
         detectLanguage(lyrics) {
@@ -1712,9 +1762,9 @@
             return normalizeSyncDataTrackId(trackId)
                 || normalizeSyncDataTrackId(metadata?.trackId)
                 || normalizeSyncDataTrackId(metadata?.id)
-                || normalizeSyncDataTrackId(window.Utils?.extractTrackId?.(metadata?.uri))
+                || normalizeSyncDataTrackId(TrackIdentity.extractTrackId(metadata?.uri))
                 || normalizeSyncDataTrackId(metadata?.track?.id)
-                || normalizeSyncDataTrackId(window.Utils?.extractTrackId?.(metadata?.track?.uri));
+                || normalizeSyncDataTrackId(TrackIdentity.extractTrackId(metadata?.track?.uri));
         }
 
         function firstNormalizedSyncDataIsrc(...values) {
@@ -4714,6 +4764,25 @@
 
         // API 트래커 접근
         tracker: ApiTracker,
+
+        // Track ID / local track 판별
+        trackIdentity: TrackIdentity,
+
+        isSpotifyTrackId(value) {
+            return TrackIdentity.isSpotifyTrackId(value);
+        },
+
+        isSpotifyTrackUri(uri) {
+            return TrackIdentity.isSpotifyTrackUri(uri);
+        },
+
+        isLocalTrackUri(uri) {
+            return TrackIdentity.isLocalTrackUri(uri);
+        },
+
+        extractTrackId(uri) {
+            return TrackIdentity.extractTrackId(uri);
+        },
 
         // 언어 감지 (Extension 내 Utils에서 직접 참조)
         detectLanguage(lyrics) {

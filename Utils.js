@@ -1214,7 +1214,7 @@ const Utils = {
   /**
    * Current version of the ivLyrics app
    */
-  currentVersion: "5.2.9",
+  currentVersion: "5.3.0",
 
   /**
    * Check for updates from remote repository
@@ -2227,6 +2227,8 @@ const Utils = {
    * Spotify Track ID 여부 확인
    */
   isSpotifyTrackId(value) {
+    const shared = window.LyricsService?.isSpotifyTrackId || window.ivLyricsTrackIdentity?.isSpotifyTrackId;
+    if (typeof shared === "function") return shared(value);
     return typeof value === "string" && /^[A-Za-z0-9]{22}$/.test(value.trim());
   },
 
@@ -2234,6 +2236,8 @@ const Utils = {
    * Spotify Track URI 여부 확인
    */
   isSpotifyTrackUri(uri) {
+    const shared = window.LyricsService?.isSpotifyTrackUri || window.ivLyricsTrackIdentity?.isSpotifyTrackUri;
+    if (typeof shared === "function") return shared(uri);
     return typeof uri === "string" && /^spotify:track:[A-Za-z0-9]{22}$/.test(uri.trim());
   },
 
@@ -2241,6 +2245,8 @@ const Utils = {
    * Spotify 로컬 곡 URI 여부 확인
    */
   isLocalTrackUri(uri) {
+    const shared = window.LyricsService?.isLocalTrackUri || window.ivLyricsTrackIdentity?.isLocalTrackUri;
+    if (typeof shared === "function") return shared(uri);
     return typeof uri === "string" && uri.startsWith("spotify:local:");
   },
 
@@ -2248,6 +2254,9 @@ const Utils = {
    * Track ID 추출 (spotify:track:xxx / open.spotify.com/track/xxx -> xxx)
    */
   extractTrackId(uri) {
+    const shared = window.LyricsService?.extractTrackId || window.ivLyricsTrackIdentity?.extractTrackId;
+    if (typeof shared === "function") return shared(uri);
+
     if (!uri || typeof uri !== "string") return null;
     const value = uri.trim();
     if (this.isSpotifyTrackId(value)) return value;

@@ -1223,7 +1223,9 @@
                 }
 
                 const headers = { 'x-user-agent': `spicetify v${Spicetify.Config?.version || 'unknown'}` };
-                const trackId = window.Utils?.extractTrackId?.(info?.uri) || '';
+                const trackId = window.LyricsService?.extractTrackId?.(info?.uri)
+                    || window.ivLyricsTrackIdentity?.extractTrackId?.(info?.uri)
+                    || '';
                 const trackIsrc = await window.SyncDataService?.resolveTrackIsrc?.(trackId, info)
                     || window.SyncDataService?.getTrackIsrc?.(trackId, info)
                     || window.SyncDataService?.normalizeSyncDataIsrc?.(info?.isrc || info?.external_ids?.isrc || info?.externalIds?.isrc);
@@ -1943,7 +1945,9 @@
                 }
 
                 const headers = { 'x-user-agent': `spicetify v${Spicetify.Config?.version || 'unknown'}` };
-                const trackId = window.Utils?.extractTrackId?.(info?.uri) || '';
+                const trackId = window.LyricsService?.extractTrackId?.(info?.uri)
+                    || window.ivLyricsTrackIdentity?.extractTrackId?.(info?.uri)
+                    || '';
                 const trackIsrc = await window.SyncDataService?.resolveTrackIsrc?.(trackId, info)
                     || window.SyncDataService?.getTrackIsrc?.(trackId, info)
                     || window.SyncDataService?.normalizeSyncDataIsrc?.(info?.isrc || info?.external_ids?.isrc || info?.externalIds?.isrc);
