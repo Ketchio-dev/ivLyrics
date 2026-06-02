@@ -2688,8 +2688,12 @@ const Prefetcher = {
     const isrc = await window.SyncDataService?.resolveTrackIsrc?.(trackId, metadata)
       || window.SyncDataService?.getTrackIsrc?.(trackId, metadata)
       || "";
+    if (!isrc) {
+      console.warn(`[Prefetcher] ISRC를 확인할 수 없어 영상 프리페치를 건너뜁니다: ${trackId}`);
+      return null;
+    }
 
-    const identityKey = isrc || `track:${trackId}`;
+    const identityKey = isrc;
     const cacheKey = `prefetch:video:${identityKey}`;
 
     // 이미 캐시에 있으면 스킵
@@ -2712,9 +2716,9 @@ const Prefetcher = {
         ivLyricsDebug(`[Prefetcher] Fetching video info for: ${identityKey} (fallback)`);
 
         const userHash = Utils.getUserHash();
-        // 서버가 ISRC를 보완할 수 있도록 현재 가진 트랙 메타데이터를 함께 전달
+        // 서버 캐시/추천 정확도를 위해 현재 가진 트랙 메타데이터를 함께 전달
         const youtubeApiUrlObject = new URL('https://lyrics.api.ivl.is/lyrics/youtube');
-        if (isrc) youtubeApiUrlObject.searchParams.set('isrc', isrc);
+        youtubeApiUrlObject.searchParams.set('isrc', isrc);
         youtubeApiUrlObject.searchParams.set('trackId', trackId);
         youtubeApiUrlObject.searchParams.set('userHash', userHash);
         if (metadata.trackName) {
@@ -2864,7 +2868,8 @@ const Prefetcher = {
       isrc: spotifyData?.isrc || spotifyData?.external_ids?.isrc || ""
     };
     const isrc = window.SyncDataService?.getTrackIsrc?.(trackId, metadata) || "";
-    const cacheKey = `prefetch:video:${isrc || `track:${trackId}`}`;
+    if (!isrc) return null;
+    const cacheKey = `prefetch:video:${isrc}`;
     const cached = this._prefetchCache.get(cacheKey);
 
     if (cached && Date.now() - cached.timestamp < 30 * 60 * 1000) {
@@ -6240,7 +6245,11 @@ class LyricsContainer extends react.Component {
           artist: item?.artists,
           album: item?.album?.name,
         }) || "";
-        window.SyncDataService?.clearCache(clearSyncDataIsrc || trackId, clearSyncDataIsrc ? { isrc: clearSyncDataIsrc } : {});
+        if (clearSyncDataIsrc) {
+          window.SyncDataService?.clearCache(clearSyncDataIsrc, { isrc: clearSyncDataIsrc });
+        } else {
+          window.SyncDataService?.clearCache();
+        }
       }
 
       this.updateVisualOnConfigChange();

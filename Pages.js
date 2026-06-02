@@ -12,7 +12,6 @@ function getCreatorProfileCopy() {
 		switchToLight: I18n.t("settingsUi.theme.light") || "Switch to light mode",
 		contributions: I18n.t("creatorProfile.contributions") || "Sync Contributions",
 		tracks: I18n.t("creatorProfile.tracks") || "Synced tracks",
-		totalViews: I18n.t("creatorProfile.totalViews") || "Total plays",
 		likes: I18n.t("creatorProfile.likes") || "Likes",
 		like: I18n.t("creatorProfile.like") || "Like",
 		liked: I18n.t("creatorProfile.liked") || "Liked",
@@ -574,7 +573,6 @@ const SyncCreatorProfileModal = react.memo(({
 	const initial = (displayName || copy.anonymous).charAt(0).toUpperCase();
 	const trackCount = Number(profileData.stats?.trackCount || 0);
 	const likeCount = Number(profileData.stats?.likeCount || 0);
-	const loadCreditCount = Number(profileData.stats?.loadCreditCount || 0);
 	const artistGroupCount = Number(profileData.stats?.artistGroupCount || 0);
 	const totalContributionCount = Number(profileData.pagination?.totalCount || trackCount || 0);
 	const loadedContributionCount = contributions.length;
@@ -891,12 +889,6 @@ const SyncCreatorProfileModal = react.memo(({
 							{ className: "lyrics-creator-profile-stat" },
 							react.createElement("strong", null, trackCount.toLocaleString()),
 							react.createElement("span", null, copy.tracks)
-						),
-						react.createElement(
-							"div",
-							{ className: "lyrics-creator-profile-stat" },
-							react.createElement("strong", null, loadCreditCount.toLocaleString()),
-							react.createElement("span", null, copy.totalViews)
 						),
 						react.createElement(
 							"div",

@@ -731,7 +731,6 @@ window.LANG_KO = {
     "back": "뒤로",
     "contributions": "추가한 싱크 가사",
     "tracks": "싱크 가사 수",
-    "totalViews": "총 재생",
     "likes": "좋아요",
     "like": "좋아요",
     "liked": "좋아요함",
@@ -2281,3 +2280,4 @@ window.LANG_KO = {
     "dontShowAgain": "다시 보지 않기"
   }
 };
+

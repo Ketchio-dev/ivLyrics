@@ -731,7 +731,6 @@ window.LANG_EN = {
     "back": "Back",
     "contributions": "Sync Contributions",
     "tracks": "Synced tracks",
-    "totalViews": "Total plays",
     "likes": "Likes",
     "like": "Like",
     "liked": "Liked",
@@ -2281,3 +2280,4 @@ window.LANG_EN = {
     "dontShowAgain": "Don't show again"
   }
 };
+

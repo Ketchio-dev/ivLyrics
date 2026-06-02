@@ -731,7 +731,6 @@ window.LANG_SV = {
     "back": "Tillbaka",
     "contributions": "Synkronisera bidrag",
     "tracks": "Synkroniserade spår",
-    "totalViews": "Totala spelningar",
     "likes": "Gillar",
     "like": "Gillar",
     "liked": "Gillade",
@@ -2281,3 +2280,4 @@ window.LANG_SV = {
   },
   "language": "Svenska"
 };
+

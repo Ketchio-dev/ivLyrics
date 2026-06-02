@@ -731,7 +731,6 @@ window.LANG_BN = {
     "back": "ফিরে যান",
     "contributions": "যোগ করা সিঙ্ক লিরিক্স",
     "tracks": "সিঙ্ক করা ট্র্যাক",
-    "totalViews": "মোট প্লে",
     "likes": "লাইক",
     "like": "লাইক",
     "liked": "লাইক করা",
@@ -2281,3 +2280,4 @@ window.LANG_BN = {
     "dontShowAgain": "আর দেখাবেন না"
   }
 };
+

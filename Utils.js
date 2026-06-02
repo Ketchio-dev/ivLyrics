@@ -2293,6 +2293,7 @@ const Utils = {
     const isrc = await window.SyncDataService?.resolveTrackIsrc?.(trackId, metadata)
       || window.SyncDataService?.getTrackIsrc?.(trackId, metadata)
       || "";
+    if (!isrc) return null;
 
     return { isrc, trackId, metadata };
   },
@@ -2303,7 +2304,7 @@ const Utils = {
 
     const userHash = this.getUserHash();
     const syncUrl = new URL('https://lyrics.api.ivl.is/lyrics/sync');
-    if (identity.isrc) syncUrl.searchParams.set('isrc', identity.isrc);
+    syncUrl.searchParams.set('isrc', identity.isrc);
     syncUrl.searchParams.set('trackId', identity.trackId);
     if (identity.metadata?.title) syncUrl.searchParams.set('title', identity.metadata.title);
     if (identity.metadata?.artists?.length) syncUrl.searchParams.set('artist', identity.metadata.artists.join(', '));
@@ -2336,7 +2337,7 @@ const Utils = {
   async submitCommunityOffset(trackUri, offsetMs, provider) {
     const identity = await this.getCommunityOffsetIdentity(trackUri);
     if (!identity) {
-      throw new Error("이 곡의 trackId를 확인할 수 없어 커뮤니티 오프셋을 등록할 수 없습니다.");
+      throw new Error("이 곡의 ISRC를 확인할 수 없어 커뮤니티 오프셋을 등록할 수 없습니다.");
     }
 
     const userHash = this.getUserHash();
@@ -2353,7 +2354,7 @@ const Utils = {
         method: 'POST',
         headers: this.getApiHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
-          isrc: identity.isrc || '',
+          isrc: identity.isrc,
           trackId: identity.trackId,
           title: identity.metadata?.title || '',
           artist: identity.metadata?.artists?.join(', ') || '',
@@ -2391,7 +2392,7 @@ const Utils = {
   async submitCommunityFeedback(trackUri, isPositive, provider) {
     const identity = await this.getCommunityOffsetIdentity(trackUri);
     if (!identity) {
-      throw new Error("이 곡의 trackId를 확인할 수 없어 커뮤니티 오프셋 피드백을 등록할 수 없습니다.");
+      throw new Error("이 곡의 ISRC를 확인할 수 없어 커뮤니티 오프셋 피드백을 등록할 수 없습니다.");
     }
 
     const userHash = this.getUserHash();
@@ -2401,7 +2402,7 @@ const Utils = {
         method: 'POST',
         headers: this.getApiHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
-          isrc: identity.isrc || '',
+          isrc: identity.isrc,
           trackId: identity.trackId,
           title: identity.metadata?.title || '',
           artist: identity.metadata?.artists?.join(', ') || '',
@@ -2438,11 +2439,13 @@ const Utils = {
       trackName: spotifyData?.name || "",
       title: spotifyData?.name || "",
       artists: spotifyData?.artists || [],
-      album: spotifyData?.album || spotifyData?.albumName || ""
+      album: spotifyData?.album || spotifyData?.albumName || "",
+      isrc: spotifyData?.isrc || spotifyData?.external_ids?.isrc || ""
     };
     const isrc = await window.SyncDataService?.resolveTrackIsrc?.(trackId, metadata)
       || window.SyncDataService?.getTrackIsrc?.(trackId, metadata)
       || "";
+    if (!isrc) return null;
 
     return { isrc, trackId, metadata };
   },
@@ -2461,7 +2464,7 @@ const Utils = {
     try {
       // 브라우저 캐시 우회를 위해 타임스탬프 추가
       const url = new URL('https://lyrics.api.ivl.is/lyrics/youtube/community');
-      if (identity.isrc) url.searchParams.set('isrc', identity.isrc);
+      url.searchParams.set('isrc', identity.isrc);
       url.searchParams.set('trackId', identity.trackId);
       url.searchParams.set('userId', userHash);
       if (identity.metadata?.title) url.searchParams.set('title', identity.metadata.title);
@@ -2496,7 +2499,7 @@ const Utils = {
   async submitCommunityVideo(trackUri, videoId, videoTitle, startTime = 0) {
     const identity = await this.getCommunityVideoIdentity(trackUri);
     if (!identity) {
-      throw new Error("이 곡의 trackId를 확인할 수 없어 커뮤니티 영상을 등록할 수 없습니다.");
+      throw new Error("이 곡의 ISRC를 확인할 수 없어 커뮤니티 영상을 등록할 수 없습니다.");
     }
 
     await this.requireDiscordAuth(
@@ -2509,7 +2512,7 @@ const Utils = {
         headers: this.getApiHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           action: 'submit',
-          isrc: identity.isrc || '',
+          isrc: identity.isrc,
           trackId: identity.trackId,
           title: identity.metadata?.title || '',
           artist: identity.metadata?.artists?.join(', ') || '',

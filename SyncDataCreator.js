@@ -4960,8 +4960,8 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			})
 			|| '';
 
-		if (!trackId && !resolvedTrackIsrc) {
-			Toast.error('이 곡의 trackId를 확인할 수 없어 sync-data를 등록할 수 없습니다.');
+		if (!resolvedTrackIsrc) {
+			Toast.error('이 곡의 ISRC를 확인할 수 없어 sync-data를 등록할 수 없습니다.');
 			return;
 		}
 
@@ -4994,14 +4994,12 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				}
 			} else {
 				const fallbackPayload = {
-					isrc: resolvedTrackIsrc || '',
+					isrc: resolvedTrackIsrc,
 					provider,
 					syncData: syncDataToSubmit,
-					...submitMetadata
+					...submitMetadata,
+					...(trackId ? { trackId } : {})
 				};
-				if (!resolvedTrackIsrc && trackId) {
-					fallbackPayload.trackId = trackId;
-				}
 				const response = await fetch('https://lyrics.api.ivl.is/lyrics/sync-data', {
 					method: 'POST',
 					headers: Utils.getApiHeaders({ 'Content-Type': 'application/json' }),

@@ -731,7 +731,6 @@ window.LANG_HI = {
     "back": "वापस",
     "contributions": "जोड़ी गई सिंक लिरिक्स",
     "tracks": "सिंक किए गए ट्रैक",
-    "totalViews": "कुल प्ले",
     "likes": "पसंद",
     "like": "पसंद",
     "liked": "पसंद किया गया",
@@ -2280,3 +2279,4 @@ window.LANG_HI = {
     "dontShowAgain": "दोबारा न दिखाएँ"
   }
 };
+

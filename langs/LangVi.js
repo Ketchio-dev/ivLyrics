@@ -731,7 +731,6 @@ window.LANG_VI = {
     "back": "Quay lại",
     "contributions": "Bản đồng bộ đã thêm",
     "tracks": "Bài hát đã đồng bộ",
-    "totalViews": "Tổng lượt phát",
     "likes": "Lượt thích",
     "like": "Thích",
     "liked": "Đã thích",
@@ -2281,3 +2280,4 @@ window.LANG_VI = {
     "dontShowAgain": "Không hiển thị lại"
   }
 };
+

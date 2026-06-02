@@ -11219,7 +11219,7 @@ ruby rt {
 .lyrics-creator-profile-modal[data-ui-theme="light"] .lyrics-creator-profile-stats {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0;
   margin: 18px 0 0;
   padding: 14px 6px 4px;

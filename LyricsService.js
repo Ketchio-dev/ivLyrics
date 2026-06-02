@@ -1712,7 +1712,75 @@
             );
         }
 
-        async function fetchSpclientTrackMetadataIsrc(trackGid, trackIdForLog) {
+        function findIsrcFromSpclientMetadataJson(payload) {
+            if (!payload || typeof payload !== 'object') return '';
+
+            const candidates = [
+                payload?.isrc,
+                payload?.external_ids?.isrc,
+                payload?.externalIds?.isrc,
+                payload?.external_id?.isrc
+            ];
+
+            const externalIdEntries = [
+                ...(Array.isArray(payload?.external_id) ? payload.external_id : []),
+                ...(Array.isArray(payload?.external_ids) ? payload.external_ids : []),
+                ...(Array.isArray(payload?.externalIds) ? payload.externalIds : [])
+            ];
+
+            for (const entry of externalIdEntries) {
+                const type = typeof entry?.type === 'string' ? entry.type.toLowerCase() : '';
+                if (type === 'isrc') {
+                    candidates.push(entry?.id, entry?.value);
+                }
+            }
+
+            return firstNormalizedSyncDataIsrc(...candidates);
+        }
+
+        async function fetchSpclientTrackMetadataIsrcWithRequestBuilder(trackGid, trackIdForLog) {
+            const requestBuilder = typeof Spicetify !== 'undefined' ? Spicetify.Platform?.RequestBuilder : null;
+            if (!requestBuilder?.build) {
+                throw new Error('Spicetify Platform RequestBuilder missing');
+            }
+
+            syncDataConsoleLog('resolveTrackIsrc:metadata-request', {
+                trackId: trackIdForLog,
+                gid: trackGid,
+                transport: 'platform-request-builder-json'
+            });
+
+            let builder = requestBuilder.build()
+                .withHost('https://spclient.wg.spotify.com/metadata/4')
+                .withPath(`/track/${trackGid}`)
+                .withEndpointIdentifier('/track/{hexId}')
+                .withQueryParameters({ 'response-format': 'json' });
+
+            if (typeof builder.withoutMarket === 'function') {
+                builder = builder.withoutMarket();
+            }
+
+            const response = await builder.send();
+            const status = Number(response?.status ?? response?.statusCode ?? 200);
+            const body = response?.body ?? response;
+            const payload = typeof body === 'string' ? JSON.parse(body) : body;
+            const isrc = findIsrcFromSpclientMetadataJson(payload);
+
+            syncDataConsoleLog('resolveTrackIsrc:metadata-json-response', {
+                trackId: trackIdForLog,
+                gid: trackGid,
+                status,
+                isrc: isrc || null
+            }, status >= 200 && status < 300 && isrc ? 'info' : 'warn');
+
+            if (status < 200 || status >= 300) {
+                throw new Error(`metadata request failed: ${status}`);
+            }
+
+            return isrc;
+        }
+
+        async function fetchSpclientTrackMetadataIsrcWithLegacyFetch(trackGid, trackIdForLog) {
             const token = getSpicetifySessionAccessToken();
             if (!token) {
                 throw new Error('Spicetify session access token missing');
@@ -1755,6 +1823,26 @@
                 isrc: isrc || null
             }, isrc ? 'info' : 'warn');
             return isrc;
+        }
+
+        async function fetchSpclientTrackMetadataIsrc(trackGid, trackIdForLog) {
+            try {
+                const isrc = await fetchSpclientTrackMetadataIsrcWithRequestBuilder(trackGid, trackIdForLog);
+                if (isrc) return isrc;
+
+                syncDataConsoleLog('resolveTrackIsrc:metadata-json-missing-isrc', {
+                    trackId: trackIdForLog,
+                    gid: trackGid
+                }, 'warn');
+            } catch (error) {
+                syncDataConsoleLog('resolveTrackIsrc:metadata-requestbuilder-error', {
+                    trackId: trackIdForLog,
+                    gid: trackGid,
+                    message: error?.message || String(error)
+                }, 'warn');
+            }
+
+            return await fetchSpclientTrackMetadataIsrcWithLegacyFetch(trackGid, trackIdForLog);
         }
 
         function getTrackIdFromInput(trackId, metadata = {}) {
@@ -1896,7 +1984,7 @@
                         status: error?.status || error?.statusCode || null,
                         message: error?.message || String(error)
                     }, 'warn');
-                    window.__ivLyricsDebugLog?.('[SyncDataService] Failed to resolve ISRC from Spotify track API', {
+                    window.__ivLyricsDebugLog?.('[SyncDataService] Failed to resolve ISRC from Spotify spclient metadata', {
                         trackId: normalizedTrackId,
                         status: error?.status || error?.statusCode,
                         message: error?.message || String(error)
@@ -1926,11 +2014,11 @@
         function buildSyncDataIdentity(trackId, metadata = {}, isrcValue = '') {
             const trackIdentity = getTrackIdFromInput(trackId, metadata);
             const isrc = normalizeSyncDataIsrc(isrcValue);
-            if (!isrc && !trackIdentity) {
+            if (!isrc) {
                 return null;
             }
             return {
-                isrc: isrc || '',
+                isrc,
                 trackId: trackIdentity || null
             };
         }
@@ -2000,17 +2088,17 @@
         }
 
         function appendSyncDataQueryParams(url, identity, metadata = {}, provider = null) {
-            if (identity.isrc) {
-                url.searchParams.set('isrc', identity.isrc);
-            } else if (identity.trackId) {
-                url.searchParams.set('trackId', identity.trackId);
+            const isrc = normalizeSyncDataIsrc(identity?.isrc);
+            if (!isrc) {
+                throw new Error(getMissingIsrcMessage());
             }
+            url.searchParams.set('isrc', isrc);
             if (provider) {
                 url.searchParams.set('provider', provider);
             }
 
             const trackMetadata = getSyncDataTrackMetadata(identity.trackId, metadata);
-            const metadataTrackId = identity.isrc ? '' : trackMetadata.trackId;
+            const metadataTrackId = trackMetadata.trackId;
             const identityKey = getSyncDataIdentityCacheKey(identity);
             const shouldReportMetadata = !_syncTrackMetadataReported.has(identityKey)
                 && (metadataTrackId || trackMetadata.title || trackMetadata.artist || trackMetadata.album);
@@ -2028,7 +2116,7 @@
 
         function getSyncDataIdentityCacheKey(identity) {
             if (!identity) return '';
-            return identity.isrc || (identity.trackId ? `track:${identity.trackId}` : '');
+            return normalizeSyncDataIsrc(identity.isrc);
         }
 
         function getSyncDataIdentityKey(trackId, metadata = {}) {
@@ -2048,7 +2136,7 @@
         }
 
         function getMissingIsrcMessage() {
-            return '이 곡의 trackId를 확인할 수 없어 sync-data를 사용할 수 없습니다.';
+            return '이 곡의 ISRC를 확인할 수 없어 sync-data를 사용할 수 없습니다.';
         }
 
         async function getAvailableProviders(trackId, metadata = {}) {
@@ -2125,7 +2213,7 @@
                     trackId: getTrackIdFromInput(trackId, metadata) || trackId || null,
                     provider: provider || null
                 }, 'warn');
-                window.__ivLyricsDebugLog?.('[SyncDataService] Missing track identity for sync-data lookup', { trackId, provider });
+                window.__ivLyricsDebugLog?.('[SyncDataService] Missing ISRC for sync-data lookup', { trackId, provider });
                 return null;
             }
             const identityKey = getSyncDataIdentityCacheKey(identity);
@@ -2313,6 +2401,33 @@
             };
         }
 
+        async function fetchSpotifyWebApiJsonWithRequestBuilder(apiPath, endpointIdentifier, queryParameters = {}) {
+            const requestBuilder = typeof Spicetify !== 'undefined' ? Spicetify.Platform?.RequestBuilder : null;
+            if (!requestBuilder?.build) {
+                throw new Error('Spicetify Platform RequestBuilder missing');
+            }
+
+            let builder = requestBuilder.build()
+                .withHost('https://api.spotify.com')
+                .withPath(apiPath)
+                .withEndpointIdentifier(endpointIdentifier);
+
+            if (queryParameters && Object.keys(queryParameters).length > 0) {
+                builder = builder.withQueryParameters(queryParameters);
+            }
+            if (typeof builder.withoutMarket === 'function') {
+                builder = builder.withoutMarket();
+            }
+
+            const response = await builder.send();
+            const status = Number(response?.status ?? response?.statusCode ?? 200);
+            if (status < 200 || status >= 300) {
+                throw new Error(`Spotify Web API request failed: ${status}`);
+            }
+            const body = response?.body ?? response;
+            return typeof body === 'string' ? JSON.parse(body) : body;
+        }
+
         async function getCurrentSpotifyProfile() {
             if (_spotifyProfilePromise) {
                 return _spotifyProfilePromise;
@@ -2329,6 +2444,14 @@
                         }
                     } catch (error) {
                         console.warn('[SyncDataService] Failed to read Spotify profile from Platform.UserAPI', error);
+                    }
+
+                    try {
+                        const requestBuilderProfile = await fetchSpotifyWebApiJsonWithRequestBuilder('/v1/me', '/v1/me');
+                        const normalized = normalizeSpotifyProfile(requestBuilderProfile);
+                        if (normalized) return normalized;
+                    } catch (error) {
+                        console.warn('[SyncDataService] Failed to read Spotify profile from RequestBuilder', error);
                     }
 
                     try {
@@ -2353,7 +2476,7 @@
         async function submitSyncData(trackId, provider, syncData, metadata = {}) {
             const identity = await resolveSyncDataIdentity(trackId, metadata);
             if (!identity) {
-                throw new Error('이 곡의 trackId를 확인할 수 없어 sync-data를 등록할 수 없습니다.');
+                throw new Error('이 곡의 ISRC를 확인할 수 없어 sync-data를 등록할 수 없습니다.');
             }
 
             const userHash = getUserHash();
@@ -2400,7 +2523,7 @@
                     ...(submitAuthToken ? { Authorization: `Bearer ${submitAuthToken}` } : {}),
                 },
                 body: JSON.stringify({
-                    isrc: identity.isrc || '',
+                    isrc: identity.isrc,
                     ...(identity.trackId ? { trackId: identity.trackId } : {}),
                     provider,
                     syncData,
@@ -2427,7 +2550,7 @@
                     expiresAt: Date.now() + ISRC_LOOKUP_SUCCESS_TTL_MS
                 });
             }
-            clearCache(resolvedResultIsrc || identity.isrc || (identity.trackId ? `track:${identity.trackId}` : ''));
+            clearCache(resolvedResultIsrc || identity.isrc);
             return result;
         }
 
@@ -5332,8 +5455,13 @@
             if (!trackId || !provider) return null;
 
             const isrc = window.SyncDataService?.normalizeSyncDataIsrc?.(metadata?.isrc)
+                || await window.SyncDataService?.resolveTrackIsrc?.(trackId, metadata)
                 || window.SyncDataService?.getTrackIsrc?.(trackId, metadata)
                 || '';
+            if (!isrc) {
+                console.warn(`[LyricsService] ISRC를 확인할 수 없어 sync data 요청을 건너뜁니다 (${provider})`);
+                return null;
+            }
 
             try {
                 if (window.SyncDataService?.getSyncData) {
@@ -5341,11 +5469,8 @@
                 }
 
                 const url = new URL('https://lyrics.api.ivl.is/lyrics/sync-data');
-                if (isrc) {
-                    url.searchParams.set('isrc', isrc);
-                } else {
-                    url.searchParams.set('trackId', trackId);
-                }
+                url.searchParams.set('isrc', isrc);
+                url.searchParams.set('trackId', trackId);
                 url.searchParams.set('provider', provider);
                 if (metadata?.title || metadata?.trackName || metadata?.name) {
                     url.searchParams.set('title', metadata.title || metadata.trackName || metadata.name);
@@ -5378,7 +5503,7 @@
                     }
                 }
             } catch (e) {
-                console.warn(`[LyricsService] Failed to fetch sync data for ${isrc || trackId} (${provider}):`, e);
+                console.warn(`[LyricsService] Failed to fetch sync data for ${isrc} (${provider}):`, e);
             }
             return null;
         },
@@ -5396,15 +5521,27 @@
 
             const trackId = Utils.extractTrackId(result.uri);
             const spotifyData = window.SpotifyDataHelper?.extractSpotifyData?.(result.uri);
-            const trackIsrc = window.SyncDataService?.normalizeSyncDataIsrc?.(
+            let trackIsrc = window.SyncDataService?.normalizeSyncDataIsrc?.(
                 result.isrc ||
                 result.external_ids?.isrc ||
                 result.externalIds?.isrc ||
                 result.track?.external_ids?.isrc ||
                 spotifyData?.isrc
             );
+            if (!trackIsrc) {
+                trackIsrc = await window.SyncDataService?.resolveTrackIsrc?.(trackId, {
+                    ...result,
+                    trackId,
+                    title: result.name || result.title || spotifyData?.name || '',
+                    artist: result.artist || result.artists || spotifyData?.artists || '',
+                    album: result.album || result.albumName || spotifyData?.album || spotifyData?.albumName || ''
+                }) || '';
+            }
+            if (!trackIsrc) {
+                return result;
+            }
             const syncData = await this.getIvLyricsSyncData(trackId, result.provider, {
-                isrc: trackIsrc || '',
+                isrc: trackIsrc,
                 trackId,
                 title: result.name || result.title || spotifyData?.name || '',
                 artist: result.artist || result.artists || spotifyData?.artists || '',

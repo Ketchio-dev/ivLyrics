@@ -731,7 +731,6 @@ window.LANG_MS = {
     "back": "Kembali",
     "contributions": "Lirik Senada yang Ditambah",
     "tracks": "Bilangan Lirik Senada",
-    "totalViews": "Jumlah main",
     "likes": "Suka",
     "like": "Suka",
     "liked": "Disukai",
@@ -2290,3 +2289,4 @@ window.LANG_MS = {
     "dontShowAgain": "Jangan tunjukkan lagi"
   }
 };
+

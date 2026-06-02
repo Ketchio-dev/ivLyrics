@@ -211,13 +211,45 @@ const FullscreenOverlay = (() => {
 
                         imageUrl = toFullImageUrl(imageUrl);
 
+                        const fetchSpotifyWebApiJson = async (apiPath, endpointIdentifier, queryParameters, fallbackUrl) => {
+                            try {
+                                const requestBuilder = Spicetify?.Platform?.RequestBuilder;
+                                if (requestBuilder?.build) {
+                                    let builder = requestBuilder.build()
+                                        .withHost('https://api.spotify.com')
+                                        .withPath(apiPath)
+                                        .withEndpointIdentifier(endpointIdentifier)
+                                        .withQueryParameters(queryParameters);
+
+                                    if (typeof builder.withoutMarket === 'function') {
+                                        builder = builder.withoutMarket();
+                                    }
+
+                                    const response = await builder.send();
+                                    const status = Number(response?.status ?? response?.statusCode ?? 200);
+                                    if (status >= 200 && status < 300) {
+                                        const body = response?.body ?? response;
+                                        return typeof body === 'string' ? JSON.parse(body) : body;
+                                    }
+                                    throw new Error(`Spotify Web API request failed: ${status}`);
+                                }
+                            } catch (requestBuilderError) {
+                                console.debug("Failed to fetch Spotify API data with RequestBuilder:", requestBuilderError);
+                            }
+
+                            return await Spicetify.CosmosAsync.get(fallbackUrl);
+                        };
+
                         // If still no valid image, try to fetch from context URI
                         if (!imageUrl && context.uri) {
                             try {
                                 const uri = context.uri;
                                 if (uri.includes("playlist:")) {
                                     const playlistId = uri.split(":").pop();
-                                    const playlistData = await Spicetify.CosmosAsync.get(
+                                    const playlistData = await fetchSpotifyWebApiJson(
+                                        `/v1/playlists/${playlistId}`,
+                                        '/v1/playlists/{playlistId}',
+                                        { fields: 'images' },
                                         `https://api.spotify.com/v1/playlists/${playlistId}?fields=images`
                                     );
                                     if (playlistData?.images?.[0]?.url) {
@@ -225,7 +257,10 @@ const FullscreenOverlay = (() => {
                                     }
                                 } else if (uri.includes("album:")) {
                                     const albumId = uri.split(":").pop();
-                                    const albumData = await Spicetify.CosmosAsync.get(
+                                    const albumData = await fetchSpotifyWebApiJson(
+                                        `/v1/albums/${albumId}`,
+                                        '/v1/albums/{albumId}',
+                                        { fields: 'images' },
                                         `https://api.spotify.com/v1/albums/${albumId}?fields=images`
                                     );
                                     if (albumData?.images?.[0]?.url) {

@@ -731,7 +731,6 @@ window.LANG_ZH_CN = {
     "back": "返回",
     "contributions": "已添加的同步歌词",
     "tracks": "同步歌词数",
-    "totalViews": "总播放",
     "likes": "点赞",
     "like": "点赞",
     "liked": "已点赞",
@@ -2281,3 +2280,4 @@ window.LANG_ZH_CN = {
     "dontShowAgain": "不再显示"
   }
 };
+

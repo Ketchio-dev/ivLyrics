@@ -731,7 +731,6 @@ window.LANG_ES = {
     "back": "Volver",
     "contributions": "Sincronizaciones aportadas",
     "tracks": "Canciones sincronizadas",
-    "totalViews": "Reproducciones totales",
     "likes": "Me gusta",
     "like": "Me gusta",
     "liked": "Te gusta",
@@ -2281,3 +2280,4 @@ window.LANG_ES = {
     "dontShowAgain": "No mostrar de nuevo"
   }
 };
+

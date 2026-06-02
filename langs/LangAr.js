@@ -731,7 +731,6 @@ window.LANG_AR = {
     "back": "رجوع",
     "contributions": "المزامنات المضافة",
     "tracks": "المقاطع المتزامنة",
-    "totalViews": "إجمالي التشغيلات",
     "likes": "الإعجابات",
     "like": "إعجاب",
     "liked": "مُعجب به",
@@ -2280,3 +2279,4 @@ window.LANG_AR = {
     "dontShowAgain": "عدم الإظهار مجددًا"
   }
 };
+

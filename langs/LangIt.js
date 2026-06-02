@@ -731,7 +731,6 @@ window.LANG_IT = {
     "back": "Indietro",
     "contributions": "Sync aggiunte",
     "tracks": "Brani sincronizzati",
-    "totalViews": "Riproduzioni totali",
     "likes": "Mi piace",
     "like": "Mi piace",
     "liked": "Piaciuto",
@@ -2281,3 +2280,4 @@ window.LANG_IT = {
     "dontShowAgain": "Non mostrare più"
   }
 };
+

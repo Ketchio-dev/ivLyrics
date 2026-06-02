@@ -731,7 +731,6 @@ window.LANG_FA = {
     "back": "بازگشت",
     "contributions": "همگام‌سازی‌های افزوده‌شده",
     "tracks": "آهنگ‌های همگام‌شده",
-    "totalViews": "کل پخش‌ها",
     "likes": "پسندها",
     "like": "پسند",
     "liked": "پسندیده‌شده",
@@ -2280,3 +2279,4 @@ window.LANG_FA = {
     "dontShowAgain": "دیگر نمایش نده"
   }
 };
+

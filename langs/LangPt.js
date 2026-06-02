@@ -731,7 +731,6 @@ window.LANG_PT = {
     "back": "Voltar",
     "contributions": "Sincronizações adicionadas",
     "tracks": "Faixas sincronizadas",
-    "totalViews": "Reproduções totais",
     "likes": "Curtidas",
     "like": "Curtir",
     "liked": "Curtido",
@@ -2281,3 +2280,4 @@ window.LANG_PT = {
     "dontShowAgain": "Não mostrar novamente"
   }
 };
+

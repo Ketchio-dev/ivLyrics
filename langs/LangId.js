@@ -731,7 +731,6 @@ window.LANG_ID = {
     "back": "Kembali",
     "contributions": "Sinkronisasi yang ditambahkan",
     "tracks": "Track tersinkron",
-    "totalViews": "Total pemutaran",
     "likes": "Suka",
     "like": "Suka",
     "liked": "Disukai",
@@ -2280,3 +2279,4 @@ window.LANG_ID = {
     "dontShowAgain": "Jangan tampilkan lagi"
   }
 };
+

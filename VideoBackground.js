@@ -258,28 +258,33 @@ const VideoBackground = ({ trackUri, firstLyricTime, brightness, blurAmount, cov
             const trackIsrc = await window.SyncDataService?.resolveTrackIsrc?.(trackId, trackMetadata)
                 || window.SyncDataService?.getTrackIsrc?.(trackId, trackMetadata)
                 || "";
+            if (!trackIsrc) {
+                if (!isMounted) return;
+                setIsLoading(false);
+                setVideoInfo(null);
+                setStatusMessage("이 곡의 ISRC를 확인할 수 없어 영상 배경을 불러올 수 없습니다.");
+                return;
+            }
 
             // 3. 로컬 캐시 확인 (IndexedDB)
-            if (trackIsrc) {
-                try {
-                    const cachedYouTube = await LyricsCache.getYouTube(trackIsrc);
-                    if (cachedYouTube && isMounted) {
-                        videoBackgroundDebug(`[VideoBackground] Using cached YouTube info for ISRC: ${trackIsrc}`);
-                        // 캐시 히트 로깅
-                        if (window.ApiTracker) {
-                            window.ApiTracker.logCacheHit('youtube', `youtube:${trackIsrc}`, {
-                                videoId: cachedYouTube.youtubeVideoId,
-                                hasCaption: cachedYouTube.captionStartTime != null
-                            });
-                        }
-                        setIsLoading(false);
-                        setVideoInfo(cachedYouTube);
-                        setStatusMessage("");
-                        return;
+            try {
+                const cachedYouTube = await LyricsCache.getYouTube(trackIsrc);
+                if (cachedYouTube && isMounted) {
+                    videoBackgroundDebug(`[VideoBackground] Using cached YouTube info for ISRC: ${trackIsrc}`);
+                    // 캐시 히트 로깅
+                    if (window.ApiTracker) {
+                        window.ApiTracker.logCacheHit('youtube', `youtube:${trackIsrc}`, {
+                            videoId: cachedYouTube.youtubeVideoId,
+                            hasCaption: cachedYouTube.captionStartTime != null
+                        });
                     }
-                } catch (e) {
-                    console.warn('[VideoBackground] Cache check failed:', e);
+                    setIsLoading(false);
+                    setVideoInfo(cachedYouTube);
+                    setStatusMessage("");
+                    return;
                 }
+            } catch (e) {
+                console.warn('[VideoBackground] Cache check failed:', e);
             }
 
             // 4. 캐시가 없으면 API 호출 (커뮤니티 우선)
@@ -292,7 +297,7 @@ const VideoBackground = ({ trackUri, firstLyricTime, brightness, blurAmount, cov
                     "unknown";
                 const useCommunity = true;
                 const youtubeApiUrl = new URL('https://lyrics.api.ivl.is/lyrics/youtube');
-                if (trackIsrc) youtubeApiUrl.searchParams.set('isrc', trackIsrc);
+                youtubeApiUrl.searchParams.set('isrc', trackIsrc);
                 youtubeApiUrl.searchParams.set('trackId', trackId);
                 youtubeApiUrl.searchParams.set('userHash', userHash);
                 youtubeApiUrl.searchParams.set('useCommunity', useCommunity ? "true" : "false");

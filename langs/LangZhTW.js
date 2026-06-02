@@ -731,7 +731,6 @@ window.LANG_ZH_TW = {
     "back": "返回",
     "contributions": "已新增的同步歌詞",
     "tracks": "同步歌詞數",
-    "totalViews": "總播放",
     "likes": "喜歡",
     "like": "喜歡",
     "liked": "已喜歡",
@@ -2281,3 +2280,4 @@ window.LANG_ZH_TW = {
     "dontShowAgain": "不再顯示"
   }
 };
+

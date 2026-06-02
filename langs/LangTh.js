@@ -731,7 +731,6 @@ window.LANG_TH = {
     "back": "ย้อนกลับ",
     "contributions": "ซิงก์ที่เพิ่มไว้",
     "tracks": "เพลงที่ซิงก์แล้ว",
-    "totalViews": "จำนวนการเล่นทั้งหมด",
     "likes": "ถูกใจ",
     "like": "ถูกใจ",
     "liked": "ถูกใจแล้ว",
@@ -2281,3 +2280,4 @@ window.LANG_TH = {
     "dontShowAgain": "ไม่ต้องแสดงอีก"
   }
 };
+

@@ -731,7 +731,6 @@ window.LANG_FR = {
     "back": "Retour",
     "contributions": "Synchronisations ajoutées",
     "tracks": "Titres synchronisés",
-    "totalViews": "Lectures totales",
     "likes": "Likes",
     "like": "Aimer",
     "liked": "Aimé",
@@ -2281,3 +2280,4 @@ window.LANG_FR = {
     "dontShowAgain": "Ne plus afficher"
   }
 };
+

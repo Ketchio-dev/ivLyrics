@@ -731,7 +731,6 @@ window.LANG_JA = {
     "back": "戻る",
     "contributions": "追加した同期歌詞",
     "tracks": "同期歌詞数",
-    "totalViews": "総再生",
     "likes": "いいね",
     "like": "いいね",
     "liked": "いいね済み",
@@ -2281,3 +2280,4 @@ window.LANG_JA = {
     "dontShowAgain": "今後表示しない"
   }
 };
+
