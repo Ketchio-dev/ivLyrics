@@ -9,11 +9,13 @@ const SYNC_CREATOR_KANJI_REGEX = /[\u3400-\u4dbf\u4e00-\u9fff]/u;
 const SYNC_CREATOR_JAPANESE_ATTACH_KANA_REGEX = /^[\u3041\u3043\u3045\u3047\u3049\u3063\u3083\u3085\u3087\u308e\u3093\u3095\u3096\u30a1\u30a3\u30a5\u30a7\u30a9\u30c3\u30e3\u30e5\u30e7\u30ee\u30f3\u30f5\u30f6\u30fc\uff67-\uff70\uff9d]$/u;
 const SYNC_CREATOR_HANGUL_JAMO_ONLY_REGEX = /^[\u3131-\u3163\u1100-\u11ff]+$/u;
 const SYNC_CREATOR_SPEAKER_OPTIONS = [
+	'NORMAL',
 	...Array.from({ length: 5 }, (_, index) => `MALE ${index + 1}`),
 	...Array.from({ length: 5 }, (_, index) => `FEMALE ${index + 1}`),
 	...Array.from({ length: 5 }, (_, index) => `DUET ${index + 1}`)
 ];
 const SYNC_CREATOR_SPEAKER_TEXT_COLORS = {
+	'NORMAL': '#f2f4f7',
 	'MALE 1': '#e6f2ff',
 	'MALE 2': '#d7ecff',
 	'MALE 3': '#edf7ff',
@@ -30,7 +32,7 @@ const SYNC_CREATOR_SPEAKER_TEXT_COLORS = {
 	'DUET 4': '#dec9ff',
 	'DUET 5': '#e9dcff'
 };
-const SYNC_CREATOR_DEFAULT_SPEAKER = 'MALE 1';
+const SYNC_CREATOR_DEFAULT_SPEAKER = 'NORMAL';
 const SYNC_CREATOR_DEFAULT_KIND = 'vocal';
 const SYNC_CREATOR_MAX_MERGED_LINES = 5;
 const SYNC_CREATOR_SYNC_DATA_VERSION = 3;
@@ -241,6 +243,7 @@ const normalizeSyncCreatorSpeaker = (value) => {
 		.replace(/[_-]+/g, ' ')
 		.replace(/\s+/g, ' ')
 		.toUpperCase();
+	if (/^NORMAL(?:\s+1)?$/.test(normalized)) return 'NORMAL';
 	return SYNC_CREATOR_SPEAKER_OPTIONS.includes(normalized) ? normalized : '';
 };
 
@@ -6184,6 +6187,16 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 	const getSpeakerTone = (speaker) => {
 		const value = String(speaker || '').toUpperCase();
 		const text = getSyncCreatorSpeakerTextColor(value);
+		if (value.startsWith('NORMAL')) {
+			return {
+				text,
+				dot: text,
+				background: 'rgba(148, 163, 184, 0.105)',
+				border: 'rgba(148, 163, 184, 0.25)',
+				borderActive: 'rgba(148, 163, 184, 0.58)',
+				ring: 'rgba(148, 163, 184, 0.16)'
+			};
+		}
 		if (value.startsWith('FEMALE')) {
 			return {
 				text,
@@ -6216,6 +6229,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 
 	const renderSpeakerPicker = (selectedSpeaker, onSelect) => {
 		const groups = [
+			{ title: 'NORMAL', values: SYNC_CREATOR_SPEAKER_OPTIONS.filter(value => value.startsWith('NORMAL')) },
 			{ title: 'MALE', values: SYNC_CREATOR_SPEAKER_OPTIONS.filter(value => value.startsWith('MALE')) },
 			{ title: 'FEMALE', values: SYNC_CREATOR_SPEAKER_OPTIONS.filter(value => value.startsWith('FEMALE')) },
 			{ title: 'DUET', values: SYNC_CREATOR_SPEAKER_OPTIONS.filter(value => value.startsWith('DUET')) }
