@@ -1596,6 +1596,15 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		spotifyDataForTrack?.album ||
 		spotifyDataForTrack?.albumName ||
 		'';
+	const trackDurationMs = Math.max(0, Math.round(Number(
+		trackInfo?.duration?.milliseconds
+		|| trackInfo?.durationMs
+		|| trackInfo?.duration_ms
+		|| trackInfo?.duration
+		|| Spicetify.Player?.data?.item?.duration?.milliseconds
+		|| Spicetify.Player?.getDuration?.()
+		|| 0
+	) || 0));
 	const isVirtualKaraokeSource =
 		lyrics?.karaokeSource === 'spotify-audio-analysis' ||
 		lyrics?.karaokeSource === 'audio-analysis-pseudo';
@@ -4920,6 +4929,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 
 		const syncDataToSubmit = attachSelectedLrclibSource({
 			...syncData,
+			...(trackDurationMs > 0 ? { trackDurationMs } : {}),
 			lines: syncData.lines.map(line => {
 				const speaker = normalizeSyncCreatorSpeaker(line.speaker) || SYNC_CREATOR_DEFAULT_SPEAKER;
 				const kind = normalizeSyncCreatorKind(line.kind) || SYNC_CREATOR_DEFAULT_KIND;
@@ -4972,7 +4982,8 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				isrc: resolvedTrackIsrc,
 				title: trackName,
 				artist: artistName,
-				album: albumName
+				album: albumName,
+				...(trackDurationMs > 0 ? { durationMs: trackDurationMs } : {})
 			};
 			if (typeof SyncDataService !== 'undefined' && SyncDataService.submitSyncData) {
 				const result = await SyncDataService.submitSyncData(trackId, provider, syncDataToSubmit, submitMetadata);

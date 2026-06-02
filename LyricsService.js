@@ -2078,13 +2078,34 @@
                 currentItem?.album?.name ||
                 currentItem?.metadata?.album_title
             );
+            const durationMs = normalizeSyncDataDurationMs(
+                metadata?.durationMs,
+                metadata?.trackDurationMs,
+                metadata?.duration_ms,
+                metadata?.duration?.milliseconds,
+                metadata?.duration,
+                currentItem?.duration?.milliseconds,
+                Spicetify.Player?.getDuration?.()
+            );
 
             return {
                 trackId: normalizeSyncDataTrackId(trackId),
                 title,
                 artist,
-                album
+                album,
+                durationMs
             };
+        }
+
+        function normalizeSyncDataDurationMs(...values) {
+            for (const value of values) {
+                if (value === null || value === undefined || value === '') continue;
+                const numeric = Number(value);
+                if (Number.isFinite(numeric) && numeric > 0 && numeric <= 86400 * 1000) {
+                    return Math.round(numeric);
+                }
+            }
+            return 0;
         }
 
         function appendSyncDataQueryParams(url, identity, metadata = {}, provider = null) {
@@ -2487,6 +2508,7 @@
             const title = trackMetadata.title;
             const artist = trackMetadata.artist;
             const album = trackMetadata.album;
+            const durationMs = trackMetadata.durationMs;
             const spotifyProfile = await getCurrentSpotifyProfile();
 
             if (typeof Utils !== "undefined" && Utils.requireDiscordAuth) {
@@ -2530,6 +2552,7 @@
                     ...(title ? { title } : {}),
                     ...(artist ? { artist } : {}),
                     ...(album ? { album } : {}),
+                    ...(durationMs ? { durationMs } : {}),
                     ...(spotifyProfile?.id ? {
                         spotifyUserId: spotifyProfile.id,
                         ...(spotifyProfile.displayName ? { spotifyDisplayName: spotifyProfile.displayName } : {})
