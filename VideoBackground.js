@@ -289,7 +289,6 @@ const VideoBackground = ({ trackUri, firstLyricTime, brightness, blurAmount, cov
 
             // 4. 캐시가 없으면 API 호출 (커뮤니티 우선)
             try {
-                const userHash = Utils.getUserHash();
                 // 백엔드 엔드포인트: /lyrics/youtube (트랙 메타데이터 포함)
                 const clientVersion =
                     (typeof Utils !== "undefined" && Utils.currentVersion) ||
@@ -299,7 +298,6 @@ const VideoBackground = ({ trackUri, firstLyricTime, brightness, blurAmount, cov
                 const youtubeApiUrl = new URL('https://lyrics.api.ivl.is/lyrics/youtube');
                 youtubeApiUrl.searchParams.set('isrc', trackIsrc);
                 youtubeApiUrl.searchParams.set('trackId', trackId);
-                youtubeApiUrl.searchParams.set('userHash', userHash);
                 youtubeApiUrl.searchParams.set('useCommunity', useCommunity ? "true" : "false");
                 youtubeApiUrl.searchParams.set('client', 'ivLyrics');
                 youtubeApiUrl.searchParams.set('clientVersion', clientVersion);
@@ -322,16 +320,16 @@ const VideoBackground = ({ trackUri, firstLyricTime, brightness, blurAmount, cov
                 // API 요청 로깅
                 let logId = null;
                 if (window.ApiTracker) {
-                    logId = window.ApiTracker.logRequest('youtube', youtubeUrl, { trackId, userHash });
+                    logId = window.ApiTracker.logRequest('youtube', youtubeUrl, { trackId });
                 }
 
                 const res = await fetch(youtubeUrl, {
                     cache: "no-store",
-                    headers: Utils.getApiHeaders({
+                    headers: {
                         "X-ivLyrics-Client": "ivLyrics",
                         "X-ivLyrics-Request-Version": "2",
                         "X-ivLyrics-Client-Version": clientVersion
-                    })
+                    }
                 });
                 const data = await res.json();
 

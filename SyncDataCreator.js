@@ -36,6 +36,9 @@ const SYNC_CREATOR_DEFAULT_SPEAKER = 'NORMAL';
 const SYNC_CREATOR_DEFAULT_KIND = 'vocal';
 const SYNC_CREATOR_MAX_MERGED_LINES = 5;
 const SYNC_CREATOR_SYNC_DATA_VERSION = 3;
+const SYNC_CREATOR_ACTIVE_POSITION_UPDATE_INTERVAL_MS = 100;
+const SYNC_CREATOR_IDLE_POSITION_UPDATE_INTERVAL_MS = 250;
+const SYNC_CREATOR_POSITION_COMMIT_THRESHOLD_MS = 80;
 const normalizeSyncCreatorIsrc = (value) => {
 	if (typeof value !== 'string') return '';
 	const normalized = value.trim().replace(/[\s-]/g, '').toUpperCase();
@@ -1567,7 +1570,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 	// Refs
 	const containerRef = useRef(null);
 	const lyricsScrollRef = useRef(null);
-	const animationRef = useRef(null);
+	const positionUpdateTimerRef = useRef(null);
 	const charTimesRef = useRef([]);
 	const charElementsRef = useRef([]);
 	const rtlTextRunRef = useRef(null);
@@ -2078,6 +2081,11 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		});
 		return offsets;
 	}, [lyricsLines]);
+	const lineIndexByStart = useMemo(() => {
+		const map = new Map();
+		lineCharOffsets.forEach((start, index) => map.set(start, index));
+		return map;
+	}, [lineCharOffsets]);
 
 	const currentLineStart = lineCharOffsets[currentLineIndex] ?? 0;
 	const currentBaseLineChars = useMemo(() => {
@@ -2943,9 +2951,20 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 
 	// 재생 위치 업데이트 + 미리보기 자동 줄 이동
 	useEffect(() => {
+		let lastCommittedPosition = -1;
+
 		const updatePosition = () => {
-			const pos = Spicetify.Player.getProgress();
-			setPosition(pos);
+			const pos = Number(Spicetify.Player?.getProgress?.() || 0);
+			if (!Number.isFinite(pos)) return;
+
+			if (
+				lastCommittedPosition < 0
+				|| Math.abs(pos - lastCommittedPosition) >= SYNC_CREATOR_POSITION_COMMIT_THRESHOLD_MS
+				|| pos === 0
+			) {
+				lastCommittedPosition = pos;
+				setPosition(pos);
+			}
 
 			if (mode === 'preview' && syncData && syncData.lines) {
 				const currentTimeSec = pos / 1000;
@@ -2953,10 +2972,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				for (let i = syncData.lines.length - 1; i >= 0; i--) {
 					const lineData = syncData.lines[i];
 					if (lineData.chars && lineData.chars[0] <= currentTimeSec) {
-						const lineIdx = lyricsLines.findIndex((_, idx) => {
-							const lineStart = lineCharOffsets[idx];
-							return lineData.start === lineStart;
-						});
+						const lineIdx = lineIndexByStart.get(lineData.start) ?? -1;
 
 						if (lineIdx >= 0 && lineIdx !== currentLineIndex) {
 							setCurrentLineIndex(lineIdx);
@@ -2968,18 +2984,21 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 					}
 				}
 			}
-
-			animationRef.current = requestAnimationFrame(updatePosition);
 		};
 
-		animationRef.current = requestAnimationFrame(updatePosition);
+		updatePosition();
+		const intervalMs = mode === 'preview' || mode === 'record'
+			? SYNC_CREATOR_ACTIVE_POSITION_UPDATE_INTERVAL_MS
+			: SYNC_CREATOR_IDLE_POSITION_UPDATE_INTERVAL_MS;
+		positionUpdateTimerRef.current = setInterval(updatePosition, intervalMs);
 
 		return () => {
-			if (animationRef.current) {
-				cancelAnimationFrame(animationRef.current);
+			if (positionUpdateTimerRef.current) {
+				clearInterval(positionUpdateTimerRef.current);
+				positionUpdateTimerRef.current = null;
 			}
 		};
-	}, [mode, syncData, lyricsLines, lineCharOffsets, currentLineIndex]);
+	}, [mode, syncData, lineIndexByStart, currentLineIndex]);
 
 	const autoScroll = useCallback((charIndex) => {
 		if (!lyricsScrollRef.current || charIndex < 0) return;
