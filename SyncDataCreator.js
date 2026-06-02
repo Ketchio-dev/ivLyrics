@@ -1024,6 +1024,121 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		}, []);
 	};
 
+	const isSyncCreatorRangeGapFullyHidden = (hiddenRanges, gapStart, gapEnd) => {
+		if (gapStart > gapEnd || !Array.isArray(hiddenRanges) || hiddenRanges.length === 0) return false;
+
+		let cursor = gapStart;
+		for (const hiddenRange of hiddenRanges) {
+			const start = Number(hiddenRange?.start);
+			const end = Number(hiddenRange?.end);
+			if (!Number.isInteger(start) || !Number.isInteger(end) || end < start) return false;
+			if (end < cursor) continue;
+			if (start > cursor) return false;
+			cursor = Math.max(cursor, end + 1);
+			if (cursor > gapEnd) return true;
+		}
+
+		return false;
+	};
+
+	const getNextSyncCreatorPartId = (usedIds) => {
+		for (const label of 'abcdefghijklmnopqrstuvwxyz') {
+			if (!usedIds.has(label)) {
+				usedIds.add(label);
+				return label;
+			}
+		}
+
+		let index = 1;
+		while (index <= 16) {
+			const id = `p${index}`;
+			if (!usedIds.has(id)) {
+				usedIds.add(id);
+				return id;
+			}
+			index++;
+		}
+
+		return null;
+	};
+
+	const splitSyncCreatorHiddenDelimitedParallelPart = (part, hiddenRanges, usedIds) => {
+		if (
+			!part
+			|| typeof part !== 'object'
+			|| part.role !== 'background'
+			|| typeof part.id !== 'string'
+			|| !Array.isArray(part.ranges)
+			|| part.ranges.length < 2
+			|| !Array.isArray(part.join)
+			|| part.join.length !== part.ranges.length - 1
+			|| !part.join.every(joinMode => Number.isInteger(joinMode) && joinMode >= 0 && joinMode <= 2)
+			|| !Array.isArray(part.chars)
+			|| part.chars.length !== countRangeChars(part.ranges)
+		) {
+			return null;
+		}
+
+		for (let index = 0; index < part.ranges.length; index++) {
+			const range = part.ranges[index];
+			const start = Number(range?.start);
+			const end = Number(range?.end);
+			if (!Number.isInteger(start) || !Number.isInteger(end) || end < start) return null;
+			if (index > 0) {
+				const previousRange = part.ranges[index - 1];
+				const previousEnd = Number(previousRange?.end);
+				if (!Number.isInteger(previousEnd) || start <= previousEnd) return null;
+				if (!isSyncCreatorRangeGapFullyHidden(hiddenRanges, previousEnd + 1, start - 1)) {
+					return null;
+				}
+			}
+		}
+
+		const splitParts = [];
+		let charOffset = 0;
+		for (let index = 0; index < part.ranges.length; index++) {
+			const range = part.ranges[index];
+			const charCount = range.end - range.start + 1;
+			const id = index === 0 ? part.id : getNextSyncCreatorPartId(usedIds);
+			if (!id) return null;
+
+			splitParts.push({
+				...part,
+				id,
+				ranges: [{ ...range }],
+				join: [],
+				chars: part.chars.slice(charOffset, charOffset + charCount)
+			});
+			charOffset += charCount;
+		}
+
+		return splitParts;
+	};
+
+	const splitSyncCreatorHiddenDelimitedParallelParts = (parallel) => {
+		if (!parallel || typeof parallel !== 'object' || !Array.isArray(parallel.parts) || !Array.isArray(parallel.hiddenRanges)) {
+			return parallel;
+		}
+
+		const usedIds = new Set(parallel.parts
+			.map(part => (typeof part?.id === 'string' ? part.id : null))
+			.filter(Boolean));
+		const parts = [];
+		let changed = false;
+
+		parallel.parts.forEach((part) => {
+			const splitParts = splitSyncCreatorHiddenDelimitedParallelPart(part, parallel.hiddenRanges, usedIds);
+			if (splitParts) {
+				changed = true;
+				parts.push(...splitParts);
+			} else {
+				parts.push(part);
+			}
+		});
+
+		return changed && parts.length <= 16 ? { ...parallel, parts } : parallel;
+	};
+
 	const sanitizeSyncCreatorParallel = (parallel) => {
 		if (!parallel || typeof parallel !== 'object') return parallel;
 		const nextParallel = { ...parallel };
@@ -1033,7 +1148,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		} else {
 			delete nextParallel.hiddenRanges;
 		}
-		return nextParallel;
+		return splitSyncCreatorHiddenDelimitedParallelParts(nextParallel);
 	};
 
 	const normalizeSyncCreatorParentheticalParallelRanges = (parallel, fullTextChars) => {
@@ -1226,7 +1341,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		if (separatorTemplate) return separatorTemplate;
 
 		const leadRanges = [];
-		const backgroundRanges = [];
+		const backgroundRangeGroups = [];
 		const hiddenRanges = [];
 		let depth = 0;
 		let runStart = null;
@@ -1247,7 +1362,13 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				}
 			}
 			if (runStart !== null && endIndex >= runStart) {
-				pushSyncCreatorRange(runPart === 'background' ? backgroundRanges : leadRanges, runStart, endIndex, lineStart);
+				if (runPart === 'background') {
+					const ranges = [];
+					pushSyncCreatorRange(ranges, runStart, endIndex, lineStart);
+					if (ranges.length > 0) backgroundRangeGroups.push(ranges);
+				} else {
+					pushSyncCreatorRange(leadRanges, runStart, endIndex, lineStart);
+				}
 			}
 			runStart = null;
 			runPart = null;
@@ -1294,10 +1415,10 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		}
 		flushRun(chars.length - 1);
 
-		if (!leadRanges.length || !backgroundRanges.length) return null;
+		if (!leadRanges.length || !backgroundRangeGroups.length) return null;
 		const orderedRangeGroups = [
-			{ ranges: leadRanges },
-			{ ranges: backgroundRanges }
+			{ role: 'lead', ranges: leadRanges },
+			...backgroundRangeGroups.map(ranges => ({ role: 'background', ranges }))
 		]
 			.filter(group => group.ranges.length > 0)
 			.sort((a, b) => a.ranges[0].start - b.ranges[0].start);
@@ -1305,7 +1426,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		return sanitizeSyncCreatorParallel({
 			layout: 'stack',
 			parts: orderedRangeGroups.map((group, index) =>
-				buildPart(index, group.ranges, index === 0 ? 'lead' : 'background')
+				buildPart(index, group.ranges, group.role)
 			),
 			hiddenRanges
 		});
