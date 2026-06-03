@@ -2146,6 +2146,13 @@ window.LANG_ID = {
     "characterPronunciationTokenWarningUsage": "Perkiraan penggunaan: sekitar 3-6x lebih banyak token daripada permintaan pelafalan baris demi baris biasa. Penggunaan sebenarnya bergantung pada panjang lirik, bahasa, dan percobaan ulang penyedia.",
     "characterPronunciationTokenWarningConfirm": "Saya mengerti dan buat",
     "characterPronunciationTokenWarningCancel": "Batal",
+    "parentheticalLayoutTitle": "Pilih tata letak vokal dalam kurung",
+    "parentheticalLayoutBody": "Baris ini memiliki beberapa bagian vokal dalam kurung. Pilih cara menampilkan dan menyinkronkannya.",
+    "parentheticalLayoutOriginal": "Asli",
+    "parentheticalLayoutSeparateLabel": "Pisahkan tiap bagian",
+    "parentheticalLayoutSeparateDesc": "Sinkronkan tiap bagian dalam kurung sebagai baris vokal sendiri.",
+    "parentheticalLayoutGroupedLabel": "Gabungkan dalam satu baris",
+    "parentheticalLayoutGroupedDesc": "Sinkronkan vokal dalam kurung yang berdekatan sebagai satu baris vokal.",
     "back": "Tutup",
     "lrclibSearchResults": "Hasil pencarian LRCLIB",
     "showLrclibSearchResults": "Tampilkan hasil pencarian",
@@ -2279,4 +2286,3 @@ window.LANG_ID = {
     "dontShowAgain": "Jangan tampilkan lagi"
   }
 };
-

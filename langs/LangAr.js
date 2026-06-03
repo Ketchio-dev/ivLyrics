@@ -2146,6 +2146,13 @@ window.LANG_AR = {
     "characterPronunciationTokenWarningUsage": "الاستخدام المتوقع: قد تستخدم حوالي 3-6 أضعاف الرموز مقارنة بطلب نطق عادي سطرًا بسطر. يختلف الاستخدام الفعلي حسب طول الكلمات واللغة وعدد محاولات المزود.",
     "characterPronunciationTokenWarningConfirm": "أفهم، أنشئ",
     "characterPronunciationTokenWarningCancel": "إلغاء",
+    "parentheticalLayoutTitle": "اختر تخطيط الأصوات بين الأقواس",
+    "parentheticalLayoutBody": "يحتوي هذا السطر على عدة أجزاء صوتية بين أقواس. اختر طريقة عرضها ومزامنتها.",
+    "parentheticalLayoutOriginal": "الأصل",
+    "parentheticalLayoutSeparateLabel": "فصل كل جزء",
+    "parentheticalLayoutSeparateDesc": "زامن كل جزء بين الأقواس كسطر صوتي مستقل.",
+    "parentheticalLayoutGroupedLabel": "تجميع في سطر واحد",
+    "parentheticalLayoutGroupedDesc": "زامن الأصوات المتجاورة بين الأقواس كسطر صوتي واحد.",
     "back": "إغلاق",
     "lrclibSearchResults": "نتائج بحث LRCLIB",
     "showLrclibSearchResults": "إظهار نتائج البحث",
@@ -2279,4 +2286,3 @@ window.LANG_AR = {
     "dontShowAgain": "عدم الإظهار مجددًا"
   }
 };
-

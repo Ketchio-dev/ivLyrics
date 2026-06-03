@@ -2147,6 +2147,13 @@ window.LANG_KO = {
     "characterPronunciationTokenWarningUsage": "예상 사용량: 일반 줄 단위 발음 생성보다 약 3~6배 더 많은 토큰을 사용할 수 있습니다. 실제 사용량은 가사 길이, 언어, 제공자 재시도 횟수에 따라 달라집니다.",
     "characterPronunciationTokenWarningConfirm": "동의하고 생성",
     "characterPronunciationTokenWarningCancel": "취소",
+    "parentheticalLayoutTitle": "괄호 보컬 표시 방식 선택",
+    "parentheticalLayoutBody": "이 줄에는 괄호 보컬이 여러 개 있습니다. 어떻게 표시하고 싱크할지 선택하세요.",
+    "parentheticalLayoutOriginal": "원본",
+    "parentheticalLayoutSeparateLabel": "각각 분리",
+    "parentheticalLayoutSeparateDesc": "괄호마다 별도 보컬 줄로 싱크합니다.",
+    "parentheticalLayoutGroupedLabel": "같은 줄로 묶기",
+    "parentheticalLayoutGroupedDesc": "인접한 괄호 보컬을 하나의 보컬 줄로 싱크합니다.",
     "back": "닫기",
     "lrclibSearchResults": "LRCLIB 검색 결과",
     "showLrclibSearchResults": "검색 결과 보기",
@@ -2280,4 +2287,3 @@ window.LANG_KO = {
     "dontShowAgain": "다시 보지 않기"
   }
 };
-

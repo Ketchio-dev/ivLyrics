@@ -1001,6 +1001,63 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		return refs;
 	};
 
+	const getSyncCreatorParallelJoinText = (joinMode) => {
+		const mode = Number(joinMode);
+		return mode === 1 || mode === 2 ? ' ' : '';
+	};
+
+	const getSyncCreatorParallelPartText = (part, lineChars, lineStart = 0) => {
+		if (!part || !Array.isArray(part.ranges) || !Array.isArray(lineChars)) return '';
+		let text = '';
+		part.ranges.forEach((range, rangeIndex) => {
+			if (rangeIndex > 0) {
+				text += getSyncCreatorParallelJoinText(Array.isArray(part.join) ? part.join[rangeIndex - 1] : 1);
+			}
+			const start = Math.max(lineStart, Number(range?.start));
+			const end = Math.min(lineStart + lineChars.length - 1, Number(range?.end));
+			if (!Number.isInteger(start) || !Number.isInteger(end) || start > end) return;
+			text += lineChars.slice(start - lineStart, end - lineStart + 1).join('');
+		});
+		return text.trim();
+	};
+
+	const getSyncCreatorParallelPartDisplayItems = (part, lineChars, lineStart = 0) => {
+		if (!part || !Array.isArray(part.ranges) || !Array.isArray(lineChars)) return [];
+		const items = [];
+		let charIndex = 0;
+		part.ranges.forEach((range, rangeIndex) => {
+			if (rangeIndex > 0) {
+				const separator = getSyncCreatorParallelJoinText(Array.isArray(part.join) ? part.join[rangeIndex - 1] : 1);
+				if (separator) {
+					items.push({ type: 'separator', text: separator, key: `join-${rangeIndex}` });
+				}
+			}
+			const start = Math.max(lineStart, Number(range?.start));
+			const end = Math.min(lineStart + lineChars.length - 1, Number(range?.end));
+			if (!Number.isInteger(start) || !Number.isInteger(end) || start > end) return;
+			for (let index = start; index <= end; index++) {
+				items.push({
+					type: 'char',
+					key: `char-${index}`,
+					charIndex,
+					absoluteIndex: index,
+					localIndex: index - lineStart,
+					char: lineChars[index - lineStart] || ''
+				});
+				charIndex++;
+			}
+		});
+		return items;
+	};
+
+	const formatSyncCreatorParallelPreviewLines = (parallel, lineChars, lineStart = 0) => (
+		Array.isArray(parallel?.parts)
+			? parallel.parts
+				.map(part => getSyncCreatorParallelPartText(part, lineChars, lineStart))
+				.filter(Boolean)
+			: []
+	);
+
 	const countRangeChars = (ranges) => (Array.isArray(ranges) ? ranges : []).reduce((sum, range) => {
 		const start = Number(range?.start);
 		const end = Number(range?.end);
@@ -1093,6 +1150,9 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		if (hasSyncedChars && part.chars.length !== countRangeChars(part.ranges)) {
 			return null;
 		}
+		if (part.join.some(joinMode => Number(joinMode) === 2)) {
+			return null;
+		}
 
 		for (let index = 0; index < part.ranges.length; index++) {
 			const range = part.ranges[index];
@@ -1135,8 +1195,11 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		return splitParts;
 	};
 
-	const splitSyncCreatorHiddenDelimitedParallelParts = (parallel) => {
+	const splitSyncCreatorHiddenDelimitedParallelParts = (parallel, options = {}) => {
 		if (!parallel || typeof parallel !== 'object' || !Array.isArray(parallel.parts) || !Array.isArray(parallel.hiddenRanges)) {
+			return parallel;
+		}
+		if (options.splitHiddenDelimitedBackgroundParts === false) {
 			return parallel;
 		}
 
@@ -1159,7 +1222,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		return changed && parts.length <= 16 ? { ...parallel, parts } : parallel;
 	};
 
-	const sanitizeSyncCreatorParallel = (parallel) => {
+	const sanitizeSyncCreatorParallel = (parallel, options = {}) => {
 		if (!parallel || typeof parallel !== 'object') return parallel;
 		const nextParallel = { ...parallel };
 		const hiddenRanges = normalizeSyncCreatorHiddenRanges(nextParallel.hiddenRanges);
@@ -1168,7 +1231,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		} else {
 			delete nextParallel.hiddenRanges;
 		}
-		return splitSyncCreatorHiddenDelimitedParallelParts(nextParallel);
+		return splitSyncCreatorHiddenDelimitedParallelParts(nextParallel, options);
 	};
 
 	const normalizeSyncCreatorParentheticalParallelRanges = (parallel, fullTextChars) => {
@@ -1268,18 +1331,19 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		};
 	};
 
-	const buildParentheticalParallelTemplate = (lineChars, lineStart = 0) => {
+	const buildParentheticalParallelTemplate = (lineChars, lineStart = 0, options = {}) => {
 		const chars = Array.isArray(lineChars) ? lineChars : [];
 		if (!chars.length) return null;
 
+		const groupBackgroundParts = options.groupBackgroundParts === true;
 		const speakerLabels = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-		const buildPart = (index, ranges, role = index === 0 ? 'lead' : 'background') => ({
+		const buildPart = (index, ranges, role = index === 0 ? 'lead' : 'background', joinMode = 1) => ({
 			id: speakerLabels[index]?.toLowerCase() || `p${index + 1}`,
 			role,
 			speaker: SYNC_CREATOR_DEFAULT_SPEAKER,
 			kind: SYNC_CREATOR_DEFAULT_KIND,
 			ranges,
-			join: ranges.length > 1 ? new Array(ranges.length - 1).fill(1) : []
+			join: ranges.length > 1 ? new Array(ranges.length - 1).fill(joinMode) : []
 		});
 
 		const buildSeparatorTemplate = () => {
@@ -1437,8 +1501,10 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 
 		if (!leadRanges.length || !backgroundRangeGroups.length) return null;
 		const orderedRangeGroups = [
-			{ role: 'lead', ranges: leadRanges },
-			...backgroundRangeGroups.map(ranges => ({ role: 'background', ranges }))
+			{ role: 'lead', ranges: leadRanges, joinMode: 1 },
+			...(groupBackgroundParts
+				? [{ role: 'background', ranges: backgroundRangeGroups.flat(), joinMode: 2 }]
+				: backgroundRangeGroups.map(ranges => ({ role: 'background', ranges, joinMode: 1 })))
 		]
 			.filter(group => group.ranges.length > 0)
 			.sort((a, b) => a.ranges[0].start - b.ranges[0].start);
@@ -1446,9 +1512,11 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		return sanitizeSyncCreatorParallel({
 			layout: 'stack',
 			parts: orderedRangeGroups.map((group, index) =>
-				buildPart(index, group.ranges, group.role)
+				buildPart(index, group.ranges, group.role, group.joinMode)
 			),
 			hiddenRanges
+		}, {
+			splitHiddenDelimitedBackgroundParts: !groupBackgroundParts
 		});
 	};
 
@@ -1548,6 +1616,8 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 	const [activeParallelPartId, setActiveParallelPartId] = useState('full');
 	const [parallelPartMetaDrafts, setParallelPartMetaDrafts] = useState({});
 	const [manualParallelSplitDrafts, setManualParallelSplitDrafts] = useState({});
+	const [parentheticalLayoutDrafts, setParentheticalLayoutDrafts] = useState({});
+	const [pendingParentheticalLayoutDecision, setPendingParentheticalLayoutDecision] = useState(null);
 	const [mergedLineDrafts, setMergedLineDrafts] = useState({});
 	const [isParallelSplitCollapsed, setIsParallelSplitCollapsed] = useState(false);
 	const [lineMetaDrafts, setLineMetaDrafts] = useState({});
@@ -1755,6 +1825,8 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		let loadedSyncBody = null;
 
 		setManualParallelSplitDrafts({});
+		setParentheticalLayoutDrafts({});
+		setPendingParentheticalLayoutDecision(null);
 		setMergedLineDrafts({});
 		if ((finalProvider === 'Spotify' || finalProvider === 'spotify') && result.spotifyLyricsProvider) {
 			finalProvider = `spotify-${result.spotifyLyricsProvider}`;
@@ -1827,6 +1899,8 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		if (!pendingMultiVocalDecision) return;
 		setPendingMultiVocalDecision(null);
 		setManualParallelSplitDrafts({});
+		setParentheticalLayoutDrafts({});
+		setPendingParentheticalLayoutDecision(null);
 		setMergedLineDrafts({});
 		setMultiVocalMode(useMultiVocalMode);
 		setActiveParallelPartId(useMultiVocalMode ? '' : 'full');
@@ -1854,6 +1928,8 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		setCurrentLineIndex(0);
 		setMultiVocalMode(false);
 		setManualParallelSplitDrafts({});
+		setParentheticalLayoutDrafts({});
+		setPendingParentheticalLayoutDecision(null);
 		setMergedLineDrafts({});
 		setPendingMultiVocalDecision(null);
 		setActiveParallelPartId('full');
@@ -1940,6 +2016,8 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		setCurrentLineIndex(0);
 		setMultiVocalMode(false);
 		setManualParallelSplitDrafts({});
+		setParentheticalLayoutDrafts({});
+		setPendingParentheticalLayoutDecision(null);
 		setMergedLineDrafts({});
 		setPendingMultiVocalDecision(null);
 		setActiveParallelPartId('full');
@@ -2278,8 +2356,10 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		];
 		const manualTemplate = buildManualParallelTemplate(lineChars, lineStart, splitPoints);
 		if (manualTemplate) return manualTemplate;
-		return buildParentheticalParallelTemplate(lineChars, lineStart);
-	}, [getAutoMergeSplitPointsForLine, manualParallelSplitDrafts]);
+		return buildParentheticalParallelTemplate(lineChars, lineStart, {
+			groupBackgroundParts: parentheticalLayoutDrafts[lineStart] === 'grouped'
+		});
+	}, [getAutoMergeSplitPointsForLine, manualParallelSplitDrafts, parentheticalLayoutDrafts]);
 	const getParallelTemplateForLineData = useCallback((lineData, lineChars, lineStart, isMergedWithNext = false) => {
 		const hasManualDraft = Array.isArray(manualParallelSplitDrafts[lineStart])
 			&& manualParallelSplitDrafts[lineStart].length > 0;
@@ -2320,6 +2400,65 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 	}, [currentParallelTemplate, currentExistingLineData, parallelPartMetaDrafts, currentLineStart]);
 	const currentParallelParts = currentParallelData?.parts || [];
 	const hasCurrentParallelParts = currentParallelParts.length > 1;
+	const currentParentheticalLayoutCandidate = useMemo(() => {
+		if (
+			!multiVocalMode
+			|| pendingMultiVocalDecision
+			|| currentLineCoveredByPrevious
+			|| currentLineMergedWithNext
+			|| currentFullLineChars.length < 2
+			|| Object.prototype.hasOwnProperty.call(parentheticalLayoutDrafts, currentLineStart)
+			|| (Array.isArray(manualParallelSplitDrafts[currentLineStart]) && manualParallelSplitDrafts[currentLineStart].length > 0)
+			|| (Array.isArray(currentExistingLineData?.parallel?.parts) && currentExistingLineData.parallel.parts.length > 1)
+		) {
+			return null;
+		}
+
+		const separateTemplate = buildParentheticalParallelTemplate(currentFullLineChars, currentLineStart, {
+			groupBackgroundParts: false
+		});
+		const groupedTemplate = buildParentheticalParallelTemplate(currentFullLineChars, currentLineStart, {
+			groupBackgroundParts: true
+		});
+		const groupedBackgroundPart = groupedTemplate?.parts?.find(part =>
+			part.role === 'background'
+			&& Array.isArray(part.ranges)
+			&& part.ranges.length > 1
+		);
+		if (
+			!separateTemplate
+			|| !groupedTemplate
+			|| !groupedBackgroundPart
+			|| !Array.isArray(separateTemplate.parts)
+			|| !Array.isArray(groupedTemplate.parts)
+			|| separateTemplate.parts.length <= groupedTemplate.parts.length
+		) {
+			return null;
+		}
+
+		return {
+			lineStart: currentLineStart,
+			lineIndex: currentLineIndex,
+			original: currentFullLineChars.join(''),
+			separatePreview: formatSyncCreatorParallelPreviewLines(separateTemplate, currentFullLineChars, currentLineStart),
+			groupedPreview: formatSyncCreatorParallelPreviewLines(groupedTemplate, currentFullLineChars, currentLineStart)
+		};
+	}, [
+		multiVocalMode,
+		pendingMultiVocalDecision,
+		currentLineCoveredByPrevious,
+		currentLineMergedWithNext,
+		currentFullLineChars,
+		currentLineStart,
+		currentLineIndex,
+		parentheticalLayoutDrafts,
+		manualParallelSplitDrafts,
+		currentExistingLineData
+	]);
+	useEffect(() => {
+		if (!currentParentheticalLayoutCandidate || pendingParentheticalLayoutDecision) return;
+		setPendingParentheticalLayoutDecision(currentParentheticalLayoutCandidate);
+	}, [currentParentheticalLayoutCandidate, pendingParentheticalLayoutDecision]);
 	const activeParallelPart = hasCurrentParallelParts
 		? currentParallelParts.find(part => part.id === activeParallelPartId) || currentParallelParts[0] || null
 		: null;
@@ -2772,6 +2911,8 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		setCurrentLineIndex(0);
 		setMultiVocalMode(false);
 		setManualParallelSplitDrafts({});
+		setParentheticalLayoutDrafts({});
+		setPendingParentheticalLayoutDecision(null);
 		setMergedLineDrafts({});
 		setPendingMultiVocalDecision(null);
 		setActiveParallelPartId('full');
@@ -4842,6 +4983,22 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		currentLineIndex,
 		setRecordingProgressIndex
 	]);
+	const resolveParentheticalLayoutDecision = useCallback((layoutMode) => {
+		const decision = pendingParentheticalLayoutDecision;
+		if (!decision || !Number.isInteger(Number(decision.lineStart))) return;
+		const safeMode = layoutMode === 'grouped' ? 'grouped' : 'separate';
+		const lineStart = Number(decision.lineStart);
+
+		setParentheticalLayoutDrafts(prev => ({
+			...prev,
+			[lineStart]: safeMode
+		}));
+		setPendingParentheticalLayoutDecision(null);
+		setMode('idle');
+		setRecordingProgressIndex(-1);
+		charTimesRef.current = [];
+		if (lyricsScrollRef.current) lyricsScrollRef.current.scrollLeft = 0;
+	}, [pendingParentheticalLayoutDecision, setRecordingProgressIndex]);
 	const enableManualMultiVocalMode = useCallback(() => {
 		setMultiVocalMode(true);
 		setActiveParallelPartId('');
@@ -4968,6 +5125,8 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		setCurrentLineIndex(0);
 		setSyncData(null);
 		setManualParallelSplitDrafts({});
+		setParentheticalLayoutDrafts({});
+		setPendingParentheticalLayoutDecision(null);
 		setMergedLineDrafts({});
 		setGlobalOffset(0);
 		setMode('idle');
@@ -5910,6 +6069,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		},
 		parallelStackMetaDuet: { color: '#d9c7ff' },
 		parallelStackText: { display: 'inline-flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'stretch', gap: '0px', maxWidth: '100%' },
+		parallelStackJoinSeparator: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '14px', minWidth: '14px', flexShrink: 0, color: 'transparent', pointerEvents: 'none' },
 		parallelStackChar: {
 			padding: '6px 1px',
 			borderRadius: '4px',
@@ -5950,6 +6110,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		rtlLyricsLine: { display: 'block', width: '100%', paddingLeft: '32px', paddingRight: '32px', textAlign: 'center', direction: 'rtl', unicodeBidi: 'plaintext' },
 		rtlTextRun: { display: 'inline-block', maxWidth: '100%', padding: '10px 1px', fontSize: '32px', fontWeight: '600', lineHeight: 1.45, letterSpacing: 0, whiteSpace: 'pre', cursor: mode === 'record' ? 'pointer' : 'default', color: 'transparent', WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent' },
 		charSpan: { padding: usePrimaryCharacterPronunciation ? '4px 4px 6px' : `${hasCurrentLineFurigana ? 18 : 10}px 1px ${(hasCurrentLineCharacterPronunciation && currentLineRenderedPronunciationUnits.length === 0) ? 26 : 10}px`, borderRadius: '4px', cursor: mode === 'record' ? 'pointer' : 'default', position: 'relative', fontSize: usePrimaryCharacterPronunciation ? '15px' : '32px', fontWeight: '600', minWidth: usePrimaryCharacterPronunciation ? '18px' : '6px', minHeight: usePrimaryCharacterPronunciation ? '68px' : undefined, boxSizing: 'border-box', textAlign: 'center', flexShrink: 0, color: 'var(--spice-text)', letterSpacing: 0, lineHeight: usePrimaryCharacterPronunciation ? 1.05 : 1.15 },
+		charJoinSeparator: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: usePrimaryCharacterPronunciation ? '12px' : '16px', minWidth: usePrimaryCharacterPronunciation ? '12px' : '16px', padding: 0, flexShrink: 0, color: 'transparent', pointerEvents: 'none' },
 		charSpanPronunciationPrimary: { display: 'inline-flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', gap: '2px' },
 		charWordGroup: { display: 'inline-flex', position: 'relative', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', flexShrink: 0, borderRadius: '4px', padding: '0 0 3px', boxSizing: 'border-box' },
 		charWordGroupPrimary: { flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', minHeight: '68px', padding: '2px 3px 6px', boxSizing: 'border-box' },
@@ -6041,6 +6202,56 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			whiteSpace: 'nowrap',
 			overflow: 'hidden',
 			textOverflow: 'ellipsis'
+		},
+		parentheticalLayoutOriginal: {
+			fontSize: '12px',
+			lineHeight: 1.55,
+			color: 'var(--spice-subtext)',
+			padding: '10px 12px',
+			background: 'rgba(255,255,255,0.035)',
+			border: '1px solid rgba(255,255,255,0.07)',
+			borderRadius: '10px',
+			whiteSpace: 'pre-wrap',
+			wordBreak: 'break-word'
+		},
+		parentheticalLayoutGrid: {
+			display: 'grid',
+			gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+			gap: '10px'
+		},
+		parentheticalLayoutOption: {
+			background: 'rgba(255,255,255,0.045)',
+			border: '1px solid rgba(255,255,255,0.09)',
+			borderRadius: '12px',
+			padding: '13px',
+			color: 'var(--spice-text)',
+			textAlign: 'left',
+			cursor: 'pointer',
+			display: 'flex',
+			flexDirection: 'column',
+			gap: '9px',
+			minWidth: 0
+		},
+		parentheticalLayoutOptionPrimary: {
+			background: TOSS_BLUE_SOFT,
+			border: `1px solid ${TOSS_BLUE_BORDER}`,
+			boxShadow: `0 0 0 3px ${TOSS_BLUE_RING}`
+		},
+		parentheticalLayoutOptionTitle: { fontSize: '13px', fontWeight: '800', letterSpacing: '-0.005em' },
+		parentheticalLayoutOptionDesc: { fontSize: '11.5px', color: 'var(--spice-subtext)', lineHeight: 1.45 },
+		parentheticalLayoutPreview: {
+			display: 'flex',
+			flexDirection: 'column',
+			gap: '4px',
+			padding: '10px',
+			borderRadius: '9px',
+			background: 'rgba(0,0,0,0.22)',
+			border: '1px solid rgba(255,255,255,0.07)',
+			fontSize: '13px',
+			fontWeight: '700',
+			lineHeight: 1.35,
+			whiteSpace: 'pre-wrap',
+			wordBreak: 'break-word'
 		},
 		lrcLibBtnRow: { display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap', marginTop: '4px' },
 		lrcLibBtn: {
@@ -6284,16 +6495,28 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		);
 	};
 	const renderCurrentLineCharacters = () => {
+		const displayItems = activeParallelPart && Array.isArray(activeParallelPart.ranges) && activeParallelPart.ranges.length > 1
+			? getSyncCreatorParallelPartDisplayItems(activeParallelPart, currentFullLineChars, currentLineStart)
+			: null;
 		if (useCurrentLineTextRun) {
 			return react.createElement('span', {
 				ref: rtlTextRunRef,
 				style: rtlTextRunStyle,
 				dir: currentLineDirection,
 				'data-rtl-text-run': 'true'
-			}, currentLineText);
+			}, displayItems ? displayItems.map(item => item.text || item.char || '').join('') : currentLineText);
 		}
 
-		return currentLineChars.map((char, i) => {
+		const items = displayItems || currentLineChars.map((char, i) => ({ type: 'char', key: `char-${i}`, charIndex: i, char }));
+		return items.map((item) => {
+			if (item.type === 'separator') {
+				return react.createElement('span', {
+					key: item.key,
+					style: s.charJoinSeparator
+				}, item.text === ' ' ? '\u00A0' : item.text);
+			}
+			const char = item.char;
+			const i = item.charIndex;
 			const pronunciationUnit = currentLineRenderedPronunciationUnitByStart.get(i);
 			if (pronunciationUnit) {
 				return renderPronunciationUnit(pronunciationUnit);
@@ -6317,6 +6540,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		const isActive = activeParallelTargetId === part.id;
 		const partCharRefs = rangesToCharRefs(part.ranges, currentFullLineChars, currentLineStart);
 		const partChars = partCharRefs.map(ref => ref.char);
+		const partDisplayItems = getSyncCreatorParallelPartDisplayItems(part, currentFullLineChars, currentLineStart);
 		const savedPart = currentLineData?.parallel?.parts?.find(item => item.id === part.id);
 		const syncedCount = Array.isArray(savedPart?.chars) ? Math.min(savedPart.chars.length, partChars.length) : 0;
 		const speakerLabel = part.speaker || SYNC_CREATOR_DEFAULT_SPEAKER;
@@ -6355,13 +6579,21 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 					renderCurrentLineCharacters()
 				)
 				: react.createElement('div', { style: s.parallelStackText },
-					partChars.map((char, charIndex) => react.createElement('span', {
-						key: `${part.id}-${charIndex}`,
-						style: {
-							...s.parallelStackChar,
-							...(charIndex < syncedCount ? s.parallelStackCharSynced : null)
+					partDisplayItems.map((item) => {
+						if (item.type === 'separator') {
+							return react.createElement('span', {
+								key: `${part.id}-${item.key}`,
+								style: s.parallelStackJoinSeparator
+							}, item.text === ' ' ? '\u00A0' : item.text);
 						}
-					}, char === ' ' ? '\u00A0' : char))
+						return react.createElement('span', {
+							key: `${part.id}-${item.charIndex}`,
+							style: {
+								...s.parallelStackChar,
+								...(item.charIndex < syncedCount ? s.parallelStackCharSynced : null)
+							}
+						}, item.char === ' ' ? '\u00A0' : item.char);
+					})
 				)
 		);
 	};
@@ -6985,7 +7217,25 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		lyricsText && lyricsLines.length > 0 && (activeParallelPart || !hasCurrentParallelParts) && renderLineInspector()
 	);
 
-	const renderModals = () => react.createElement(react.Fragment, null,
+	const renderModals = () => {
+		const renderParentheticalLayoutChoice = (modeValue, title, description, previewLines, primary = false) => react.createElement('button', {
+			type: 'button',
+			style: {
+				...s.parentheticalLayoutOption,
+				...(primary ? s.parentheticalLayoutOptionPrimary : null)
+			},
+			onClick: () => resolveParentheticalLayoutDecision(modeValue)
+		},
+			react.createElement('div', { style: s.parentheticalLayoutOptionTitle }, title),
+			react.createElement('div', { style: s.parentheticalLayoutOptionDesc }, description),
+			react.createElement('div', { style: s.parentheticalLayoutPreview },
+				(Array.isArray(previewLines) ? previewLines : []).map((line, index) =>
+					react.createElement('div', { key: `${modeValue}-${index}` }, line)
+				)
+			)
+		);
+
+		return react.createElement(react.Fragment, null,
 		pendingMultiVocalDecision && react.createElement('div', { style: s.lrcLibModal },
 			react.createElement('div', { style: { ...s.lrcLibContent, maxWidth: '560px' } },
 				react.createElement('h3', { style: s.lrcLibTitle }, I18n.t('syncCreator.multiVocalDetectedTitle') || 'Multiple vocals detected'),
@@ -7005,6 +7255,33 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 						style: s.lrcLibBtn,
 						onClick: () => resolveMultiVocalDecision(true)
 					}, I18n.t('syncCreator.multiVocalDecisionMulti') || 'Continue in multiple vocal mode')
+				)
+			)
+		),
+		pendingParentheticalLayoutDecision && react.createElement('div', { style: s.lrcLibModal },
+			react.createElement('div', { style: { ...s.lrcLibContent, maxWidth: '680px' } },
+				react.createElement('h3', { style: s.lrcLibTitle }, I18n.t('syncCreator.parentheticalLayoutTitle') || 'Choose parenthetical vocal layout'),
+				react.createElement('p', { style: s.lrcLibDesc },
+					I18n.t('syncCreator.parentheticalLayoutBody') || 'This line has multiple parenthetical vocal parts. Choose how it should be shown and synced.'
+				),
+				react.createElement('div', { style: s.parentheticalLayoutOriginal },
+					`${I18n.t('syncCreator.parentheticalLayoutOriginal') || 'Original'}: ${pendingParentheticalLayoutDecision.original || ''}`
+				),
+				react.createElement('div', { style: s.parentheticalLayoutGrid },
+					renderParentheticalLayoutChoice(
+						'separate',
+						I18n.t('syncCreator.parentheticalLayoutSeparateLabel') || 'Separate each part',
+						I18n.t('syncCreator.parentheticalLayoutSeparateDesc') || 'Sync each parenthetical vocal as its own vocal line.',
+						pendingParentheticalLayoutDecision.separatePreview,
+						false
+					),
+					renderParentheticalLayoutChoice(
+						'grouped',
+						I18n.t('syncCreator.parentheticalLayoutGroupedLabel') || 'Group on one line',
+						I18n.t('syncCreator.parentheticalLayoutGroupedDesc') || 'Sync adjacent parenthetical vocals together as one vocal line.',
+						pendingParentheticalLayoutDecision.groupedPreview,
+						true
+					)
 				)
 			)
 		),
@@ -7045,7 +7322,8 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				)
 			)
 		),
-	);
+		);
+	};
 
 	return react.createElement('div', { className: 'ivlyrics-sync-creator-shell', style: s.overlay, ref: containerRef },
 		renderHeader(),

@@ -2146,6 +2146,13 @@ window.LANG_FA = {
     "characterPronunciationTokenWarningUsage": "مصرف تقریبی: ممکن است حدود 3-6 برابر بیشتر از درخواست معمولی تلفظ خط‌به‌خط توکن مصرف کند. مصرف واقعی به طول متن، زبان و تعداد تلاش‌های ارائه‌دهنده بستگی دارد.",
     "characterPronunciationTokenWarningConfirm": "متوجه شدم، تولید کن",
     "characterPronunciationTokenWarningCancel": "لغو",
+    "parentheticalLayoutTitle": "چیدمان وکال‌های داخل پرانتز را انتخاب کنید",
+    "parentheticalLayoutBody": "این خط چند بخش وکال داخل پرانتز دارد. انتخاب کنید چگونه نمایش داده و همگام شود.",
+    "parentheticalLayoutOriginal": "اصلی",
+    "parentheticalLayoutSeparateLabel": "هر بخش جدا",
+    "parentheticalLayoutSeparateDesc": "هر بخش داخل پرانتز را به‌عنوان یک خط وکال جدا همگام می‌کند.",
+    "parentheticalLayoutGroupedLabel": "گروه در یک خط",
+    "parentheticalLayoutGroupedDesc": "وکال‌های مجاور داخل پرانتز را به‌عنوان یک خط وکال همگام می‌کند.",
     "back": "بستن",
     "lrclibSearchResults": "نتایج جستجوی LRCLIB",
     "showLrclibSearchResults": "نمایش نتایج جستجو",
@@ -2279,4 +2286,3 @@ window.LANG_FA = {
     "dontShowAgain": "دیگر نمایش نده"
   }
 };
-

@@ -2147,6 +2147,13 @@ window.LANG_JA = {
     "characterPronunciationTokenWarningUsage": "想定使用量: 通常の行単位の発音生成より約3〜6倍多くのトークンを使用する場合があります。実際の使用量は歌詞の長さ、言語、プロバイダーの再試行回数によって変わります。",
     "characterPronunciationTokenWarningConfirm": "同意して生成",
     "characterPronunciationTokenWarningCancel": "キャンセル",
+    "parentheticalLayoutTitle": "括弧ボーカルの表示方法を選択",
+    "parentheticalLayoutBody": "この行には括弧内のボーカルパートが複数あります。どのように表示して同期するか選択してください。",
+    "parentheticalLayoutOriginal": "元の行",
+    "parentheticalLayoutSeparateLabel": "それぞれ分ける",
+    "parentheticalLayoutSeparateDesc": "括弧ごとに別々のボーカル行として同期します。",
+    "parentheticalLayoutGroupedLabel": "同じ行にまとめる",
+    "parentheticalLayoutGroupedDesc": "隣り合う括弧ボーカルを1つのボーカル行として同期します。",
     "back": "閉じる",
     "lrclibSearchResults": "LRCLIB検索結果",
     "showLrclibSearchResults": "検索結果を表示",
@@ -2280,4 +2287,3 @@ window.LANG_JA = {
     "dontShowAgain": "今後表示しない"
   }
 };
-

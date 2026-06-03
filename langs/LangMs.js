@@ -2156,6 +2156,13 @@ window.LANG_MS = {
     "characterPronunciationTokenWarningUsage": "Anggaran penggunaan: Boleh menggunakan sekitar 3 hingga 6 kali ganda lebih banyak token daripada penjanaan sebutan baris biasa. Penggunaan sebenar bergantung pada panjang lirik, bahasa, dan bilangan percubaan semula penyedia.",
     "characterPronunciationTokenWarningConfirm": "Setuju & Jana",
     "characterPronunciationTokenWarningCancel": "Batal",
+    "parentheticalLayoutTitle": "Pilih susun atur vokal dalam kurungan",
+    "parentheticalLayoutBody": "Baris ini mempunyai beberapa bahagian vokal dalam kurungan. Pilih cara ia dipaparkan dan diselaraskan.",
+    "parentheticalLayoutOriginal": "Asal",
+    "parentheticalLayoutSeparateLabel": "Pisahkan setiap bahagian",
+    "parentheticalLayoutSeparateDesc": "Selaraskan setiap bahagian dalam kurungan sebagai baris vokal berasingan.",
+    "parentheticalLayoutGroupedLabel": "Kumpulkan dalam satu baris",
+    "parentheticalLayoutGroupedDesc": "Selaraskan vokal dalam kurungan yang bersebelahan sebagai satu baris vokal.",
     "back": "Tutup",
     "lrclibSearchResults": "Keputusan Carian LRCLIB",
     "showLrclibSearchResults": "Lihat Keputusan Carian",
@@ -2289,4 +2296,3 @@ window.LANG_MS = {
     "dontShowAgain": "Jangan tunjukkan lagi"
   }
 };
-

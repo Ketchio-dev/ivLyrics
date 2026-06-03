@@ -2147,6 +2147,13 @@ window.LANG_FR = {
     "characterPronunciationTokenWarningUsage": "Utilisation estimée : environ 3 à 6 fois plus de jetons qu'une demande normale de prononciation ligne par ligne. L'utilisation réelle varie selon la longueur des paroles, la langue et les nouvelles tentatives du fournisseur.",
     "characterPronunciationTokenWarningConfirm": "J'ai compris, générer",
     "characterPronunciationTokenWarningCancel": "Annuler",
+    "parentheticalLayoutTitle": "Choisir l'affichage des voix entre parenthèses",
+    "parentheticalLayoutBody": "Cette ligne contient plusieurs parties vocales entre parenthèses. Choisissez comment les afficher et les synchroniser.",
+    "parentheticalLayoutOriginal": "Original",
+    "parentheticalLayoutSeparateLabel": "Séparer chaque partie",
+    "parentheticalLayoutSeparateDesc": "Synchronise chaque partie entre parenthèses comme une ligne vocale distincte.",
+    "parentheticalLayoutGroupedLabel": "Regrouper sur une ligne",
+    "parentheticalLayoutGroupedDesc": "Synchronise les voix entre parenthèses adjacentes comme une seule ligne vocale.",
     "back": "Fermer",
     "lrclibSearchResults": "Résultats de recherche LRCLIB",
     "showLrclibSearchResults": "Afficher les résultats de recherche",
@@ -2280,4 +2287,3 @@ window.LANG_FR = {
     "dontShowAgain": "Ne plus afficher"
   }
 };
-

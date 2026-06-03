@@ -2146,6 +2146,13 @@ window.LANG_DE = {
     "characterPronunciationTokenWarningUsage": "Geschätzter Verbrauch: etwa 3-6-mal mehr Tokens als eine normale zeilenweise Ausspracheanfrage. Der tatsächliche Verbrauch hängt von Liedtextlänge, Sprache und Anbieter-Wiederholungen ab.",
     "characterPronunciationTokenWarningConfirm": "Verstanden und generieren",
     "characterPronunciationTokenWarningCancel": "Abbrechen",
+    "parentheticalLayoutTitle": "Darstellung für Klammer-Vocals wählen",
+    "parentheticalLayoutBody": "Diese Zeile enthält mehrere Vocal-Parts in Klammern. Wähle, wie sie angezeigt und synchronisiert werden sollen.",
+    "parentheticalLayoutOriginal": "Original",
+    "parentheticalLayoutSeparateLabel": "Jeden Part trennen",
+    "parentheticalLayoutSeparateDesc": "Jeden Klammer-Part als eigene Vocal-Zeile synchronisieren.",
+    "parentheticalLayoutGroupedLabel": "In einer Zeile bündeln",
+    "parentheticalLayoutGroupedDesc": "Benachbarte Klammer-Vocals gemeinsam als eine Vocal-Zeile synchronisieren.",
     "back": "Schließen",
     "lrclibSearchResults": "LRCLIB-Suchergebnisse",
     "showLrclibSearchResults": "Suchergebnisse anzeigen",
@@ -2279,4 +2286,3 @@ window.LANG_DE = {
     "dontShowAgain": "Nicht mehr anzeigen"
   }
 };
-

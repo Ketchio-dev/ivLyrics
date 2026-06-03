@@ -2146,6 +2146,13 @@ window.LANG_SV = {
     "characterPronunciationTokenWarningUsage": "Förväntad användning: cirka 3-6 gånger fler token än en vanlig rad-för-rad-uttalsbegäran. Faktisk användning varierar med textlängd, språk och leverantörens omförsök.",
     "characterPronunciationTokenWarningConfirm": "Jag förstår, skapa",
     "characterPronunciationTokenWarningCancel": "Avbryt",
+    "parentheticalLayoutTitle": "Välj layout för parentesröster",
+    "parentheticalLayoutBody": "Den här raden har flera sångdelar inom parentes. Välj hur de ska visas och synkas.",
+    "parentheticalLayoutOriginal": "Original",
+    "parentheticalLayoutSeparateLabel": "Separera varje del",
+    "parentheticalLayoutSeparateDesc": "Synka varje parentesdel som en egen vokalrad.",
+    "parentheticalLayoutGroupedLabel": "Gruppera på en rad",
+    "parentheticalLayoutGroupedDesc": "Synka intilliggande parentesröster som en enda vokalrad.",
     "back": "Stäng",
     "lrclibSearchResults": "LRCLIB sökresultat",
     "showLrclibSearchResults": "Visa sökresultat",
@@ -2280,4 +2287,3 @@ window.LANG_SV = {
   },
   "language": "Svenska"
 };
-

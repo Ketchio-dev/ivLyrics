@@ -2147,6 +2147,13 @@ window.LANG_ZH_CN = {
     "characterPronunciationTokenWarningUsage": "预计用量：可能比普通按行发音请求多使用约 3-6 倍令牌。实际用量会随歌词长度、语言和提供者重试次数而变化。",
     "characterPronunciationTokenWarningConfirm": "我已了解并生成",
     "characterPronunciationTokenWarningCancel": "取消",
+    "parentheticalLayoutTitle": "选择括号声部显示方式",
+    "parentheticalLayoutBody": "这一行包含多个括号中的声部。请选择它们的显示和同步方式。",
+    "parentheticalLayoutOriginal": "原文",
+    "parentheticalLayoutSeparateLabel": "分别拆分",
+    "parentheticalLayoutSeparateDesc": "将每个括号声部作为单独的声部行同步。",
+    "parentheticalLayoutGroupedLabel": "合并到同一行",
+    "parentheticalLayoutGroupedDesc": "将相邻的括号声部作为同一个声部行同步。",
     "back": "关闭",
     "lrclibSearchResults": "LRCLIB 搜索结果",
     "showLrclibSearchResults": "显示搜索结果",
@@ -2280,4 +2287,3 @@ window.LANG_ZH_CN = {
     "dontShowAgain": "不再显示"
   }
 };
-

@@ -2811,6 +2811,9 @@
             ) {
                 return null;
             }
+            if (part.join.some(joinMode => Number(joinMode) === 2)) {
+                return null;
+            }
 
             for (let index = 0; index < part.ranges.length; index++) {
                 const range = part.ranges[index];

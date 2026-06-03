@@ -2147,6 +2147,13 @@ window.LANG_ZH_TW = {
     "characterPronunciationTokenWarningUsage": "預估用量：約為一般逐行發音請求的 3-6 倍權杖。實際用量會依歌詞長度、語言和提供者重試次數而變化。",
     "characterPronunciationTokenWarningConfirm": "我了解並生成",
     "characterPronunciationTokenWarningCancel": "取消",
+    "parentheticalLayoutTitle": "選擇括號聲部顯示方式",
+    "parentheticalLayoutBody": "這一行包含多個括號中的聲部。請選擇它們的顯示與同步方式。",
+    "parentheticalLayoutOriginal": "原文",
+    "parentheticalLayoutSeparateLabel": "分別拆分",
+    "parentheticalLayoutSeparateDesc": "將每個括號聲部作為獨立聲部行同步。",
+    "parentheticalLayoutGroupedLabel": "合併到同一行",
+    "parentheticalLayoutGroupedDesc": "將相鄰的括號聲部作為同一個聲部行同步。",
     "back": "關閉",
     "lrclibSearchResults": "LRCLIB 搜尋結果",
     "showLrclibSearchResults": "顯示搜尋結果",
@@ -2280,4 +2287,3 @@ window.LANG_ZH_TW = {
     "dontShowAgain": "不再顯示"
   }
 };
-

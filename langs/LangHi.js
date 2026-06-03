@@ -2146,6 +2146,13 @@ window.LANG_HI = {
     "characterPronunciationTokenWarningUsage": "अनुमानित उपयोग: सामान्य पंक्ति-दर-पंक्ति उच्चारण अनुरोध से लगभग 3-6 गुना अधिक टोकन लग सकते हैं। वास्तविक उपयोग गीत की लंबाई, भाषा और प्रदाता के पुनः प्रयासों पर निर्भर करता है।",
     "characterPronunciationTokenWarningConfirm": "मैं समझता/समझती हूँ, जनरेट करें",
     "characterPronunciationTokenWarningCancel": "रद्द करें",
+    "parentheticalLayoutTitle": "कोष्ठक वाले वोकल लेआउट चुनें",
+    "parentheticalLayoutBody": "इस पंक्ति में कोष्ठक के अंदर कई वोकल भाग हैं। चुनें कि उन्हें कैसे दिखाना और सिंक करना है।",
+    "parentheticalLayoutOriginal": "मूल",
+    "parentheticalLayoutSeparateLabel": "हर भाग अलग करें",
+    "parentheticalLayoutSeparateDesc": "हर कोष्ठक वाले भाग को अलग वोकल लाइन के रूप में सिंक करें।",
+    "parentheticalLayoutGroupedLabel": "एक लाइन में समूहित करें",
+    "parentheticalLayoutGroupedDesc": "पास-पास के कोष्ठक वोकल को एक ही वोकल लाइन के रूप में सिंक करें।",
     "back": "बंद करें",
     "lrclibSearchResults": "LRCLIB खोज परिणाम",
     "showLrclibSearchResults": "खोज परिणाम दिखाएँ",
@@ -2279,4 +2286,3 @@ window.LANG_HI = {
     "dontShowAgain": "दोबारा न दिखाएँ"
   }
 };
-

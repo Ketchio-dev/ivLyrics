@@ -2147,6 +2147,13 @@ window.LANG_EN = {
     "characterPronunciationTokenWarningUsage": "Expected usage: about 3-6x more tokens than a normal line-by-line pronunciation request. Actual usage varies by lyrics length, language, and provider retries.",
     "characterPronunciationTokenWarningConfirm": "I understand and generate",
     "characterPronunciationTokenWarningCancel": "Cancel",
+    "parentheticalLayoutTitle": "Choose parenthetical vocal layout",
+    "parentheticalLayoutBody": "This line has multiple parenthetical vocal parts. Choose how it should be shown and synced.",
+    "parentheticalLayoutOriginal": "Original",
+    "parentheticalLayoutSeparateLabel": "Separate each part",
+    "parentheticalLayoutSeparateDesc": "Sync each parenthetical vocal as its own vocal line.",
+    "parentheticalLayoutGroupedLabel": "Group on one line",
+    "parentheticalLayoutGroupedDesc": "Sync adjacent parenthetical vocals together as one vocal line.",
     "back": "Close",
     "lrclibSearchResults": "LRCLIB Search Results",
     "showLrclibSearchResults": "Show Search Results",
@@ -2280,4 +2287,3 @@ window.LANG_EN = {
     "dontShowAgain": "Don't show again"
   }
 };
-

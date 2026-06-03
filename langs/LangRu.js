@@ -2147,6 +2147,13 @@ window.LANG_RU = {
     "characterPronunciationTokenWarningUsage": "Ожидаемый расход: примерно в 3-6 раз больше токенов, чем обычный построчный запрос произношения. Фактический расход зависит от длины текста, языка и повторных попыток провайдера.",
     "characterPronunciationTokenWarningConfirm": "Понимаю, создать",
     "characterPronunciationTokenWarningCancel": "Отмена",
+    "parentheticalLayoutTitle": "Выберите отображение вокала в скобках",
+    "parentheticalLayoutBody": "В этой строке несколько вокальных частей в скобках. Выберите, как показывать и синхронизировать их.",
+    "parentheticalLayoutOriginal": "Оригинал",
+    "parentheticalLayoutSeparateLabel": "Разделить каждую часть",
+    "parentheticalLayoutSeparateDesc": "Синхронизировать каждую часть в скобках как отдельную вокальную строку.",
+    "parentheticalLayoutGroupedLabel": "Объединить в одну строку",
+    "parentheticalLayoutGroupedDesc": "Синхронизировать соседние вокалы в скобках как одну вокальную строку.",
     "back": "Закрыть",
     "lrclibSearchResults": "Результаты поиска LRCLIB",
     "showLrclibSearchResults": "Показать результаты поиска",
@@ -2280,4 +2287,3 @@ window.LANG_RU = {
     "dontShowAgain": "Больше не показывать"
   }
 };
-

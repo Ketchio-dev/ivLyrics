@@ -2147,6 +2147,13 @@ window.LANG_TH = {
     "characterPronunciationTokenWarningUsage": "การใช้โดยประมาณ: อาจใช้โทเคนมากกว่าคำขอคำอ่านแบบทีละบรรทัดประมาณ 3-6 เท่า การใช้จริงขึ้นอยู่กับความยาวเนื้อเพลง ภาษา และจำนวนครั้งที่ผู้ให้บริการลองใหม่",
     "characterPronunciationTokenWarningConfirm": "เข้าใจและสร้าง",
     "characterPronunciationTokenWarningCancel": "ยกเลิก",
+    "parentheticalLayoutTitle": "เลือกรูปแบบเสียงร้องในวงเล็บ",
+    "parentheticalLayoutBody": "บรรทัดนี้มีท่อนเสียงร้องในวงเล็บหลายส่วน เลือกวิธีแสดงและซิงก์",
+    "parentheticalLayoutOriginal": "ต้นฉบับ",
+    "parentheticalLayoutSeparateLabel": "แยกแต่ละส่วน",
+    "parentheticalLayoutSeparateDesc": "ซิงก์แต่ละท่อนในวงเล็บเป็นแถวเสียงร้องแยกกัน",
+    "parentheticalLayoutGroupedLabel": "รวมในแถวเดียว",
+    "parentheticalLayoutGroupedDesc": "ซิงก์เสียงร้องในวงเล็บที่อยู่ติดกันเป็นแถวเสียงร้องเดียว",
     "back": "ปิด",
     "lrclibSearchResults": "ผลการค้นหา LRCLIB",
     "showLrclibSearchResults": "แสดงผลการค้นหา",
@@ -2280,4 +2287,3 @@ window.LANG_TH = {
     "dontShowAgain": "ไม่ต้องแสดงอีก"
   }
 };
-

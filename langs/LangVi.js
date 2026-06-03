@@ -2147,6 +2147,13 @@ window.LANG_VI = {
     "characterPronunciationTokenWarningUsage": "Mức dùng dự kiến: khoảng 3-6 lần nhiều token hơn yêu cầu phát âm từng dòng thông thường. Mức dùng thực tế thay đổi theo độ dài lời, ngôn ngữ và số lần thử lại của nhà cung cấp.",
     "characterPronunciationTokenWarningConfirm": "Tôi hiểu và tạo",
     "characterPronunciationTokenWarningCancel": "Hủy",
+    "parentheticalLayoutTitle": "Chọn bố cục giọng trong ngoặc",
+    "parentheticalLayoutBody": "Dòng này có nhiều phần giọng trong ngoặc. Chọn cách hiển thị và đồng bộ chúng.",
+    "parentheticalLayoutOriginal": "Gốc",
+    "parentheticalLayoutSeparateLabel": "Tách từng phần",
+    "parentheticalLayoutSeparateDesc": "Đồng bộ mỗi phần trong ngoặc như một dòng giọng riêng.",
+    "parentheticalLayoutGroupedLabel": "Gộp vào một dòng",
+    "parentheticalLayoutGroupedDesc": "Đồng bộ các giọng trong ngoặc liền kề như một dòng giọng.",
     "back": "Đóng",
     "lrclibSearchResults": "Kết quả tìm kiếm LRCLIB",
     "showLrclibSearchResults": "Hiện kết quả tìm kiếm",
@@ -2280,4 +2287,3 @@ window.LANG_VI = {
     "dontShowAgain": "Không hiển thị lại"
   }
 };
-

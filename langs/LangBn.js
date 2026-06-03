@@ -2147,6 +2147,13 @@ window.LANG_BN = {
     "characterPronunciationTokenWarningUsage": "আনুমানিক ব্যবহার: সাধারণ লাইনভিত্তিক উচ্চারণ অনুরোধের তুলনায় প্রায় 3-6 গুণ বেশি টোকেন লাগতে পারে। আসল ব্যবহার গানের দৈর্ঘ্য, ভাষা ও প্রদানকারীর পুনরায় চেষ্টার ওপর নির্ভর করে।",
     "characterPronunciationTokenWarningConfirm": "আমি বুঝেছি, তৈরি করুন",
     "characterPronunciationTokenWarningCancel": "বাতিল",
+    "parentheticalLayoutTitle": "বন্ধনীর ভোকাল বিন্যাস বেছে নিন",
+    "parentheticalLayoutBody": "এই লাইনে বন্ধনীর মধ্যে একাধিক ভোকাল অংশ আছে। কীভাবে দেখানো ও সিঙ্ক করা হবে তা বেছে নিন।",
+    "parentheticalLayoutOriginal": "মূল",
+    "parentheticalLayoutSeparateLabel": "প্রতিটি অংশ আলাদা করুন",
+    "parentheticalLayoutSeparateDesc": "বন্ধনীর প্রতিটি অংশ আলাদা ভোকাল লাইন হিসেবে সিঙ্ক করে।",
+    "parentheticalLayoutGroupedLabel": "এক লাইনে রাখুন",
+    "parentheticalLayoutGroupedDesc": "পাশাপাশি থাকা বন্ধনী ভোকালগুলো এক ভোকাল লাইন হিসেবে সিঙ্ক করে।",
     "back": "বন্ধ করুন",
     "lrclibSearchResults": "LRCLIB অনুসন্ধান ফলাফল",
     "showLrclibSearchResults": "অনুসন্ধান ফলাফল দেখান",
@@ -2280,4 +2287,3 @@ window.LANG_BN = {
     "dontShowAgain": "আর দেখাবেন না"
   }
 };
-
