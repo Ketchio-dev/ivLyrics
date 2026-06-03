@@ -834,6 +834,10 @@ window.LANG_ZH_TW = {
     "instrumentalBreak": {
       "title": "器樂段標記",
       "subtitle": "用圖示取代較長的空白或僅含音符的歌詞段",
+      "autoDetect": {
+        "label": "自動偵測間奏空檔",
+        "desc": "卡拉 OK 歌詞行結束後，如果到下一行之間有較長空檔，會自動顯示間奏標記。"
+      },
       "icon": {
         "label": "圖示樣式",
         "desc": "選擇在超過 0.5 秒的空白/音符歌詞段中顯示的動畫",

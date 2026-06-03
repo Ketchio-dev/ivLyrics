@@ -834,6 +834,10 @@ window.LANG_PT = {
     "instrumentalBreak": {
       "title": "Marcador instrumental",
       "subtitle": "Substitui lacunas longas vazias ou só com notas por um ícone",
+      "autoDetect": {
+        "label": "Detectar pausas instrumentais automaticamente",
+        "desc": "Depois que uma linha de karaokê termina, mostre automaticamente um marcador instrumental se houver uma pausa longa antes da próxima linha."
+      },
       "icon": {
         "label": "Design do ícone",
         "desc": "Escolha a animação para lacunas de letra com mais de 0,5 segundo",

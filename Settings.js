@@ -10849,6 +10849,13 @@ const ConfigModal = ({
         react.createElement(OptionList, {
           items: [
             {
+              desc: I18n.t("settingsAdvanced.instrumentalBreak.autoDetect.label") || "Auto-detect instrumental gaps",
+              key: "instrumental-break-auto-detect",
+              info: I18n.t("settingsAdvanced.instrumentalBreak.autoDetect.desc") || "After a karaoke lyric line finishes, show an instrumental marker for a long gap before the next line.",
+              type: ConfigSlider,
+              defaultValue: CONFIG.visual["instrumental-break-auto-detect"] ?? true,
+            },
+            {
               desc: I18n.t("settingsAdvanced.instrumentalBreak.icon.label") || "Icon Design",
               key: "instrumental-break-icon",
               info: I18n.t("settingsAdvanced.instrumentalBreak.icon.desc") || "Choose the animation shown for instrumental gaps longer than 0.5 seconds",

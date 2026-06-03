@@ -834,6 +834,10 @@ window.LANG_ES = {
     "instrumentalBreak": {
       "title": "Marcador instrumental",
       "subtitle": "Sustituye los huecos largos vacíos o solo con notas por un icono",
+      "autoDetect": {
+        "label": "Detectar pausas instrumentales automáticamente",
+        "desc": "Después de que termine una línea de karaoke, muestra automáticamente un marcador instrumental si hay una pausa larga antes de la siguiente línea."
+      },
       "icon": {
         "label": "Diseño del icono",
         "desc": "Elige la animación para huecos de letra de más de 0,5 segundos",

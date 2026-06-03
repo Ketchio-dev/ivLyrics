@@ -834,6 +834,10 @@ window.LANG_DE = {
     "instrumentalBreak": {
       "title": "Instrumental-Markierung",
       "subtitle": "Ersetzt lange leere oder reine Notenzeilen durch ein Symbol",
+      "autoDetect": {
+        "label": "Instrumentale Lücken automatisch erkennen",
+        "desc": "Wenn nach dem Ende einer Karaoke-Zeile vor der nächsten Zeile eine lange Lücke bleibt, wird automatisch ein Instrumental-Marker angezeigt."
+      },
       "icon": {
         "label": "Symbol-Design",
         "desc": "Wählen Sie die Animation für Lyrics-Lücken über 0,5 Sekunden",

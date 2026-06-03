@@ -834,6 +834,10 @@ window.LANG_FR = {
     "instrumentalBreak": {
       "title": "Repère instrumental",
       "subtitle": "Remplace les longs blancs ou lignes de notes seules par une icône",
+      "autoDetect": {
+        "label": "Détecter automatiquement les blancs instrumentaux",
+        "desc": "Après la fin d’une ligne de karaoké, affiche automatiquement un repère instrumental si un long blanc précède la ligne suivante."
+      },
       "icon": {
         "label": "Style d'icône",
         "desc": "Choisissez l'animation affichée pour les blancs de paroles de plus de 0,5 seconde",

@@ -834,6 +834,10 @@ window.LANG_ID = {
     "instrumentalBreak": {
       "title": "Penanda instrumental",
       "subtitle": "Ganti jeda lirik kosong atau hanya not yang panjang dengan ikon",
+      "autoDetect": {
+        "label": "Deteksi jeda instrumental otomatis",
+        "desc": "Setelah baris lirik karaoke selesai, tampilkan penanda instrumental otomatis jika ada jeda panjang sebelum baris berikutnya."
+      },
       "icon": {
         "label": "Desain ikon",
         "desc": "Pilih animasi untuk jeda lirik lebih dari 0,5 detik",

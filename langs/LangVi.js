@@ -834,6 +834,10 @@ window.LANG_VI = {
     "instrumentalBreak": {
       "title": "Dấu đoạn nhạc",
       "subtitle": "Thay khoảng trống lời dài hoặc dòng chỉ có nốt bằng biểu tượng",
+      "autoDetect": {
+        "label": "Tự phát hiện khoảng nhạc dạo",
+        "desc": "Sau khi một dòng lời karaoke kết thúc, tự động hiển thị dấu nhạc dạo nếu có khoảng trống dài trước dòng tiếp theo."
+      },
       "icon": {
         "label": "Kiểu biểu tượng",
         "desc": "Chọn hoạt ảnh cho khoảng trống lời dài hơn 0,5 giây",

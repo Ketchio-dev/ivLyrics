@@ -834,6 +834,10 @@ window.LANG_EN = {
     "instrumentalBreak": {
       "title": "Instrumental Marker",
       "subtitle": "Replace long blank or note-only lyric gaps with an icon",
+      "autoDetect": {
+        "label": "Auto-detect instrumental gaps",
+        "desc": "After a karaoke lyric line finishes, show an instrumental marker for a long gap before the next line."
+      },
       "icon": {
         "label": "Icon Design",
         "desc": "Choose the animation shown for lyric gaps longer than 0.5 seconds",

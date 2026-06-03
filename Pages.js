@@ -2211,6 +2211,11 @@ const getCurrentTrackDurationMs = () => {
 };
 
 const KARAOKE_TRAILING_INTERLUDE_DELAY_MS = 2500;
+const isAutoInstrumentalBreakEnabled = () => {
+	const value = CONFIG?.visual?.["instrumental-break-auto-detect"];
+	if (typeof value === "boolean") return value;
+	return !["false", "0", "off", "no"].includes(String(value ?? true).trim().toLowerCase());
+};
 
 const getTimedSyllablesFromLine = (line) => {
 	const syllables = [];
@@ -2545,6 +2550,10 @@ const getInterludeInfo = (line, nextLine = null, lineIndex = -1, lineCount = 0) 
 };
 
 const getTrailingKaraokeInterludeInfo = (line, nextLine = null, lineIndex = -1, lineCount = 0) => {
+	if (!isAutoInstrumentalBreakEnabled()) {
+		return { isInterlude: false, durationMs: 0, source: "karaoke-trailing-gap" };
+	}
+
 	const fillEndTime = getKaraokeLineFillEndTime(line);
 	const startTime = fillEndTime !== null ? fillEndTime + KARAOKE_TRAILING_INTERLUDE_DELAY_MS : null;
 	const nextStartTime = toFiniteTime(nextLine?.startTime);

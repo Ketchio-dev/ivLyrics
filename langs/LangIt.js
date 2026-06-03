@@ -834,6 +834,10 @@ window.LANG_IT = {
     "instrumentalBreak": {
       "title": "Indicatore strumentale",
       "subtitle": "Sostituisce i lunghi spazi vuoti o le righe solo con note con un'icona",
+      "autoDetect": {
+        "label": "Rileva automaticamente le pause strumentali",
+        "desc": "Dopo la fine di una riga karaoke, mostra automaticamente un indicatore strumentale se c’è una lunga pausa prima della riga successiva."
+      },
       "icon": {
         "label": "Design icona",
         "desc": "Scegli l'animazione per pause del testo superiori a 0,5 secondi",

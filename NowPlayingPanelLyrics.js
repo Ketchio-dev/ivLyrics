@@ -1552,6 +1552,12 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
         return Number.isFinite(configuredAdvance) ? configuredAdvance : 0;
     };
 
+    const isAutoInstrumentalBreakEnabled = () => {
+        const value = getVisualSetting("instrumental-break-auto-detect", true);
+        if (typeof value === "boolean") return value;
+        return !["false", "0", "off", "no"].includes(String(value).trim().toLowerCase());
+    };
+
     const setStorageValue = (key, value) => {
         try {
             localStorage.setItem(key, String(value));
@@ -2186,6 +2192,10 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
     };
 
     const getTrailingKaraokeInterludeInfo = (line, nextLine = null, lineIndex = -1, lineCount = 0) => {
+        if (!isAutoInstrumentalBreakEnabled()) {
+            return { isInterlude: false, durationMs: 0, source: "karaoke-trailing-gap" };
+        }
+
         const lyricEndTime = getLastSyllableEndTime(line);
         const startTime = lyricEndTime !== null ? lyricEndTime + KARAOKE_TRAILING_INTERLUDE_DELAY_MS : null;
         const nextStartTime = toFiniteTime(nextLine?.startTime);
@@ -2637,6 +2647,7 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
         const [trackOffset, setTrackOffset] = useState(0); // 곡별 싱크 오프셋
         const [globalOffset, setGlobalOffset] = useState(() => window.Utils?.getGlobalSyncOffset?.() || 0);
         const [pseudoKaraokeAdvanceMs, setPseudoKaraokeAdvanceMs] = useState(getPseudoKaraokeRenderAdvance());
+        const [autoInstrumentalBreakEnabled, setAutoInstrumentalBreakEnabled] = useState(isAutoInstrumentalBreakEnabled());
         const [isEnabled, setIsEnabled] = useState(getStorageValue(STORAGE_KEY, DEFAULT_ENABLED));
         const [fontScale, setFontScale] = useState(parseInt(getStorageValue(FONT_SCALE_KEY, DEFAULT_FONT_SCALE), 10));
         const [instrumentalBreakRevision, setInstrumentalBreakRevision] = useState(0);
@@ -3001,6 +3012,10 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
                 if (event.detail?.name === 'pseudo-karaoke-render-advance') {
                     setPseudoKaraokeAdvanceMs(Number(event.detail.value) || 0);
                 }
+                if (event.detail?.name === 'instrumental-break-auto-detect') {
+                    setAutoInstrumentalBreakEnabled(isAutoInstrumentalBreakEnabled());
+                    setActiveTrailingInterludeKey(null);
+                }
                 if (event.detail?.name === 'karaoke-text-effects') {
                     setTextEffectRevision((revision) => revision + 1);
                 }
@@ -3010,6 +3025,7 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
                     event.detail?.name === 'instrumental-break-label-font-size' ||
                     event.detail?.name === 'instrumental-break-label-font-weight' ||
                     event.detail?.name === 'instrumental-break-label-opacity' ||
+                    event.detail?.name === 'instrumental-break-auto-detect' ||
                     event.detail?.name === 'instrumental-break-animation-speed' ||
                     event.detail?.name === 'panel-lyrics-original-font' ||
                     event.detail?.name === 'panel-lyrics-original-size' ||
@@ -3445,7 +3461,7 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
                 // 전역 변수 정리
                 window._ivLyricsPanelCurrentTime = 0;
             };
-        }, [lyrics, isEnabled, trackOffset, globalOffset, karaokeSource, pseudoKaraokeAdvanceMs]); // currentIndex 의존성 제거
+        }, [lyrics, isEnabled, trackOffset, globalOffset, karaokeSource, pseudoKaraokeAdvanceMs, autoInstrumentalBreakEnabled]); // currentIndex 의존성 제거
 
         // 스크롤 애니메이션 비활성화 - Now Playing 탭 스크롤 문제 방지
         // useEffect(() => {
@@ -3559,7 +3575,7 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
             }
 
             return lines;
-        }, [lyrics, currentIndex, visibleLineCount, activeTrailingInterludeKey]);
+        }, [lyrics, currentIndex, visibleLineCount, activeTrailingInterludeKey, autoInstrumentalBreakEnabled]);
 
         // currentTime은 더 이상 상태로 관리하지 않음 (전역 변수 window._ivLyricsPanelCurrentTime 사용)
 

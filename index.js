@@ -1476,6 +1476,10 @@ const CONFIG = {
       "ivLyrics:visual:instrumental-break-show-label",
       false
     ),
+    "instrumental-break-auto-detect": StorageManager.get(
+      "ivLyrics:visual:instrumental-break-auto-detect",
+      true
+    ),
     "instrumental-break-label-font-family":
       StorageManager.getItem("ivLyrics:visual:instrumental-break-label-font-family") ||
       "",
