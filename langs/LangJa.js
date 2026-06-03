@@ -385,7 +385,11 @@ window.LANG_JA = {
     },
     "syncCreatorShortcuts": {
       "title": "Sync Creator ショートカット",
-      "subtitle": "Sync Creator 録音用のメインキーとサブキーを設定します。"
+      "subtitle": "Sync Creator 録音用のメインキーとサブキーを設定します。",
+      "autoBoundaryChars": {
+        "label": "空白と記号を自動処理",
+        "desc": "キーボードで同期を付けるとき、近くの空白や句読点を自動的に含めます。これらの文字を手動でタイミング調整する場合はオフにしてください。"
+      }
     },
     "aiProviders": {
       "title": "AIプロバイダー",

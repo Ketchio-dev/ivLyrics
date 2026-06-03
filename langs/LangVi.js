@@ -385,7 +385,11 @@ window.LANG_VI = {
     },
     "syncCreatorShortcuts": {
       "title": "Phím tắt Sync Creator",
-      "subtitle": "Cấu hình phím chính và phím phụ để ghi trong Sync Creator."
+      "subtitle": "Cấu hình phím chính và phím phụ để ghi trong Sync Creator.",
+      "autoBoundaryChars": {
+        "label": "Tự xử lý khoảng trắng và dấu câu",
+        "desc": "Khi đồng bộ bằng bàn phím, các khoảng trắng và dấu câu gần đó sẽ được đưa vào tự động. Tắt tùy chọn này để canh thời gian các ký tự đó thủ công."
+      }
     },
     "aiProviders": {
       "title": "Nhà cung cấp AI",

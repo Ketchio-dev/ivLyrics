@@ -385,7 +385,11 @@ window.LANG_MS = {
     },
     "syncCreatorShortcuts": {
       "title": "Pintasan Papan Kekunci Sync Creator",
-      "subtitle": "Tetapkan kekunci utama dan sekunder untuk rakaman Sync Creator."
+      "subtitle": "Tetapkan kekunci utama dan sekunder untuk rakaman Sync Creator.",
+      "autoBoundaryChars": {
+        "label": "Kendalikan ruang dan tanda baca secara automatik",
+        "desc": "Semasa menggunakan penyegerakan papan kekunci, ruang dan tanda baca berdekatan akan disertakan secara automatik. Matikan pilihan ini untuk menetapkan masa aksara tersebut secara manual."
+      }
     },
     "aiProviders": {
       "title": "Penyedia AI",

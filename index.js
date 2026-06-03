@@ -1792,6 +1792,10 @@ const CONFIG = {
       "ivLyrics:visual:karaoke-mode-enabled",
       true
     ),
+    "sync-creator-auto-boundary-chars": StorageManager.get(
+      "ivLyrics:visual:sync-creator-auto-boundary-chars",
+      true
+    ),
     "spotify-fake-karaoke-enabled": StorageManager.get(
       "ivLyrics:visual:spotify-fake-karaoke-enabled",
       false

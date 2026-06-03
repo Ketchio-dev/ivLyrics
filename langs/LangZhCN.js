@@ -385,7 +385,11 @@ window.LANG_ZH_CN = {
     },
     "syncCreatorShortcuts": {
       "title": "Sync Creator 快捷键",
-      "subtitle": "配置 Sync Creator 录制用的主键和副键。"
+      "subtitle": "配置 Sync Creator 录制用的主键和副键。",
+      "autoBoundaryChars": {
+        "label": "自动处理空格和标点",
+        "desc": "使用键盘同步时，自动包含相邻的空格和标点。关闭后，可以手动为这些字符打点。"
+      }
     },
     "aiProviders": {
       "title": "AI 提供者",

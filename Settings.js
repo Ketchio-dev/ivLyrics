@@ -5066,8 +5066,14 @@ const ConfigModal = ({
       settingKey: "sync-creator-shortcuts",
       name: getSettingsText("settings.syncCreatorShortcuts.title", "Sync Creator Shortcuts"),
       desc: getSettingsText("settings.syncCreatorShortcuts.subtitle", "Configure primary and secondary recording keys for Sync Creator."),
-      i18nKeys: ["tabs.behavior", "settings.syncCreatorShortcuts.title", "settings.syncCreatorShortcuts.subtitle"],
-      keywords: ["sync creator shortcuts hotkeys keybinds karaoke recording syllable word character drag slash"]
+      i18nKeys: [
+        "tabs.behavior",
+        "settings.syncCreatorShortcuts.title",
+        "settings.syncCreatorShortcuts.subtitle",
+        "settings.syncCreatorShortcuts.autoBoundaryChars.label",
+        "settings.syncCreatorShortcuts.autoBoundaryChars.desc"
+      ],
+      keywords: ["sync creator shortcuts hotkeys keybinds karaoke recording syllable word character drag slash punctuation space special characters"]
     },
     {
       section: I18n.t("tabs.behavior"),
@@ -11920,6 +11926,13 @@ const ConfigModal = ({
         }),
         react.createElement(OptionList, {
           items: [
+            {
+              desc: getSettingsText("settings.syncCreatorShortcuts.autoBoundaryChars.label", "Auto-handle spaces and punctuation"),
+              info: getSettingsText("settings.syncCreatorShortcuts.autoBoundaryChars.desc", "When using keyboard sync, automatically include nearby spaces and punctuation. Turn this off to time those characters manually."),
+              key: "sync-creator-auto-boundary-chars",
+              type: ConfigSlider,
+              defaultValue: CONFIG.visual["sync-creator-auto-boundary-chars"] ?? true,
+            },
             {
               desc: `${getSettingsText("syncCreator.shortcuts.charForward", "Advance one character")} (${getSettingsText("settings.shortcuts.primary", "Primary")})`,
               key: "sync-creator-char-forward-key",

@@ -385,7 +385,11 @@ window.LANG_DE = {
     },
     "syncCreatorShortcuts": {
       "title": "Sync Creator-Tastenkürzel",
-      "subtitle": "Konfiguriere primäre und sekundäre Aufnahmetasten für Sync Creator."
+      "subtitle": "Konfiguriere primäre und sekundäre Aufnahmetasten für Sync Creator.",
+      "autoBoundaryChars": {
+        "label": "Leerzeichen und Satzzeichen automatisch behandeln",
+        "desc": "Bei der Tastatur-Synchronisierung werden nahe Leerzeichen und Satzzeichen automatisch einbezogen. Deaktiviere dies, um diese Zeichen manuell zu timen."
+      }
     },
     "aiProviders": {
       "title": "KI-Anbieter",

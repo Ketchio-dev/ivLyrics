@@ -385,7 +385,11 @@ window.LANG_PT = {
     },
     "syncCreatorShortcuts": {
       "title": "Atalhos do Sync Creator",
-      "subtitle": "Configure as teclas primária e secundária para gravação no Sync Creator."
+      "subtitle": "Configure as teclas primária e secundária para gravação no Sync Creator.",
+      "autoBoundaryChars": {
+        "label": "Tratar espaços e pontuação automaticamente",
+        "desc": "Ao sincronizar pelo teclado, espaços e sinais de pontuação próximos são incluídos automaticamente. Desative para marcar o tempo desses caracteres manualmente."
+      }
     },
     "aiProviders": {
       "title": "Provedores de IA",

@@ -385,7 +385,11 @@ window.LANG_SV = {
     },
     "syncCreatorShortcuts": {
       "title": "Sync Creator-genvägar",
-      "subtitle": "Konfigurera primära och sekundära inspelningsnycklar för Sync Creator."
+      "subtitle": "Konfigurera primära och sekundära inspelningsnycklar för Sync Creator.",
+      "autoBoundaryChars": {
+        "label": "Hantera blanksteg och skiljetecken automatiskt",
+        "desc": "När du synkar med tangentbordet inkluderas närliggande blanksteg och skiljetecken automatiskt. Stäng av detta för att tajma dessa tecken manuellt."
+      }
     },
     "aiProviders": {
       "title": "AI-leverantörer",

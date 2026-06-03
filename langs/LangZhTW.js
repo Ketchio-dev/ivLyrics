@@ -385,7 +385,11 @@ window.LANG_ZH_TW = {
     },
     "syncCreatorShortcuts": {
       "title": "Sync Creator 快捷鍵",
-      "subtitle": "設定 Sync Creator 錄製用的主鍵與副鍵。"
+      "subtitle": "設定 Sync Creator 錄製用的主鍵與副鍵。",
+      "autoBoundaryChars": {
+        "label": "自動處理空格與標點",
+        "desc": "使用鍵盤同步時，會自動包含相鄰的空格與標點。關閉後，可以手動為這些字元打點。"
+      }
     },
     "aiProviders": {
       "title": "AI 提供者",

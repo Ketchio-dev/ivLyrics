@@ -385,7 +385,11 @@ window.LANG_EN = {
     },
     "syncCreatorShortcuts": {
       "title": "Sync Creator Shortcuts",
-      "subtitle": "Configure primary and secondary recording keys for Sync Creator."
+      "subtitle": "Configure primary and secondary recording keys for Sync Creator.",
+      "autoBoundaryChars": {
+        "label": "Auto-handle spaces and punctuation",
+        "desc": "When using keyboard sync, automatically include nearby spaces and punctuation. Turn this off to time those characters manually."
+      }
     },
     "aiProviders": {
       "title": "AI Providers",

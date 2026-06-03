@@ -385,7 +385,11 @@ window.LANG_KO = {
     },
     "syncCreatorShortcuts": {
       "title": "Sync Creator 단축키",
-      "subtitle": "Sync Creator 녹음용 기본 및 보조 키를 설정합니다."
+      "subtitle": "Sync Creator 녹음용 기본 및 보조 키를 설정합니다.",
+      "autoBoundaryChars": {
+        "label": "공백/특수문자 자동 처리",
+        "desc": "키보드 싱크를 찍을 때 인접한 공백과 특수문자를 자동으로 함께 처리합니다. 끄면 해당 글자들도 직접 타이밍을 찍을 수 있습니다."
+      }
     },
     "aiProviders": {
       "title": "AI 제공자",

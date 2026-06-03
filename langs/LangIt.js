@@ -385,7 +385,11 @@ window.LANG_IT = {
     },
     "syncCreatorShortcuts": {
       "title": "Scorciatoie Sync Creator",
-      "subtitle": "Configura i tasti primari e secondari per la registrazione in Sync Creator."
+      "subtitle": "Configura i tasti primari e secondari per la registrazione in Sync Creator.",
+      "autoBoundaryChars": {
+        "label": "Gestisci automaticamente spazi e punteggiatura",
+        "desc": "Durante la sincronizzazione da tastiera, spazi e segni di punteggiatura vicini vengono inclusi automaticamente. Disattiva questa opzione per temporizzare quei caratteri manualmente."
+      }
     },
     "aiProviders": {
       "title": "Fornitori IA",

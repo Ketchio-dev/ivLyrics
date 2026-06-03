@@ -385,7 +385,11 @@ window.LANG_ES = {
     },
     "syncCreatorShortcuts": {
       "title": "Atajos de Sync Creator",
-      "subtitle": "Configura las teclas principal y secundaria para grabar en Sync Creator."
+      "subtitle": "Configura las teclas principal y secundaria para grabar en Sync Creator.",
+      "autoBoundaryChars": {
+        "label": "Gestionar automáticamente espacios y puntuación",
+        "desc": "Al sincronizar con el teclado, incluye automáticamente los espacios y signos de puntuación cercanos. Desactívalo para marcar esos caracteres manualmente."
+      }
     },
     "aiProviders": {
       "title": "Proveedores de IA",

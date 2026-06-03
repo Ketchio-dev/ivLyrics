@@ -385,7 +385,11 @@ window.LANG_FR = {
     },
     "syncCreatorShortcuts": {
       "title": "Raccourcis Sync Creator",
-      "subtitle": "Configurez les touches principale et secondaire d'enregistrement pour Sync Creator."
+      "subtitle": "Configurez les touches principale et secondaire d'enregistrement pour Sync Creator.",
+      "autoBoundaryChars": {
+        "label": "Gérer automatiquement les espaces et la ponctuation",
+        "desc": "Pendant la synchronisation au clavier, les espaces et signes de ponctuation proches sont inclus automatiquement. Désactivez cette option pour minuter ces caractères manuellement."
+      }
     },
     "aiProviders": {
       "title": "Fournisseurs IA",

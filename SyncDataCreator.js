@@ -680,6 +680,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		syllable: { primary: 'sync-creator-syllable-key', secondary: 'sync-creator-syllable-alt-key', defaultPrimary: ';' },
 		drag: { primary: 'sync-creator-drag-key', secondary: 'sync-creator-drag-alt-key', defaultPrimary: '/', defaultSecondary: 'numpaddivide' },
 	};
+	const SYNC_CREATOR_AUTO_BOUNDARY_CHARS_KEY = 'sync-creator-auto-boundary-chars';
 	const normalizeHotkeyToken = (value) => {
 		if (value === null || value === undefined) return '';
 		const normalized = String(value).trim().toLowerCase();
@@ -714,6 +715,21 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			return normalizeHotkeyToken(effectiveValue);
 		} catch (e) {
 			return normalizeHotkeyToken(fallback);
+		}
+	};
+	const readSyncCreatorBooleanSetting = (settingKey, fallback = true) => {
+		try {
+			const fullKey = `ivLyrics:visual:${settingKey}`;
+			const stored = localStorage.getItem(fullKey)
+				?? Spicetify.LocalStorage?.get(fullKey)
+				?? window.CONFIG?.visual?.[settingKey];
+			if (stored === null || stored === undefined) return fallback;
+			if (typeof stored === 'boolean') return stored;
+			const normalized = String(stored).trim().toLowerCase();
+			if (!normalized) return fallback;
+			return !['false', '0', 'off', 'no'].includes(normalized);
+		} catch (e) {
+			return fallback;
 		}
 	};
 	const getSyncCreatorShortcutBindings = () => Object.entries(SYNC_CREATOR_SHORTCUTS).reduce((acc, [action, config]) => {
@@ -4221,6 +4237,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 
 			if (currentLineIndex >= lyricsLines.length) return;
 			if (!currentLineChars.length) return;
+			const shouldAutoAdvanceBoundaryChars = readSyncCreatorBooleanSetting(SYNC_CREATOR_AUTO_BOUNDARY_CHARS_KEY, true);
 
 			const consumeKeyboardEvent = () => {
 				e.preventDefault();
@@ -4240,7 +4257,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 					charTimesRef.current[0] = currentTime;
 
 					// 첫 글자가 여는 괄호면 다음 글자까지 포함
-					if (isLeadingChar(currentLineChars, 0)) {
+					if (shouldAutoAdvanceBoundaryChars && isLeadingChar(currentLineChars, 0)) {
 						while (startIndex + 1 < currentLineChars.length && isLeadingChar(currentLineChars, startIndex)) {
 							startIndex++;
 							charTimesRef.current[startIndex] = currentTime;
@@ -4248,9 +4265,11 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 					}
 
 					// 다음 글자가 구두점/닫는괄호/공백이면 함께 처리
-					while (startIndex + 1 < currentLineChars.length && isTrailingChar(currentLineChars, startIndex + 1)) {
-						startIndex++;
-						charTimesRef.current[startIndex] = currentTime;
+					if (shouldAutoAdvanceBoundaryChars) {
+						while (startIndex + 1 < currentLineChars.length && isTrailingChar(currentLineChars, startIndex + 1)) {
+							startIndex++;
+							charTimesRef.current[startIndex] = currentTime;
+						}
 					}
 
 					keyboardCharIndexRef.current = startIndex;
@@ -4265,15 +4284,19 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 						charTimesRef.current[nextIndex] = currentTime;
 
 						// 현재 글자가 여는 괄호면 다음 글자까지 포함
-						while (nextIndex + 1 < currentLineChars.length && isLeadingChar(currentLineChars, nextIndex)) {
-							nextIndex++;
-							charTimesRef.current[nextIndex] = currentTime;
+						if (shouldAutoAdvanceBoundaryChars) {
+							while (nextIndex + 1 < currentLineChars.length && isLeadingChar(currentLineChars, nextIndex)) {
+								nextIndex++;
+								charTimesRef.current[nextIndex] = currentTime;
+							}
 						}
 
 						// 다음 글자가 구두점/닫는괄호/공백이면 함께 처리
-						while (nextIndex + 1 < currentLineChars.length && isTrailingChar(currentLineChars, nextIndex + 1)) {
-							nextIndex++;
-							charTimesRef.current[nextIndex] = currentTime;
+						if (shouldAutoAdvanceBoundaryChars) {
+							while (nextIndex + 1 < currentLineChars.length && isTrailingChar(currentLineChars, nextIndex + 1)) {
+								nextIndex++;
+								charTimesRef.current[nextIndex] = currentTime;
+							}
 						}
 
 						keyboardCharIndexRef.current = nextIndex;

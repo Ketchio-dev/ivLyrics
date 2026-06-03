@@ -385,7 +385,11 @@ window.LANG_ID = {
     },
     "syncCreatorShortcuts": {
       "title": "Pintasan Sync Creator",
-      "subtitle": "Atur tombol utama dan sekunder untuk perekaman Sync Creator."
+      "subtitle": "Atur tombol utama dan sekunder untuk perekaman Sync Creator.",
+      "autoBoundaryChars": {
+        "label": "Tangani spasi dan tanda baca otomatis",
+        "desc": "Saat memakai sinkronisasi keyboard, spasi dan tanda baca terdekat akan ikut otomatis. Matikan ini untuk mengatur waktu karakter tersebut secara manual."
+      }
     },
     "aiProviders": {
       "title": "Penyedia AI",
