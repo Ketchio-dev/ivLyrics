@@ -37,9 +37,10 @@ const SYNC_CREATOR_DEFAULT_KIND = 'vocal';
 const SYNC_CREATOR_MAX_MERGED_LINES = 5;
 const SYNC_CREATOR_SYNC_DATA_VERSION = 3;
 const SYNC_CREATOR_PREVIEW_POSITION_UPDATE_INTERVAL_MS = 100;
-const SYNC_CREATOR_RECORD_POSITION_UPDATE_INTERVAL_MS = 500;
+const SYNC_CREATOR_RECORD_POSITION_UPDATE_INTERVAL_MS = 50;
 const SYNC_CREATOR_IDLE_POSITION_UPDATE_INTERVAL_MS = 500;
 const SYNC_CREATOR_POSITION_COMMIT_THRESHOLD_MS = 80;
+const SYNC_CREATOR_RECORD_POSITION_COMMIT_THRESHOLD_MS = 35;
 const SYNC_CREATOR_PROGRESS_COLOR = '#3182f6';
 const SYNC_CREATOR_RECORDING_BACKGROUND = 'rgba(255, 152, 0, 0.6)';
 const getSyncCreatorProgressGradient = (direction, percent, color = SYNC_CREATOR_PROGRESS_COLOR) => (
@@ -1673,6 +1674,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 	const charTimesRef = useRef([]);
 	const charElementsRef = useRef([]);
 	const charHitBoxesRef = useRef([]);
+	const charScrollMetricsRef = useRef([]);
 	const rtlTextRunRef = useRef(null);
 	const recordingCharIndexRef = useRef(-1);
 	const lastPaintedRecordingIndexRef = useRef(-1);
@@ -3139,10 +3141,13 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		const updatePosition = () => {
 			const pos = Number(Spicetify.Player?.getProgress?.() || 0);
 			if (!Number.isFinite(pos)) return;
+			const commitThreshold = mode === 'record'
+				? SYNC_CREATOR_RECORD_POSITION_COMMIT_THRESHOLD_MS
+				: SYNC_CREATOR_POSITION_COMMIT_THRESHOLD_MS;
 
 			if (
 				lastCommittedPosition < 0
-				|| Math.abs(pos - lastCommittedPosition) >= SYNC_CREATOR_POSITION_COMMIT_THRESHOLD_MS
+				|| Math.abs(pos - lastCommittedPosition) >= commitThreshold
 				|| pos === 0
 			) {
 				lastCommittedPosition = pos;
@@ -3188,30 +3193,49 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 	const autoScroll = useCallback((charIndex) => {
 		if (!lyricsScrollRef.current || charIndex < 0) return;
 		const scrollContainer = lyricsScrollRef.current;
+		const numericIndex = Number(charIndex);
+		if (!Number.isFinite(numericIndex)) return;
+		const maxScrollLeft = Math.max(0, scrollContainer.scrollWidth - scrollContainer.clientWidth);
+		if (maxScrollLeft <= 0) return;
+
 		if (useCurrentLineTextRun && currentLineChars.length > 0) {
-			const maxScrollLeft = Math.max(0, scrollContainer.scrollWidth - scrollContainer.clientWidth);
-			const progress = charIndex / Math.max(1, currentLineChars.length - 1);
+			const progress = Math.max(0, Math.min(1, numericIndex / Math.max(1, currentLineChars.length - 1)));
 			scrollContainer.scrollLeft = isCurrentLineRtl ? -maxScrollLeft * progress : maxScrollLeft * progress;
 			return;
 		}
-		const charElement = charElementsRef.current[charIndex];
-		if (!charElement) return;
 
-		const containerRect = scrollContainer.getBoundingClientRect();
-		const charRect = charElement.getBoundingClientRect();
-		const charCenter = charRect.left + charRect.width / 2;
-		const containerCenter = containerRect.left + containerRect.width / 2;
-		const scrollOffset = charCenter - containerCenter;
+		let metrics = charScrollMetricsRef.current;
+		if (!Array.isArray(metrics) || metrics.length !== charElementsRef.current.length || metrics.length === 0) {
+			metrics = charElementsRef.current.map((el) => {
+				if (!el) return null;
+				const width = el.offsetWidth || 0;
+				return {
+					center: (el.offsetLeft || 0) + (width / 2)
+				};
+			});
+			charScrollMetricsRef.current = metrics;
+		}
 
-		if (Math.abs(scrollOffset) > 50) {
-			scrollContainer.scrollLeft += scrollOffset * 0.3;
+		const lowerIndex = Math.max(0, Math.min(metrics.length - 1, Math.floor(numericIndex)));
+		const upperIndex = Math.max(0, Math.min(metrics.length - 1, Math.ceil(numericIndex)));
+		const lower = metrics[lowerIndex];
+		const upper = metrics[upperIndex] || lower;
+		if (!lower) return;
+
+		const ratio = Math.max(0, Math.min(1, numericIndex - lowerIndex));
+		const center = lower.center + (((upper?.center ?? lower.center) - lower.center) * ratio);
+		const targetScrollLeft = Math.max(0, Math.min(maxScrollLeft, center - (scrollContainer.clientWidth / 2)));
+
+		if (Math.abs(scrollContainer.scrollLeft - targetScrollLeft) > 1) {
+			scrollContainer.scrollLeft = targetScrollLeft;
 		}
 	}, [currentLineChars.length, isCurrentLineRtl, useCurrentLineTextRun]);
 
 	const applyRecordingProgressVisual = useCallback((nextIndex) => {
 		const numericIndex = Number(nextIndex);
 		const normalizedIndex = Number.isFinite(numericIndex) ? Math.max(-1, numericIndex) : -1;
-		if (Math.abs(lastPaintedRecordingIndexRef.current - normalizedIndex) < 0.01) return;
+		const previousIndex = lastPaintedRecordingIndexRef.current;
+		if (Math.abs(previousIndex - normalizedIndex) < 0.01) return;
 		lastPaintedRecordingIndexRef.current = normalizedIndex;
 
 		if (useCurrentLineTextRun && rtlTextRunRef.current) {
@@ -3223,6 +3247,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				percent,
 				SYNC_CREATOR_RECORDING_BACKGROUND
 			);
+			autoScroll(normalizedIndex);
 			return;
 		}
 
@@ -3232,9 +3257,9 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			? Math.max(0, Math.min(100, (normalizedIndex - completedIndex) * 100))
 			: 0;
 
-		for (let index = 0; index < currentLineChars.length; index++) {
+		const paintChar = (index) => {
 			const el = charElementsRef.current[index];
-			if (!el) continue;
+			if (!el) return;
 			const baseBackground = el.dataset.ivSyncCreatorBaseBackground || '';
 			if (normalizedIndex >= 0 && index <= completedIndex) {
 				el.style.background = SYNC_CREATOR_RECORDING_BACKGROUND;
@@ -3251,8 +3276,37 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				el.style.background = baseBackground;
 				el.style.color = el.dataset.ivSyncCreatorBaseColor || '';
 			}
+		};
+
+		if (previousIndex < -1.5 || normalizedIndex < 0) {
+			for (let index = 0; index < currentLineChars.length; index++) {
+				paintChar(index);
+			}
+			autoScroll(normalizedIndex);
+			return;
 		}
-	}, [currentLineChars.length, currentLineDirection, useCurrentLineTextRun]);
+
+		const previousCompletedIndex = Math.floor(previousIndex);
+		const previousPartialIndex = previousCompletedIndex + 1;
+		const minChangedIndex = Math.max(0, Math.min(
+			completedIndex,
+			partialIndex,
+			previousCompletedIndex,
+			previousPartialIndex
+		));
+		const maxChangedIndex = Math.min(currentLineChars.length - 1, Math.max(
+			completedIndex,
+			partialIndex,
+			previousCompletedIndex,
+			previousPartialIndex
+		));
+
+		for (let index = minChangedIndex; index <= maxChangedIndex; index++) {
+			paintChar(index);
+		}
+
+		autoScroll(normalizedIndex);
+	}, [autoScroll, currentLineChars.length, currentLineDirection, useCurrentLineTextRun]);
 
 	const cancelRecordingProgressAnimation = useCallback(() => {
 		if (recordingVisualFrameRef.current === null) return;
@@ -3314,6 +3368,9 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		const normalizedIndex = Number.isInteger(nextIndex) ? nextIndex : -1;
 		recordingCharIndexRef.current = normalizedIndex;
 		recordingVisualTargetIndexRef.current = normalizedIndex;
+		if (mode === 'record') {
+			lastPaintedPlaybackIndexRef.current = -2;
+		}
 
 		const shouldAnimate = mode === 'record'
 			&& normalizedIndex >= 0
@@ -3352,20 +3409,34 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 	const cacheCharHitBoxes = useCallback(() => {
 		if (useCurrentLineTextRun) {
 			charHitBoxesRef.current = [];
+			charScrollMetricsRef.current = [];
 			return;
 		}
 
-		charHitBoxesRef.current = charElementsRef.current.map((el) => {
-			if (!el) return null;
+		const nextHitBoxes = [];
+		const nextScrollMetrics = [];
+		for (let index = 0; index < charElementsRef.current.length; index++) {
+			const el = charElementsRef.current[index];
+			if (!el) {
+				nextHitBoxes.push(null);
+				nextScrollMetrics.push(null);
+				continue;
+			}
 			const rect = el.getBoundingClientRect();
-			return {
+			nextHitBoxes.push({
 				left: rect.left,
 				right: rect.right,
 				top: rect.top,
 				bottom: rect.bottom,
 				centerX: rect.left + (rect.width / 2)
-			};
-		});
+			});
+			const width = el.offsetWidth || rect.width || 0;
+			nextScrollMetrics.push({
+				center: (el.offsetLeft || 0) + (width / 2)
+			});
+		}
+		charHitBoxesRef.current = nextHitBoxes;
+		charScrollMetricsRef.current = nextScrollMetrics;
 	}, [useCurrentLineTextRun]);
 
 	const getCharIndexFromPoint = useCallback((clientX, clientY) => {
@@ -3591,7 +3662,6 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				}
 			}
 			setRecordingProgressIndex(charIndex, { commitState: false });
-			autoScroll(charIndex);
 		} else {
 			// 역방향 진행 (취소)
 			// 현재 recordingCharIndex에서 charIndex+1 까지의 기록을 지움
@@ -3600,7 +3670,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			}
 			setRecordingProgressIndex(charIndex, { commitState: false });
 		}
-	}, [mode, isDragging, dragStartTime, autoScroll, setRecordingProgressIndex]);
+	}, [mode, isDragging, dragStartTime, setRecordingProgressIndex]);
 
 	// Commit-time normalization keeps the client aligned with backend validation:
 	// chars must be non-decreasing and a line must not start before the previous line ends.
@@ -3725,7 +3795,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			...prev,
 			[currentStart]: nextMergedLineIndexes.slice(1).map(index => lineCharOffsets[index])
 		}));
-		setMode('idle');
+		setMode(prev => prev === 'record' ? prev : 'idle');
 		setRecordingProgressIndex(-1);
 		charTimesRef.current = [];
 		if (lyricsScrollRef.current) lyricsScrollRef.current.scrollLeft = 0;
@@ -3987,6 +4057,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			setIsDragging(false);
 			charTimesRef.current = [];
 			charHitBoxesRef.current = [];
+			charScrollMetricsRef.current = [];
 			return;
 		}
 
@@ -4001,6 +4072,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		setIsDragging(false);
 		charTimesRef.current = [];
 		charHitBoxesRef.current = [];
+		charScrollMetricsRef.current = [];
 	}, [mode, isDragging, dragStartTime, currentLineIndex, currentLineChars, lyricsLines.length, dragStartCharIndex, commitCurrentLineSync, advanceAfterCompletedTarget, setRecordingProgressIndex]);
 
 	// 키보드 싱크 상태 ref (isDragging과 별개로 키보드용)
@@ -4037,6 +4109,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		setRecordingProgressIndex(-1);
 		setIsDragging(false);
 		charHitBoxesRef.current = [];
+		charScrollMetricsRef.current = [];
 		if (keyboardDragIntervalRef.current) {
 			clearInterval(keyboardDragIntervalRef.current);
 			keyboardDragIntervalRef.current = null;
@@ -4225,7 +4298,6 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 
 						keyboardCharIndexRef.current = nextIndex;
 						setRecordingProgressIndex(nextIndex, { commitState: false });
-						autoScroll(nextIndex);
 						window.__ivLyricsDebugLog?.('[SyncDataCreator] Advanced to char:', nextIndex);
 					}
 
@@ -4322,7 +4394,6 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 
 					keyboardCharIndexRef.current = endIdx;
 					setRecordingProgressIndex(endIdx, { commitState: false });
-					autoScroll(endIdx);
 
 					window.__ivLyricsDebugLog?.('[SyncDataCreator] Word sync started, first word ends at:', endIdx);
 
@@ -4388,7 +4459,6 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				keyboardCharIndexRef.current = Math.max(0, finalEndIdx);
 
 				setRecordingProgressIndex(keyboardCharIndexRef.current, { commitState: false });
-				autoScroll(keyboardCharIndexRef.current);
 
 				// 보간을 위해 현재 단어 정보 저장
 				if (interpolationEnabledRef.current && nextWordStartIdx < currentLineChars.length) {
@@ -4531,7 +4601,6 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 
 					keyboardCharIndexRef.current = firstSegment.end;
 					setRecordingProgressIndex(firstSegment.end, { commitState: false });
-					autoScroll(firstSegment.end);
 					window.__ivLyricsDebugLog?.('[SyncDataCreator] Syllable sync started, segment:', firstSegment.start, '-', firstSegment.end);
 
 					if (firstSegment.end >= currentLineChars.length - 1) {
@@ -4568,7 +4637,6 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 
 				keyboardCharIndexRef.current = nextSegment.end;
 				setRecordingProgressIndex(nextSegment.end, { commitState: false });
-				autoScroll(nextSegment.end);
 				window.__ivLyricsDebugLog?.('[SyncDataCreator] Syllable advanced to segment:', nextSegment.start, '-', nextSegment.end);
 
 				if (nextSegment.end >= currentLineChars.length - 1) {
@@ -4749,7 +4817,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			document.removeEventListener('keypress', handleKeyPress, true);
 			document.removeEventListener('keyup', handleKeyUp, true);
 		};
-	}, [mode, currentLineIndex, activeParallelTargetId, lyricsLines.length, currentLineChars, currentLineEffectiveSyllableSegments, lineCharOffsets, autoScroll, commitCurrentLineSync, advanceAfterCompletedTarget, isCurrentSyncTargetMetaComplete, showMissingMetaToast, setRecordingProgressIndex]);
+	}, [mode, currentLineIndex, activeParallelTargetId, lyricsLines.length, currentLineChars, currentLineEffectiveSyllableSegments, lineCharOffsets, commitCurrentLineSync, advanceAfterCompletedTarget, isCurrentSyncTargetMetaComplete, showMissingMetaToast, setRecordingProgressIndex]);
 
 	const handleContainerMouseDown = useCallback((e) => {
 		if (mode !== 'record' || currentLineIndex >= lyricsLines.length) return;
@@ -4976,7 +5044,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			delete next[lineStart];
 			return next;
 		});
-		setMode('idle');
+		setMode(prev => prev === 'record' ? prev : 'idle');
 		setRecordingProgressIndex(-1);
 		charTimesRef.current = [];
 		if (lyricsScrollRef.current) lyricsScrollRef.current.scrollLeft = 0;
@@ -5043,7 +5111,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			return next;
 		});
 		setActiveParallelPartId('full');
-		setMode('idle');
+		setMode(prev => prev === 'record' ? prev : 'idle');
 		setRecordingProgressIndex(-1);
 		charTimesRef.current = [];
 		if (lyricsScrollRef.current) lyricsScrollRef.current.scrollLeft = 0;
@@ -5087,7 +5155,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			}
 			return next;
 		});
-		setMode('idle');
+		setMode(prev => prev === 'record' ? prev : 'idle');
 		setRecordingProgressIndex(-1);
 		charTimesRef.current = [];
 		if (lyricsScrollRef.current) lyricsScrollRef.current.scrollLeft = 0;
@@ -5111,7 +5179,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			[lineStart]: safeMode
 		}));
 		setPendingParentheticalLayoutDecision(null);
-		setMode('idle');
+		setMode(prev => prev === 'record' ? prev : 'idle');
 		setRecordingProgressIndex(-1);
 		charTimesRef.current = [];
 		if (lyricsScrollRef.current) lyricsScrollRef.current.scrollLeft = 0;
@@ -5119,7 +5187,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 	const enableManualMultiVocalMode = useCallback(() => {
 		setMultiVocalMode(true);
 		setActiveParallelPartId('');
-		setMode('idle');
+		setMode(prev => prev === 'record' ? prev : 'idle');
 		setRecordingProgressIndex(-1);
 		charTimesRef.current = [];
 		if (lyricsScrollRef.current) lyricsScrollRef.current.scrollLeft = 0;
@@ -5619,27 +5687,42 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		return lineData?.chars?.[charIndex] ?? null;
 	}, [syncLinesByStart, lineCharOffsets, activeParallelPart]);
 
-	const getPreviewCharIndexAtTime = useCallback((lineIndex, currentTimeSec) => {
+	const getPreviewProgressIndexAtTime = useCallback((lineIndex, currentTimeSec) => {
 		if (!syncLinesByStart) return -1;
 		const lineStart = lineCharOffsets[lineIndex];
 		const lineData = syncLinesByStart.get(lineStart);
 		const chars = activeParallelPart
 			? lineData?.parallel?.parts?.find(item => item.id === activeParallelPart.id)?.chars
 			: lineData?.chars;
-		if (!lineData || !chars) return -1;
+		if (!lineData || !Array.isArray(chars) || chars.length === 0) return -1;
+		if (currentTimeSec < chars[0]) return -1;
+
 		for (let i = chars.length - 1; i >= 0; i--) {
-			if (currentTimeSec >= chars[i]) return i;
+			if (currentTimeSec < chars[i]) continue;
+			if (i >= chars.length - 1) return i;
+
+			const currentCharTime = Number(chars[i]);
+			const nextCharTime = Number(chars[i + 1]);
+			if (!Number.isFinite(currentCharTime) || !Number.isFinite(nextCharTime) || nextCharTime <= currentCharTime) {
+				return i;
+			}
+
+			const ratio = Math.max(0, Math.min(1, (currentTimeSec - currentCharTime) / (nextCharTime - currentCharTime)));
+			return i + ratio;
 		}
+
 		return -1;
 	}, [syncLinesByStart, lineCharOffsets, activeParallelPart]);
 
-	const getPreviewCharIndex = useCallback((lineIndex) => (
-		getPreviewCharIndexAtTime(lineIndex, position / 1000)
-	), [getPreviewCharIndexAtTime, position]);
+	const getPreviewProgressIndex = useCallback((lineIndex) => (
+		getPreviewProgressIndexAtTime(lineIndex, position / 1000)
+	), [getPreviewProgressIndexAtTime, position]);
 
 	const applyPlaybackProgressVisual = useCallback((nextIndex) => {
-		const normalizedIndex = Number.isInteger(nextIndex) ? nextIndex : -1;
-		if (lastPaintedPlaybackIndexRef.current === normalizedIndex) return;
+		const numericIndex = Number(nextIndex);
+		const normalizedIndex = Number.isFinite(numericIndex) ? Math.max(-1, numericIndex) : -1;
+		const previousIndex = lastPaintedPlaybackIndexRef.current;
+		if (Math.abs(previousIndex - normalizedIndex) < 0.01) return;
 		lastPaintedPlaybackIndexRef.current = normalizedIndex;
 
 		if (useCurrentLineTextRun && rtlTextRunRef.current) {
@@ -5654,51 +5737,96 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			return;
 		}
 
-		for (let index = 0; index < currentLineChars.length; index++) {
+		const completedIndex = Math.floor(normalizedIndex);
+		const partialIndex = completedIndex + 1;
+		const partialPercent = normalizedIndex >= 0
+			? Math.max(0, Math.min(100, (normalizedIndex - completedIndex) * 100))
+			: 0;
+
+		const paintChar = (index) => {
 			const el = charElementsRef.current[index];
-			if (!el) continue;
+			if (!el) return;
 
 			const isSynced = el.dataset.ivSyncCreatorSynced === '1';
-			if (isSynced && normalizedIndex >= 0 && index <= normalizedIndex) {
+			if (isSynced && normalizedIndex >= 0 && index <= completedIndex) {
 				el.style.background = SYNC_CREATOR_PROGRESS_COLOR;
+				el.style.color = '#fff';
+			} else if (isSynced && normalizedIndex >= 0 && index === partialIndex && partialPercent > 0) {
+				el.style.background = getSyncCreatorBackgroundProgressGradient(
+					currentLineDirection,
+					partialPercent,
+					SYNC_CREATOR_PROGRESS_COLOR,
+					'rgba(49, 130, 246, 0.20)'
+				);
 				el.style.color = '#fff';
 			} else {
 				el.style.background = isSynced ? 'rgba(49, 130, 246, 0.20)' : '';
 				el.style.color = '';
 			}
+		};
+
+		if (previousIndex < -1.5 || normalizedIndex < 0) {
+			for (let index = 0; index < currentLineChars.length; index++) {
+				paintChar(index);
+			}
+			return;
+		}
+
+		const previousCompletedIndex = Math.floor(previousIndex);
+		const previousPartialIndex = previousCompletedIndex + 1;
+		const minChangedIndex = Math.max(0, Math.min(
+			completedIndex,
+			partialIndex,
+			previousCompletedIndex,
+			previousPartialIndex
+		));
+		const maxChangedIndex = Math.min(currentLineChars.length - 1, Math.max(
+			completedIndex,
+			partialIndex,
+			previousCompletedIndex,
+			previousPartialIndex
+		));
+
+		for (let index = minChangedIndex; index <= maxChangedIndex; index++) {
+			paintChar(index);
 		}
 	}, [currentLineChars.length, currentLineDirection, useCurrentLineTextRun]);
 
 	useEffect(() => {
 		charElementsRef.current = [];
 		charHitBoxesRef.current = [];
+		charScrollMetricsRef.current = [];
 		lastPaintedPlaybackIndexRef.current = -2;
 	}, [currentLineIndex, lyricsText, activeParallelPartId]);
 
 	useEffect(() => {
-		if (mode === 'record' || !syncLinesByStart || currentLineIndex >= lyricsLines.length) {
+		if (mode === 'record') {
+			lastPaintedPlaybackIndexRef.current = -2;
+		}
+	}, [mode, position, currentLineIndex, activeParallelPartId]);
+
+	useEffect(() => {
+		if (!syncLinesByStart || currentLineIndex >= lyricsLines.length) {
 			applyPlaybackProgressVisual(-1);
 			return;
 		}
 
 		let frameId = 0;
-		let lastCheckedAt = 0;
 		let disposed = false;
 		const scheduleFrame = typeof requestAnimationFrame === 'function'
 			? requestAnimationFrame
-			: (callback) => setTimeout(() => callback(Date.now()), 33);
+			: (callback) => setTimeout(() => callback(Date.now()), 16);
 		const cancelFrame = typeof cancelAnimationFrame === 'function'
 			? cancelAnimationFrame
 			: clearTimeout;
 
 		lastPaintedPlaybackIndexRef.current = -2;
-		const paint = (timestamp) => {
+		const paint = () => {
 			if (disposed) return;
-			if (!lastCheckedAt || timestamp - lastCheckedAt >= 33) {
-				lastCheckedAt = timestamp;
+			if (!(mode === 'record' && recordingCharIndexRef.current >= 0)) {
 				const pos = Number(Spicetify.Player?.getProgress?.() || 0);
 				const nextIndex = Number.isFinite(pos)
-					? getPreviewCharIndexAtTime(currentLineIndex, pos / 1000)
+					? getPreviewProgressIndexAtTime(currentLineIndex, pos / 1000)
 					: -1;
 				applyPlaybackProgressVisual(nextIndex);
 			}
@@ -5715,7 +5843,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		syncLinesByStart,
 		currentLineIndex,
 		lyricsLines.length,
-		getPreviewCharIndexAtTime,
+		getPreviewProgressIndexAtTime,
 		applyPlaybackProgressVisual
 	]);
 
@@ -6580,7 +6708,9 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 	const currentLineTimingLabel = hasCurrentLineTiming
 		? `${formatSeconds(Math.min(...currentLineTimes))} - ${formatSeconds(Math.max(...currentLineTimes))}`
 		: (I18n.t('syncCreator.lineOffsetUnavailable') || '싱크 후 조정 가능');
-	const currentLinePreviewIndex = currentLineText ? getPreviewCharIndex(currentLineIndex) : -1;
+	const currentLinePreviewIndex = currentLineText
+		? getPreviewProgressIndex(currentLineIndex)
+		: -1;
 	const currentRecordingCharIndex = recordingCharIndexRef.current;
 	const currentLineProgressIndex = mode === 'record' && currentRecordingCharIndex >= 0
 		? currentRecordingCharIndex
@@ -6600,7 +6730,18 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		const isSynced = isCharSynced(currentLineIndex, i);
 		const isRec = mode === 'record' && currentRecordingCharIndex >= 0 && i <= currentRecordingCharIndex;
 		const previewIdx = currentLinePreviewIndex;
-		const isPlayed = isSynced && previewIdx >= i;
+		const previewNumericIndex = Number(previewIdx);
+		const previewCompletedIndex = Number.isFinite(previewNumericIndex) ? Math.floor(previewNumericIndex) : -1;
+		const previewPartialIndex = previewCompletedIndex + 1;
+		const previewPartialPercent = previewNumericIndex >= 0
+			? Math.max(0, Math.min(100, (previewNumericIndex - previewCompletedIndex) * 100))
+			: 0;
+		const isPlayed = isSynced && previewNumericIndex >= i;
+		const isPartiallyPlayed = isSynced
+			&& previewNumericIndex >= 0
+			&& !isPlayed
+			&& i === previewPartialIndex
+			&& previewPartialPercent > 0;
 		const charTime = getCharSyncTime(currentLineIndex, i);
 		const furigana = currentLineFuriganaMap.get(i);
 		const characterPronunciation = options.hidePronunciation ? '' : currentLineCharacterPronunciationMap.get(i);
@@ -6608,9 +6749,18 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		const useFixedPrimaryLayout = usePrimaryLayout && useFixedPrimaryCharacterCells;
 		const shouldShowCharTime = !options.hideTime && currentLineRenderedPronunciationUnits.length === 0;
 		const baseBackground = !options.wordSpacer && isSynced
-			? (isPlayed ? SYNC_CREATOR_PROGRESS_COLOR : 'rgba(49, 130, 246, 0.20)')
+			? (isPlayed
+				? SYNC_CREATOR_PROGRESS_COLOR
+				: isPartiallyPlayed
+					? getSyncCreatorBackgroundProgressGradient(
+						currentLineDirection,
+						previewPartialPercent,
+						SYNC_CREATOR_PROGRESS_COLOR,
+						'rgba(49, 130, 246, 0.20)'
+					)
+					: 'rgba(49, 130, 246, 0.20)')
 			: '';
-		const baseColor = !options.wordSpacer && isSynced && isPlayed ? '#fff' : '';
+		const baseColor = !options.wordSpacer && isSynced && (isPlayed || isPartiallyPlayed) ? '#fff' : '';
 		const originalContent = furigana
 			? react.createElement('span', { style: s.charFuriganaWrap },
 				char === ' ' ? '\u00A0' : char,
@@ -6627,6 +6777,13 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		if (!options.wordSpacer) {
 			if (isRec) style = { ...style, ...s.charRecording };
 			else if (isSynced) style = isPlayed ? { ...style, ...s.charPlayed } : { ...style, ...s.charSynced };
+			if (!isRec && isPartiallyPlayed) {
+				style = {
+					...style,
+					background: baseBackground,
+					color: baseColor
+				};
+			}
 		}
 
 		const pronunciationStyle = usePrimaryLayout
