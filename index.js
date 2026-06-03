@@ -483,6 +483,13 @@ const getCachedTranslationForText = async ({
   }
 };
 
+const getTranslationOutputFromCache = (cached, isPhonetic = false) => {
+  if (!cached) {
+    return null;
+  }
+  return isPhonetic ? cached.phonetic : cached.translation || cached.vi;
+};
+
 const normalizeTranslationOutputLines = (outText) => {
   if (Array.isArray(outText)) {
     return outText;
@@ -491,6 +498,46 @@ const normalizeTranslationOutputLines = (outText) => {
     return outText.split("\n");
   }
   return null;
+};
+
+const buildTranslationCachePayload = (outText, isPhonetic = false) => {
+  const field = isPhonetic ? "phonetic" : "translation";
+  const lines = normalizeTranslationOutputLines(outText);
+  return { [field]: lines || outText };
+};
+
+const setCachedTranslationForText = async ({
+  trackId,
+  lang,
+  isPhonetic = false,
+  provider = null,
+  text,
+  outText,
+}) => {
+  const cacheApi = window.LyricsCache || (typeof LyricsCache !== "undefined" ? LyricsCache : null);
+  if (
+    !cacheApi?.setTranslation ||
+    !trackId ||
+    !lang ||
+    !String(text || "").trim() ||
+    !outText
+  ) {
+    return false;
+  }
+
+  try {
+    const sourceHash = getTranslationSourceCacheHash(text);
+    return await cacheApi.setTranslation(
+      trackId,
+      lang,
+      isPhonetic,
+      buildTranslationCachePayload(outText, isPhonetic),
+      provider,
+      sourceHash
+    );
+  } catch (error) {
+    return false;
+  }
 };
 
 const cloneTranslationVocals = (vocals) => {
@@ -2827,24 +2874,26 @@ const Prefetcher = {
           const lines = normalizeTranslationOutputLines(outText);
           return mapTranslationLinesToLyrics(lyricsArray, lines, { targetField, splitVocalParts });
         };
-        const getLegacyCachedResult = async (isPhonetic) => {
+        const getCachedMappedResult = async (isPhonetic, cacheText, splitVocalParts) => {
           const cached = await getCachedTranslationForText({
             trackId,
             lang: userLang,
             isPhonetic,
             provider: lyrics.provider,
-            text: legacyText,
+            text: cacheText,
           });
-          const outText = isPhonetic ? cached?.phonetic : (cached?.translation || cached?.vi);
-          return processTranslationResult(outText, isPhonetic ? "phonetic" : "translation", false);
+          const outText = getTranslationOutputFromCache(cached, isPhonetic);
+          return processTranslationResult(outText, isPhonetic ? "phonetic" : "translation", splitVocalParts);
         };
+        const getSplitCachedResult = (isPhonetic) => getCachedMappedResult(isPhonetic, text, true);
+        const getLegacyCachedResult = (isPhonetic) => getCachedMappedResult(isPhonetic, legacyText, false);
 
         // 발음 요청 (wantSmartPhonetic = true)
         if (needPhonetic) {
           try {
-            const legacyMapped = await getLegacyCachedResult(true);
-            if (legacyMapped) {
-              CacheManager.set(getDisplayModeCacheKey(lyrics, "gemini_romaji"), legacyMapped);
+            const cachedMapped = (await getSplitCachedResult(true)) || (await getLegacyCachedResult(true));
+            if (cachedMapped) {
+              CacheManager.set(getDisplayModeCacheKey(lyrics, "gemini_romaji"), cachedMapped);
               ivLyricsDebug(`[Prefetcher] Phonetic loaded from existing cache for: ${trackInfo.title} (provider: ${lyrics.provider})`);
             } else {
               const phoneticResponse = await window.Translator.callGemini({
@@ -2873,13 +2922,13 @@ const Prefetcher = {
         // 번역 요청 (wantSmartPhonetic = false)
         if (needTranslation) {
           try {
-            const legacyMapped = await getLegacyCachedResult(false);
-            if (legacyMapped) {
+            const cachedMapped = (await getSplitCachedResult(false)) || (await getLegacyCachedResult(false));
+            if (cachedMapped) {
               if (displayMode1 && displayMode1 !== "none" && displayMode1 !== "gemini_romaji") {
-                CacheManager.set(getDisplayModeCacheKey(lyrics, displayMode1), legacyMapped);
+                CacheManager.set(getDisplayModeCacheKey(lyrics, displayMode1), cachedMapped);
               }
               if (displayMode2 && displayMode2 !== "none" && displayMode2 !== "gemini_romaji") {
-                CacheManager.set(getDisplayModeCacheKey(lyrics, displayMode2), legacyMapped);
+                CacheManager.set(getDisplayModeCacheKey(lyrics, displayMode2), cachedMapped);
               }
               ivLyricsDebug(`[Prefetcher] Translation loaded from existing cache for: ${trackInfo.title} (provider: ${lyrics.provider})`);
             } else {
@@ -4584,6 +4633,29 @@ class LyricsContainer extends react.Component {
       const phoneticOutput = extractGeminiOutput(phoneticResponse, true);
       const translationOutput = extractGeminiOutput(translationResponse, false);
 
+      await Promise.all([
+        needPhonetic && phoneticOutput
+          ? setCachedTranslationForText({
+            trackId,
+            lang: this.getTranslationTargetLanguage(),
+            isPhonetic: true,
+            provider: lyricsState.provider,
+            text,
+            outText: phoneticOutput,
+          })
+          : null,
+        needTranslation && translationOutput
+          ? setCachedTranslationForText({
+            trackId,
+            lang: this.getTranslationTargetLanguage(),
+            isPhonetic: false,
+            provider: lyricsState.provider,
+            text,
+            outText: translationOutput,
+          })
+          : null,
+      ].filter(Boolean));
+
       // mode1 처리
       // mode1 처리
       if (mode1 === "gemini_romaji" && phoneticOutput) {
@@ -5852,21 +5924,27 @@ class LyricsContainer extends react.Component {
 
       const inflightPromise = (async () => {
         let splitVocalParts = true;
-        const legacyCached = await getCachedTranslationForText({
-          trackId,
-          lang: userLang,
-          isPhonetic: wantSmartPhonetic,
-          provider: lyricsState.provider,
-          text: legacyText,
-        });
+        const getCachedOutput = async (cacheText) => {
+          const cachedResult = await getCachedTranslationForText({
+            trackId,
+            lang: userLang,
+            isPhonetic: wantSmartPhonetic,
+            provider: lyricsState.provider,
+            text: cacheText,
+          });
+          return getTranslationOutputFromCache(cachedResult, wantSmartPhonetic);
+        };
 
-        let outText;
-        if (legacyCached) {
-          splitVocalParts = false;
-          outText = wantSmartPhonetic
-            ? legacyCached.phonetic
-            : legacyCached.translation || legacyCached.vi;
-        } else {
+        let outText = await getCachedOutput(text);
+        if (!outText) {
+          const legacyOutput = await getCachedOutput(legacyText);
+          if (legacyOutput) {
+            splitVocalParts = false;
+            outText = legacyOutput;
+          }
+        }
+
+        if (!outText) {
           // Use optimized rate limiter with separate keys only when a real AI call is needed.
           const rateLimitKey = mode.replace("gemini_", "gemini-");
           if (!RateLimiter.canMakeCall(rateLimitKey, 5, 2000)) {
