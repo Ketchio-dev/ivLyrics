@@ -151,6 +151,7 @@
         'bn': { name: 'Bengali', native: 'বাংলা', phoneticDesc: 'Bengali script pronunciation' },
         'it': { name: 'Italian', native: 'Italiano', phoneticDesc: 'Italian phonetic spelling' },
         'th': { name: 'Thai', native: 'ไทย', phoneticDesc: 'Thai script pronunciation' },
+        'tr': { name: 'Turkish', native: 'Türkçe', phoneticDesc: 'Turkish phonetic spelling' },
         'vi': { name: 'Vietnamese', native: 'Tiếng Việt', phoneticDesc: 'Vietnamese phonetic spelling' },
         'id': { name: 'Indonesian', native: 'Bahasa Indonesia', phoneticDesc: 'Indonesian phonetic spelling' },
         'ms': { name: 'Malay', native: 'Bahasa Melayu', phoneticDesc: 'Malay phonetic spelling' }

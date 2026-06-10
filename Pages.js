@@ -209,6 +209,7 @@ const CREATOR_GREETING_LANGUAGE_CODES = new Set([
 	"ru",
 	"sv",
 	"th",
+	"tr",
 	"vi",
 	"zh-CN",
 	"zh-TW"
@@ -245,6 +246,7 @@ const CREATOR_GREETING_TRANSLATING_MESSAGES = {
 	ms: "Menterjemah ucapan ini...",
 	sv: "Översätter hälsningen...",
 	th: "กำลังแปลคำทักทายนี้...",
+	tr: "Bu karşılama çevriliyor...",
 	vi: "Đang dịch lời chào này..."
 };
 

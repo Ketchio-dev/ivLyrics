@@ -114,6 +114,7 @@
         'bn': { name: 'Bengali', native: 'বাংলা' },
         'it': { name: 'Italian', native: 'Italiano' },
         'th': { name: 'Thai', native: 'ไทย' },
+        'tr': { name: 'Turkish', native: 'Türkçe' },
         'vi': { name: 'Vietnamese', native: 'Tiếng Việt' },
         'id': { name: 'Indonesian', native: 'Bahasa Indonesia' },
         'ms': { name: 'Malay', native: 'Bahasa Melayu' }
