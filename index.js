@@ -7479,7 +7479,7 @@ class LyricsContainer extends react.Component {
     const baseLyricsStyleVariables = {
       "--lyrics-color-active": CONFIG.visual["active-color"],
       "--lyrics-color-inactive": CONFIG.visual["inactive-color"],
-      "--lyrics-color-background": CONFIG.visual["background-color"] || "transparent",
+      "--lyrics-color-background": "transparent",
       "--lyrics-highlight-background": CONFIG.visual["highlight-color"],
       "--lyrics-background-noise": CONFIG.visual.noise
         ? "var(--background-noise)"
