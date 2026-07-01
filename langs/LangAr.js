@@ -383,6 +383,11 @@ window.LANG_AR = {
     },
     "solidBackgroundInUse": "ℹ️ خلفية اللون الواحد قيد الاستخدام",
     "fontPlaceholder": "أدخل اسم الخط (مثل: Arial, Cairo)",
+    "syncLockTooltip": "انقر باليمين لتثبيت التوقيت حتى هذا الحرف",
+    "syncLockSet": "تم تثبيت التوقيت حتى الحرف المحدد.",
+    "syncLockCleared": "تم إلغاء تثبيت التوقيت.",
+    "syncLockRequiresTiming": "زامن هذا السطر مرة واحدة قبل تثبيت جزء منه.",
+    "syncLockNoEditableChars": "انقر باليمين على حرف أسبق حتى يبقى ما يمكن إعادة مزامنته.",
     "shortcuts": {
       "primary": "أساسي",
       "secondary": "ثانوي"
@@ -2240,6 +2245,8 @@ window.LANG_AR = {
       "wordForward": "كلمة واحدة",
       "wordBack": "تراجع كلمة",
       "drag": "اضغط للسحب",
+      "rightClick": "نقرة يمين",
+      "lockToCharacter": "تثبيت حتى هذا الحرف",
       "finish": "إنهاء السطر",
       "cancel": "إلغاء",
       "playPause": "تشغيل/إيقاف",

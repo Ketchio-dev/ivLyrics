@@ -383,6 +383,11 @@ window.LANG_JA = {
     },
     "solidBackgroundInUse": "ℹ️ 単色背景を使用中",
     "fontPlaceholder": "フォント名を入力 (例: Arial, Meiryo)",
+    "syncLockTooltip": "右クリックでこの文字までのタイミングをロック",
+    "syncLockSet": "選択した文字までのタイミングをロックしました。",
+    "syncLockCleared": "同期ロックを解除しました。",
+    "syncLockRequiresTiming": "一部をロックする前に、この行を一度同期してください。",
+    "syncLockNoEditableChars": "再同期する部分が残るように、もっと前の文字を右クリックしてください。",
     "shortcuts": {
       "primary": "メイン",
       "secondary": "サブ"
@@ -2241,6 +2246,8 @@ window.LANG_JA = {
       "wordForward": "1単語",
       "wordBack": "1単語取消",
       "drag": "押し続けてドラッグ",
+      "rightClick": "右クリック",
+      "lockToCharacter": "この文字までロック",
       "finish": "行完了",
       "cancel": "キャンセル",
       "playPause": "再生/一時停止",

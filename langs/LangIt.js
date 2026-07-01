@@ -383,6 +383,11 @@ window.LANG_IT = {
     },
     "solidBackgroundInUse": "ℹ️ Sfondo a tinta unita in uso",
     "fontPlaceholder": "Nome font (es: Arial, Roboto)",
+    "syncLockTooltip": "Clic destro per bloccare il timing fino a questo carattere",
+    "syncLockSet": "Timing bloccato fino al carattere selezionato.",
+    "syncLockCleared": "Blocco sincronizzazione rimosso.",
+    "syncLockRequiresTiming": "Sincronizza questa riga una volta prima di bloccarne una parte.",
+    "syncLockNoEditableChars": "Fai clic destro su un carattere precedente così resta qualcosa da risincronizzare.",
     "shortcuts": {
       "primary": "Primario",
       "secondary": "Secondario"
@@ -2241,6 +2246,8 @@ window.LANG_IT = {
       "wordForward": "1 Parola",
       "wordBack": "Annulla 1 Parola",
       "drag": "Tieni premuto per trascinare",
+      "rightClick": "Clic destro",
+      "lockToCharacter": "Blocca fino al carattere",
       "finish": "Riga completata",
       "cancel": "Annulla",
       "playPause": "Riproduci/Pausa",

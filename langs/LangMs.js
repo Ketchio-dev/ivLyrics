@@ -383,6 +383,11 @@ window.LANG_MS = {
     },
     "solidBackgroundInUse": "ℹ️ Latar belakang warna pepejal sedang digunakan",
     "fontPlaceholder": "Masukkan nama fon (cth: Arial, Malgun Gothic)",
+    "syncLockTooltip": "Klik kanan untuk mengunci masa hingga huruf ini",
+    "syncLockSet": "Masa dikunci hingga huruf yang dipilih.",
+    "syncLockCleared": "Kunci segerak dikosongkan.",
+    "syncLockRequiresTiming": "Segerakkan baris ini sekali sebelum mengunci sebahagiannya.",
+    "syncLockNoEditableChars": "Klik kanan huruf yang lebih awal supaya masih ada bahagian untuk disegerakkan semula.",
     "shortcuts": {
       "primary": "Utama",
       "secondary": "Sekunder"
@@ -2250,6 +2255,8 @@ window.LANG_MS = {
       "wordForward": "Satu Perkataan",
       "wordBack": "Batal Satu Perkataan",
       "drag": "Tekan untuk Heret",
+      "rightClick": "Klik kanan",
+      "lockToCharacter": "Kunci hingga huruf",
       "finish": "Selesai Baris",
       "cancel": "Batal",
       "playPause": "Main/Jeda",

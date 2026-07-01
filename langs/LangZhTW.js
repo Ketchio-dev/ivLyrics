@@ -383,6 +383,11 @@ window.LANG_ZH_TW = {
     },
     "solidBackgroundInUse": "ℹ️ 正在使用純色背景",
     "fontPlaceholder": "輸入字型名稱 (例: Arial, 微軟正黑體)",
+    "syncLockTooltip": "右鍵可鎖定到這個字的時間",
+    "syncLockSet": "已鎖定到所選字的時間。",
+    "syncLockCleared": "已清除同步鎖定。",
+    "syncLockRequiresTiming": "請先同步這一行一次，再鎖定其中一部分。",
+    "syncLockNoEditableChars": "請右鍵更前面的字，以保留可重新同步的部分。",
     "shortcuts": {
       "primary": "主鍵",
       "secondary": "副鍵"
@@ -2241,6 +2246,8 @@ window.LANG_ZH_TW = {
       "wordForward": "1詞",
       "wordBack": "取消1詞",
       "drag": "按住拖曳",
+      "rightClick": "右鍵",
+      "lockToCharacter": "鎖定到此字",
       "finish": "完成行",
       "cancel": "取消",
       "playPause": "播放/暫停",

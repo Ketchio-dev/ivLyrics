@@ -383,6 +383,11 @@ window.LANG_FA = {
     },
     "solidBackgroundInUse": "ℹ️ پس‌زمینه تک‌رنگ فعال است",
     "fontPlaceholder": "نام فونت (مثال: Vazir, Arial)",
+    "syncLockTooltip": "برای قفل کردن زمان‌بندی تا این حرف کلیک راست کنید",
+    "syncLockSet": "زمان‌بندی تا حرف انتخاب‌شده قفل شد.",
+    "syncLockCleared": "قفل همگام‌سازی پاک شد.",
+    "syncLockRequiresTiming": "قبل از قفل کردن بخشی از خط، این خط را یک بار همگام کنید.",
+    "syncLockNoEditableChars": "روی یک حرف قبلی کلیک راست کنید تا بخشی برای همگام‌سازی دوباره باقی بماند.",
     "shortcuts": {
       "primary": "اصلی",
       "secondary": "ثانویه"
@@ -2240,6 +2245,8 @@ window.LANG_FA = {
       "wordForward": "۱ کلمه",
       "wordBack": "لغو ۱ کلمه",
       "drag": "نگه دار و بکش",
+      "rightClick": "کلیک راست",
+      "lockToCharacter": "قفل تا این حرف",
       "finish": "تمام کردن خط",
       "cancel": "لغو",
       "playPause": "پخش/توقف",

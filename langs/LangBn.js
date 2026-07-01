@@ -383,6 +383,11 @@ window.LANG_BN = {
     },
     "solidBackgroundInUse": "ℹ️ সলিড কালার ব্যাকগ্রাউন্ড ব্যবহৃত হচ্ছে",
     "fontPlaceholder": "ফন্টের নাম লিখুন (যেমন: Arial, Kalpurush)",
+    "syncLockTooltip": "এই অক্ষর পর্যন্ত টাইমিং লক করতে রাইট ক্লিক করুন",
+    "syncLockSet": "নির্বাচিত অক্ষর পর্যন্ত টাইমিং লক করা হয়েছে।",
+    "syncLockCleared": "সিঙ্ক লক সরানো হয়েছে।",
+    "syncLockRequiresTiming": "লাইনের অংশ লক করার আগে একবার এই লাইন সিঙ্ক করুন।",
+    "syncLockNoEditableChars": "আবার সিঙ্ক করার মতো অংশ রাখতে আগের কোনো অক্ষরে রাইট ক্লিক করুন।",
     "shortcuts": {
       "primary": "প্রধান",
       "secondary": "সহায়ক"
@@ -2241,6 +2246,8 @@ window.LANG_BN = {
       "wordForward": "১টি শব্দ",
       "wordBack": "১টি শব্দ বাতিল",
       "drag": "ধরে টানুন",
+      "rightClick": "রাইট ক্লিক",
+      "lockToCharacter": "এই অক্ষর পর্যন্ত লক",
       "finish": "লাইন সম্পূর্ণ",
       "cancel": "বাতিল",
       "playPause": "চালান/থামান",

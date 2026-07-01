@@ -383,6 +383,11 @@ window.LANG_TR = {
     },
     "solidBackgroundInUse": "ℹ️ Düz Arka Plan kullanılıyor",
     "fontPlaceholder": "Yazı tipi adı girin (örn. Arial, Roboto)",
+    "syncLockTooltip": "Bu karaktere kadar zamanlamayı kilitlemek için sağ tıklayın",
+    "syncLockSet": "Seçili karaktere kadar zamanlama kilitlendi.",
+    "syncLockCleared": "Senkron kilidi temizlendi.",
+    "syncLockRequiresTiming": "Bir kısmını kilitlemeden önce bu satırı bir kez senkronize edin.",
+    "syncLockNoEditableChars": "Yeniden senkronize edilecek bölüm kalması için daha önceki bir karaktere sağ tıklayın.",
     "shortcuts": {
       "primary": "Birincil",
       "secondary": "İkincil"
@@ -2241,6 +2246,8 @@ window.LANG_TR = {
       "wordForward": "1 Kelime",
       "wordBack": "1 Kelime Geri Al",
       "drag": "Sürüklemek için Basılı Tut",
+      "rightClick": "Sağ tık",
+      "lockToCharacter": "Karaktere kadar kilitle",
       "finish": "Satırı Bitir",
       "cancel": "İptal",
       "playPause": "Oynat/Duraklat",

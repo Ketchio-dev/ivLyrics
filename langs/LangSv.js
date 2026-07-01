@@ -383,6 +383,11 @@ window.LANG_SV = {
     },
     "solidBackgroundInUse": "ℹ️ Solid bakgrund används",
     "fontPlaceholder": "Ange teckensnittsnamn (t.ex. Arial, Roboto)",
+    "syncLockTooltip": "Högerklicka för att låsa timing fram till detta tecken",
+    "syncLockSet": "Timing låst fram till valt tecken.",
+    "syncLockCleared": "Synklås rensat.",
+    "syncLockRequiresTiming": "Synka raden en gång innan du låser en del av den.",
+    "syncLockNoEditableChars": "Högerklicka på ett tidigare tecken så att något finns kvar att synka om.",
     "shortcuts": {
       "primary": "Primär",
       "secondary": "Sekundär"
@@ -2240,6 +2245,8 @@ window.LANG_SV = {
       "wordForward": "1 ord",
       "wordBack": "Ångra 1 ord",
       "drag": "Håll ned för att dra",
+      "rightClick": "Högerklick",
+      "lockToCharacter": "Lås till tecken",
       "finish": "Mållinje",
       "cancel": "Avbryt",
       "playPause": "Spela/Pausa",

@@ -383,6 +383,11 @@ window.LANG_ID = {
     },
     "solidBackgroundInUse": "ℹ️ Latar belakang warna solid sedang digunakan",
     "fontPlaceholder": "Nama font (contoh: Arial, Roboto)",
+    "syncLockTooltip": "Klik kanan untuk mengunci timing sampai karakter ini",
+    "syncLockSet": "Timing dikunci sampai karakter yang dipilih.",
+    "syncLockCleared": "Kunci sinkronisasi dihapus.",
+    "syncLockRequiresTiming": "Sinkronkan baris ini sekali sebelum mengunci sebagian.",
+    "syncLockNoEditableChars": "Klik kanan karakter yang lebih awal agar masih ada bagian untuk disinkronkan ulang.",
     "shortcuts": {
       "primary": "Utama",
       "secondary": "Sekunder"
@@ -2240,6 +2245,8 @@ window.LANG_ID = {
       "wordForward": "1 Kata",
       "wordBack": "Batalkan 1 Kata",
       "drag": "Tahan untuk seret",
+      "rightClick": "Klik kanan",
+      "lockToCharacter": "Kunci sampai karakter",
       "finish": "Selesai baris",
       "cancel": "Batal",
       "playPause": "Putar/Jeda",

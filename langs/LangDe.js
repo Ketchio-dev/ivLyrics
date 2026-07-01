@@ -383,6 +383,11 @@ window.LANG_DE = {
     },
     "solidBackgroundInUse": "ℹ️ Einfarbiger Hintergrund aktiv",
     "fontPlaceholder": "Schriftartname (z.B. Arial, Roboto)",
+    "syncLockTooltip": "Rechtsklick sperrt das Timing bis zu diesem Zeichen",
+    "syncLockSet": "Timing bis zum ausgewählten Zeichen gesperrt.",
+    "syncLockCleared": "Sync-Sperre aufgehoben.",
+    "syncLockRequiresTiming": "Synchronisiere diese Zeile einmal, bevor du einen Teil sperrst.",
+    "syncLockNoEditableChars": "Klicke mit rechts auf ein früheres Zeichen, damit noch etwas neu synchronisiert werden kann.",
     "shortcuts": {
       "primary": "Primär",
       "secondary": "Sekundär"
@@ -2240,6 +2245,8 @@ window.LANG_DE = {
       "wordForward": "1 Wort",
       "wordBack": "1 Wort rückgängig",
       "drag": "Halten zum Ziehen",
+      "rightClick": "Rechtsklick",
+      "lockToCharacter": "Bis Zeichen sperren",
       "finish": "Zeile fertig",
       "cancel": "Abbrechen",
       "playPause": "Abspielen/Pause",

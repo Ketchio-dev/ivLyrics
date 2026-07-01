@@ -383,6 +383,11 @@ window.LANG_ES = {
     },
     "solidBackgroundInUse": "ℹ️ Fondo de color sólido en uso",
     "fontPlaceholder": "Nombre de fuente (ej: Arial, Roboto)",
+    "syncLockTooltip": "Clic derecho para bloquear el tiempo hasta este carácter",
+    "syncLockSet": "Tiempo bloqueado hasta el carácter seleccionado.",
+    "syncLockCleared": "Bloqueo de sincronía quitado.",
+    "syncLockRequiresTiming": "Sincroniza esta línea una vez antes de bloquear una parte.",
+    "syncLockNoEditableChars": "Haz clic derecho en un carácter anterior para dejar algo por resincronizar.",
     "shortcuts": {
       "primary": "Principal",
       "secondary": "Secundaria"
@@ -2241,6 +2246,8 @@ window.LANG_ES = {
       "wordForward": "1 Palabra",
       "wordBack": "Deshacer 1 Palabra",
       "drag": "Mantener para arrastrar",
+      "rightClick": "Clic derecho",
+      "lockToCharacter": "Bloquear hasta carácter",
       "finish": "Línea completada",
       "cancel": "Cancelar",
       "playPause": "Reproducir/Pausar",

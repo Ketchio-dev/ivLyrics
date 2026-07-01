@@ -383,6 +383,11 @@ window.LANG_EN = {
     },
     "solidBackgroundInUse": "ℹ️ Solid Background in use",
     "fontPlaceholder": "Enter font name (e.g., Arial, Roboto)",
+    "syncLockTooltip": "Right-click to lock timing up to this character",
+    "syncLockSet": "Locked timing up to the selected character.",
+    "syncLockCleared": "Sync lock cleared.",
+    "syncLockRequiresTiming": "Sync this line once before locking part of it.",
+    "syncLockNoEditableChars": "Right-click an earlier character so there is something left to re-sync.",
     "shortcuts": {
       "primary": "Primary",
       "secondary": "Secondary"
@@ -2241,6 +2246,8 @@ window.LANG_EN = {
       "wordForward": "1 Word",
       "wordBack": "Undo 1 Word",
       "drag": "Hold to Drag",
+      "rightClick": "Right click",
+      "lockToCharacter": "Lock up to char",
       "finish": "Finish Line",
       "cancel": "Cancel",
       "playPause": "Play/Pause",

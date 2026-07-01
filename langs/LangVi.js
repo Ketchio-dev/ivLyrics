@@ -383,6 +383,11 @@ window.LANG_VI = {
     },
     "solidBackgroundInUse": "ℹ️ Đang sử dụng nền màu đơn sắc",
     "fontPlaceholder": "Nhập tên phông chữ (VD: Arial, Roboto)",
+    "syncLockTooltip": "Nhấp phải để khóa thời điểm đến ký tự này",
+    "syncLockSet": "Đã khóa thời điểm đến ký tự đã chọn.",
+    "syncLockCleared": "Đã bỏ khóa đồng bộ.",
+    "syncLockRequiresTiming": "Hãy đồng bộ dòng này một lần trước khi khóa một phần.",
+    "syncLockNoEditableChars": "Nhấp phải vào ký tự sớm hơn để còn phần cần đồng bộ lại.",
     "shortcuts": {
       "primary": "Chính",
       "secondary": "Phụ"
@@ -2241,6 +2246,8 @@ window.LANG_VI = {
       "wordForward": "1 từ",
       "wordBack": "Hoàn tác 1 từ",
       "drag": "Giữ để kéo",
+      "rightClick": "Nhấp phải",
+      "lockToCharacter": "Khóa đến ký tự",
       "finish": "Hoàn thành dòng",
       "cancel": "Hủy",
       "playPause": "Phát/Dừng",

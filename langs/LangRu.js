@@ -383,6 +383,11 @@ window.LANG_RU = {
     },
     "solidBackgroundInUse": "ℹ️ Используется сплошной фон",
     "fontPlaceholder": "Название шрифта (напр. Arial, Roboto)",
+    "syncLockTooltip": "Правый клик закрепляет тайминг до этого символа",
+    "syncLockSet": "Тайминг закреплен до выбранного символа.",
+    "syncLockCleared": "Закрепление синхронизации снято.",
+    "syncLockRequiresTiming": "Сначала синхронизируйте эту строку, затем закрепляйте ее часть.",
+    "syncLockNoEditableChars": "Щелкните правой кнопкой по более раннему символу, чтобы осталось что пересинхронизировать.",
     "shortcuts": {
       "primary": "Основная",
       "secondary": "Дополнительная"
@@ -2241,6 +2246,8 @@ window.LANG_RU = {
       "wordForward": "1 Слово",
       "wordBack": "Отменить 1 слово",
       "drag": "Удерживай для перетаскивания",
+      "rightClick": "Правый клик",
+      "lockToCharacter": "Закрепить до символа",
       "finish": "Строка готова",
       "cancel": "Отмена",
       "playPause": "Воспроизвести/Пауза",

@@ -1664,6 +1664,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 	const [position, setPosition] = useState(0);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [recordingCharIndex, setRecordingCharIndex] = useState(-1);
+	const [recordingLockIndex, setRecordingLockIndex] = useState(-1);
 	const [dragStartTime, setDragStartTime] = useState(null);
 	const [dragStartCharIndex, setDragStartCharIndex] = useState(-1);
 	const [isDragging, setIsDragging] = useState(false);
@@ -1690,6 +1691,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 	const charScrollMetricsRef = useRef([]);
 	const rtlTextRunRef = useRef(null);
 	const recordingCharIndexRef = useRef(-1);
+	const recordingLockIndexRef = useRef(-1);
 	const lastPaintedRecordingIndexRef = useRef(-1);
 	const recordingVisualIndexRef = useRef(-1);
 	const recordingVisualTargetIndexRef = useRef(-1);
@@ -1697,6 +1699,17 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 	const recordingVisualFrameTimeRef = useRef(0);
 	const lastPaintedPlaybackIndexRef = useRef(-1);
 	const preventNextTrackRef = useRef(false);
+
+	const setRecordingLockIndexValue = useCallback((index) => {
+		const safeIndex = Number.isInteger(index) && index >= 0 ? index : -1;
+		recordingLockIndexRef.current = safeIndex;
+		setRecordingLockIndex(safeIndex);
+	}, []);
+
+	const clearRecordingLock = useCallback(() => {
+		recordingLockIndexRef.current = -1;
+		setRecordingLockIndex(-1);
+	}, []);
 
 	// 트랙 정보
 	const trackUri = trackInfo?.uri || Spicetify.Player?.data?.item?.uri;
@@ -2540,6 +2553,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			setActiveParallelPartId(nextPartId);
 			recordingCharIndexRef.current = -1;
 			setRecordingCharIndex(-1);
+			clearRecordingLock();
 			charTimesRef.current = [];
 			if (lyricsScrollRef.current) lyricsScrollRef.current.scrollLeft = 0;
 			return;
@@ -2547,10 +2561,11 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 
 		const nextIndex = findNavigableLineIndex(currentLineIndex, 1);
 		if (nextIndex >= 0) {
+			clearRecordingLock();
 			setCurrentLineIndex(nextIndex);
 			if (lyricsScrollRef.current) lyricsScrollRef.current.scrollLeft = 0;
 		}
-	}, [getIncompleteParallelPartId, currentLineIndex, findNavigableLineIndex]);
+	}, [getIncompleteParallelPartId, currentLineIndex, findNavigableLineIndex, clearRecordingLock]);
 	const currentLineCharRefs = useMemo(() => {
 		if (activeParallelPart) {
 			return rangesToCharRefs(activeParallelPart.ranges, currentFullLineChars, currentLineStart);
@@ -2565,6 +2580,42 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		() => currentLineCharRefs.map(ref => ref.char),
 		[currentLineCharRefs]
 	);
+	const getCurrentSyncTargetSavedChars = useCallback(() => {
+		const expectedLength = currentLineChars.length;
+		if (!expectedLength) return [];
+
+		let savedChars = null;
+		if (activeParallelPart) {
+			const savedPart = currentExistingLineData?.parallel?.parts?.find(part => part.id === activeParallelTargetId);
+			if (Array.isArray(savedPart?.chars)) savedChars = savedPart.chars;
+		} else if (Array.isArray(currentExistingLineData?.chars)) {
+			savedChars = currentExistingLineData.chars;
+		}
+
+		if (!Array.isArray(savedChars)) return new Array(expectedLength).fill(null);
+		return Array.from({ length: expectedLength }, (_, index) => {
+			const time = Number(savedChars[index]);
+			return Number.isFinite(time) ? time : null;
+		});
+	}, [activeParallelPart, activeParallelTargetId, currentExistingLineData, currentLineChars.length]);
+	const getActiveRecordingLockIndex = useCallback(() => {
+		const lockIndex = recordingLockIndexRef.current;
+		if (!Number.isInteger(lockIndex) || lockIndex < 0 || currentLineChars.length === 0) return -1;
+		return Math.min(lockIndex, currentLineChars.length - 1);
+	}, [currentLineChars.length]);
+	const buildLockedCharTimes = useCallback((lockIndex = getActiveRecordingLockIndex()) => {
+		const nextCharTimes = new Array(currentLineChars.length).fill(null);
+		const safeLockIndex = Number.isInteger(lockIndex)
+			? Math.min(lockIndex, currentLineChars.length - 1)
+			: -1;
+		if (safeLockIndex < 0) return nextCharTimes;
+
+		const savedChars = getCurrentSyncTargetSavedChars();
+		for (let i = 0; i <= safeLockIndex; i++) {
+			nextCharTimes[i] = savedChars[i];
+		}
+		return nextCharTimes;
+	}, [currentLineChars.length, getActiveRecordingLockIndex, getCurrentSyncTargetSavedChars]);
 	const currentLineText = currentLineChars.join('');
 	const currentLineDirection = useMemo(
 		() => getSyncCreatorTextDirection(currentLineText),
@@ -3569,13 +3620,19 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		cacheCharHitBoxes();
 
 		const currentTime = Spicetify.Player.getProgress() / 1000;
-		const startIndex = charIndex < 0 ? 0 : charIndex;
+		const lockIndex = getActiveRecordingLockIndex();
+		if (lockIndex >= currentLineChars.length - 1) {
+			Toast.error(I18n.t('syncCreator.syncLockNoEditableChars') || 'Right-click an earlier character so there is something left to re-sync.');
+			return;
+		}
+		const firstEditableIndex = Math.max(0, lockIndex + 1);
+		const startIndex = Math.max(charIndex < 0 ? 0 : charIndex, firstEditableIndex);
 		const hasKeyboardProgress = isKeyboardSyncingRef.current
 			&& Array.isArray(charTimesRef.current)
 			&& charTimesRef.current.length === currentLineChars.length;
 		const nextCharTimes = hasKeyboardProgress
 			? [...charTimesRef.current]
-			: new Array(currentLineChars.length).fill(null);
+			: buildLockedCharTimes(lockIndex);
 
 		if (hasKeyboardProgress) {
 			if (pendingWordSyncRef.current && interpolationEnabledRef.current) {
@@ -3588,6 +3645,12 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				const endTime = Math.max(startTime, currentTime - EDGE_INTERPOLATION_GAP_SEC);
 				applyInterpolatedRangeToCharTimes(nextCharTimes, startIdx, endIdx, startTime, endTime);
 			}
+			if (lockIndex >= 0) {
+				const lockedCharTimes = buildLockedCharTimes(lockIndex);
+				for (let i = 0; i <= lockIndex; i++) {
+					nextCharTimes[i] = lockedCharTimes[i];
+				}
+			}
 		}
 
 		setDragStartTime(currentTime);
@@ -3598,7 +3661,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		if (hasKeyboardProgress) {
 			const lastRecordedIndex = getLastRecordedSyncIndex(nextCharTimes);
 			if (startIndex <= lastRecordedIndex) {
-				for (let i = startIndex; i < nextCharTimes.length; i++) {
+				for (let i = firstEditableIndex; i < nextCharTimes.length; i++) {
 					nextCharTimes[i] = null;
 				}
 				nextCharTimes[startIndex] = getSequentialSyncTime(currentTime, getPreviousRecordedSyncTime(nextCharTimes, startIndex));
@@ -3625,14 +3688,14 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				keyboardDragWarmupTimerRef.current = null;
 			}
 		} else {
-			let previousTime = null;
-			for (let i = 0; i <= startIndex; i++) {
+			let previousTime = getPreviousRecordedSyncTime(nextCharTimes, firstEditableIndex);
+			for (let i = firstEditableIndex; i <= startIndex; i++) {
 				nextCharTimes[i] = getSequentialSyncTime(currentTime, previousTime);
 				previousTime = nextCharTimes[i];
 			}
 		}
 		charTimesRef.current = nextCharTimes;
-	}, [mode, currentLineIndex, lyricsLines.length, currentLineChars.length, setRecordingProgressIndex, cacheCharHitBoxes]);
+	}, [mode, currentLineIndex, lyricsLines.length, currentLineChars.length, setRecordingProgressIndex, cacheCharHitBoxes, getActiveRecordingLockIndex, buildLockedCharTimes]);
 
 	const handleDragMove = useCallback((charIndex, e) => {
 		if (mode !== 'record' || !isDragging || dragStartTime === null) return;
@@ -3650,6 +3713,16 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			return;
 		}
 
+		const lockIndex = getActiveRecordingLockIndex();
+		const firstEditableIndex = Math.max(0, lockIndex + 1);
+		if (charIndex < firstEditableIndex) {
+			for (let i = firstEditableIndex; i <= previousRecordingCharIndex; i++) {
+				charTimesRef.current[i] = null;
+			}
+			setRecordingProgressIndex(lockIndex, { commitState: false });
+			return;
+		}
+
 		if (charIndex >= previousRecordingCharIndex) {
 			// 정방향 진행
 			for (let i = previousRecordingCharIndex + 1; i <= charIndex; i++) {
@@ -3661,12 +3734,12 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		} else {
 			// 역방향 진행 (취소)
 			// 현재 recordingCharIndex에서 charIndex+1 까지의 기록을 지움
-			for (let i = charIndex + 1; i <= previousRecordingCharIndex; i++) {
+			for (let i = Math.max(charIndex + 1, firstEditableIndex); i <= previousRecordingCharIndex; i++) {
 				charTimesRef.current[i] = null;
 			}
-			setRecordingProgressIndex(charIndex, { commitState: false });
+			setRecordingProgressIndex(Math.max(charIndex, lockIndex), { commitState: false });
 		}
-	}, [mode, isDragging, dragStartTime, setRecordingProgressIndex]);
+	}, [mode, isDragging, dragStartTime, setRecordingProgressIndex, getActiveRecordingLockIndex]);
 
 	// Commit-time normalization keeps the client aligned with backend validation:
 	// chars must be non-decreasing and a line must not start before the previous line ends.
@@ -4017,6 +4090,17 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 
 		const endTime = Spicetify.Player.getProgress() / 1000;
 		const charCount = currentLineChars.length;
+		const lockIndex = getActiveRecordingLockIndex();
+		if (lockIndex >= 0 && endCharIndex <= lockIndex) {
+			setDragStartTime(null);
+			setDragStartCharIndex(-1);
+			setRecordingProgressIndex(lockIndex, { commitState: false });
+			setIsDragging(false);
+			charTimesRef.current = buildLockedCharTimes(lockIndex);
+			charHitBoxesRef.current = [];
+			charScrollMetricsRef.current = [];
+			return;
+		}
 
 		// 유효성 체크: 만약 드래그 시작하자마자 바로 끝나거나 이상한 경우
 		if (endCharIndex < dragStartCharIndex) {
@@ -4062,6 +4146,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			advanceAfterCompletedTarget(committedLine);
 		}
 
+		clearRecordingLock();
 		setDragStartTime(null);
 		setDragStartCharIndex(-1);
 		setRecordingProgressIndex(-1);
@@ -4069,7 +4154,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		charTimesRef.current = [];
 		charHitBoxesRef.current = [];
 		charScrollMetricsRef.current = [];
-	}, [mode, isDragging, dragStartTime, currentLineIndex, currentLineChars, lyricsLines.length, dragStartCharIndex, commitCurrentLineSync, advanceAfterCompletedTarget, setRecordingProgressIndex]);
+	}, [mode, isDragging, dragStartTime, currentLineIndex, currentLineChars, lyricsLines.length, dragStartCharIndex, commitCurrentLineSync, advanceAfterCompletedTarget, setRecordingProgressIndex, getActiveRecordingLockIndex, buildLockedCharTimes, clearRecordingLock]);
 
 	// 키보드 싱크 상태 ref (isDragging과 별개로 키보드용)
 	const isKeyboardSyncingRef = useRef(false);
@@ -4100,6 +4185,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		charTimesRef.current = [];
 		pendingWordSyncRef.current = null;
 		pendingSyllableSyncRef.current = null;
+		clearRecordingLock();
 		setDragStartTime(null);
 		setDragStartCharIndex(-1);
 		setRecordingProgressIndex(-1);
@@ -4115,7 +4201,79 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			keyboardDragWarmupTimerRef.current = null;
 		}
 		isKeyboardDraggingRef.current = false;
-	}, [setRecordingProgressIndex]);
+	}, [setRecordingProgressIndex, clearRecordingLock]);
+
+	const handleCharacterContextMenu = useCallback((charIndex, e) => {
+		e.preventDefault();
+		e.stopPropagation();
+
+		if (mode !== 'record' || currentLineIndex >= lyricsLines.length || !currentLineChars.length) return;
+		if (!isCurrentSyncTargetMetaComplete) {
+			showMissingMetaToast();
+			return;
+		}
+
+		const safeIndex = Math.max(0, Math.min(charIndex, currentLineChars.length - 1));
+		if (recordingLockIndexRef.current === safeIndex) {
+			clearRecordingLock();
+			isKeyboardSyncingRef.current = false;
+			keyboardCharIndexRef.current = -1;
+			charTimesRef.current = [];
+			pendingWordSyncRef.current = null;
+			pendingSyllableSyncRef.current = null;
+			setDragStartTime(null);
+			setDragStartCharIndex(-1);
+			setRecordingProgressIndex(-1);
+			setIsDragging(false);
+			Toast.success(I18n.t('syncCreator.syncLockCleared') || 'Sync lock cleared.');
+			return;
+		}
+
+		if (safeIndex >= currentLineChars.length - 1) {
+			Toast.error(I18n.t('syncCreator.syncLockNoEditableChars') || 'Right-click an earlier character so there is something left to re-sync.');
+			return;
+		}
+
+		const savedChars = getCurrentSyncTargetSavedChars();
+		const missingSavedIndex = savedChars.findIndex((time, index) => index <= safeIndex && typeof time !== 'number');
+		if (missingSavedIndex >= 0) {
+			Toast.error(I18n.t('syncCreator.syncLockRequiresTiming') || 'Sync this line once before locking part of it.');
+			return;
+		}
+
+		isKeyboardSyncingRef.current = false;
+		keyboardCharIndexRef.current = safeIndex;
+		pendingWordSyncRef.current = null;
+		pendingSyllableSyncRef.current = null;
+		isKeyboardDraggingRef.current = false;
+		if (keyboardDragIntervalRef.current) {
+			clearInterval(keyboardDragIntervalRef.current);
+			keyboardDragIntervalRef.current = null;
+		}
+		if (keyboardDragWarmupTimerRef.current) {
+			clearTimeout(keyboardDragWarmupTimerRef.current);
+			keyboardDragWarmupTimerRef.current = null;
+		}
+		setRecordingLockIndexValue(safeIndex);
+		charTimesRef.current = buildLockedCharTimes(safeIndex);
+		setDragStartTime(null);
+		setDragStartCharIndex(-1);
+		setRecordingProgressIndex(safeIndex, { commitState: false });
+		setIsDragging(false);
+		Toast.success(I18n.t('syncCreator.syncLockSet') || 'Locked timing up to the selected character.');
+	}, [
+		mode,
+		currentLineIndex,
+		lyricsLines.length,
+		currentLineChars.length,
+		isCurrentSyncTargetMetaComplete,
+		showMissingMetaToast,
+		clearRecordingLock,
+		getCurrentSyncTargetSavedChars,
+		setRecordingLockIndexValue,
+		buildLockedCharTimes,
+		setRecordingProgressIndex
+	]);
 
 	useEffect(() => () => {
 		if (keyboardDragIntervalRef.current) {
@@ -4152,6 +4310,9 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 
 		// record 모드가 아니거나 라인이 변경되면 키보드 싱크 상태 초기화
 		const shouldReset = mode !== 'record' || lineChanged || targetChanged;
+		if (shouldReset && recordingLockIndexRef.current >= 0) {
+			clearRecordingLock();
+		}
 		if (shouldReset && (isKeyboardSyncingRef.current || isKeyboardDraggingRef.current)) {
 			window.__ivLyricsDebugLog?.('[SyncDataCreator] Resetting keyboard sync state, mode:', mode, 'lineChanged:', lineChanged, 'targetChanged:', targetChanged);
 			// 진행 중인 키보드 싱크 초기화
@@ -4213,6 +4374,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			charTimesRef.current = [];
 			pendingWordSyncRef.current = null;
 			pendingSyllableSyncRef.current = null;
+			clearRecordingLock();
 			setDragStartTime(null);
 			setRecordingProgressIndex(-1);
 		};
@@ -4248,16 +4410,21 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			// 한 글자 앞으로 진행하는 헬퍼 함수
 			const advanceOneChar = (currentTime) => {
 				if (!isKeyboardSyncingRef.current) {
+					const lockIndex = getActiveRecordingLockIndex();
+					if (lockIndex >= currentLineChars.length - 1) {
+						Toast.error(I18n.t('syncCreator.syncLockNoEditableChars') || 'Right-click an earlier character so there is something left to re-sync.');
+						return -1;
+					}
 					// 키보드 싱크 시작
 					isKeyboardSyncingRef.current = true;
-					let startIndex = 0;
-					charTimesRef.current = new Array(currentLineChars.length).fill(null);
+					let startIndex = Math.max(0, lockIndex + 1);
+					charTimesRef.current = buildLockedCharTimes(lockIndex);
 					pendingWordSyncRef.current = null;
 					pendingSyllableSyncRef.current = null;
-					charTimesRef.current[0] = currentTime;
+					charTimesRef.current[startIndex] = currentTime;
 
 					// 첫 글자가 여는 괄호면 다음 글자까지 포함
-					if (shouldAutoAdvanceBoundaryChars && isLeadingChar(currentLineChars, 0)) {
+					if (shouldAutoAdvanceBoundaryChars && isLeadingChar(currentLineChars, startIndex)) {
 						while (startIndex + 1 < currentLineChars.length && isLeadingChar(currentLineChars, startIndex)) {
 							startIndex++;
 							charTimesRef.current[startIndex] = currentTime;
@@ -4279,7 +4446,8 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 					return startIndex;
 				} else {
 					// 다음 글자로 진행
-					let nextIndex = keyboardCharIndexRef.current + 1;
+					const lockIndex = getActiveRecordingLockIndex();
+					let nextIndex = Math.max(keyboardCharIndexRef.current + 1, lockIndex + 1);
 					if (nextIndex < currentLineChars.length) {
 						charTimesRef.current[nextIndex] = currentTime;
 
@@ -4365,12 +4533,18 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			const advanceOneWord = (currentTime) => {
 				// 싱크가 시작되지 않은 경우: 첫 단어만 처리
 				if (!isKeyboardSyncingRef.current) {
+					const lockIndex = getActiveRecordingLockIndex();
+					if (lockIndex >= currentLineChars.length - 1) {
+						Toast.error(I18n.t('syncCreator.syncLockNoEditableChars') || 'Right-click an earlier character so there is something left to re-sync.');
+						return;
+					}
 					isKeyboardSyncingRef.current = true;
-					charTimesRef.current = new Array(currentLineChars.length).fill(null);
+					charTimesRef.current = buildLockedCharTimes(lockIndex);
 					setDragStartTime(currentTime);
 
-					let startIdx = 0;
-					charTimesRef.current[0] = currentTime;
+					let startIdx = Math.max(0, lockIndex + 1);
+					const wordStartIdx = startIdx;
+					charTimesRef.current[startIdx] = currentTime;
 
 					// 첫 글자가 여는 괄호면 다음 글자까지 포함
 					while (startIdx + 1 < currentLineChars.length && isLeadingChar(currentLineChars, startIdx)) {
@@ -4403,9 +4577,9 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 					// 마지막 글자면 라인 완료 (보간 적용 후)
 					if (keyboardCharIndexRef.current >= currentLineChars.length - 1) {
 						// 첫 단어이자 마지막 단어인 경우에도 보간 적용
-						if (interpolationEnabledRef.current && endIdx > 0) {
-							const duration = estimateWordInterpolationDuration(0, endIdx);
-							applyInterpolatedRangeToCharTimes(charTimesRef.current, 0, endIdx, currentTime, currentTime + duration, smoothStepInterpolation);
+						if (interpolationEnabledRef.current && endIdx > wordStartIdx) {
+							const duration = estimateWordInterpolationDuration(wordStartIdx, endIdx);
+							applyInterpolatedRangeToCharTimes(charTimesRef.current, wordStartIdx, endIdx, currentTime, currentTime + duration, smoothStepInterpolation);
 							window.__ivLyricsDebugLog?.('[SyncDataCreator] Applied interpolation to single word line');
 						}
 						finishKeyboardSync();
@@ -4414,7 +4588,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 						// 보간을 위해 현재 단어 정보 저장 (보간 활성화 시)
 						if (interpolationEnabledRef.current) {
 							pendingWordSyncRef.current = {
-								startIdx: 0,
+								startIdx: wordStartIdx,
 								endIdx: endIdx,
 								startTime: currentTime
 							};
@@ -4426,7 +4600,8 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				// 이미 싱크 중인 경우: 이전 단어에 보간 적용 후 다음 단어로 진행
 				applyInterpolationToPendingWord(currentTime);
 
-				const startIdx = keyboardCharIndexRef.current;
+				const lockIndex = getActiveRecordingLockIndex();
+				const startIdx = Math.max(keyboardCharIndexRef.current, lockIndex);
 				let endIdx = startIdx + 1;
 
 				// 먼저 현재 공백들 건너뛰기
@@ -4496,6 +4671,8 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			// 한 단어 뒤로 취소하는 헬퍼 함수 (첫 글자도 취소 가능)
 			const revertOneWord = () => {
 				if (!isKeyboardSyncingRef.current || keyboardCharIndexRef.current < 0) return;
+				const lockIndex = getActiveRecordingLockIndex();
+				if (keyboardCharIndexRef.current <= lockIndex) return;
 
 				// 보간 대기 중인 단어 취소
 				pendingWordSyncRef.current = null;
@@ -4503,34 +4680,34 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				let targetIdx = keyboardCharIndexRef.current - 1;
 
 				// trailing 문자들 건너뛰기
-				while (targetIdx >= 0 && isTrailingChar(currentLineChars, targetIdx)) {
+				while (targetIdx > lockIndex && isTrailingChar(currentLineChars, targetIdx)) {
 					charTimesRef.current[targetIdx + 1] = null;
 					targetIdx--;
 				}
 
 				// 단어 경계까지 뒤로 가기
-				while (targetIdx >= 0 && !isWordBoundary(currentLineChars, targetIdx)) {
+				while (targetIdx > lockIndex && !isWordBoundary(currentLineChars, targetIdx)) {
 					charTimesRef.current[targetIdx + 1] = null;
 					targetIdx--;
 				}
 
 				// 공백들 건너뛰기
-				while (targetIdx >= 0 && isWordBoundary(currentLineChars, targetIdx)) {
+				while (targetIdx > lockIndex && isWordBoundary(currentLineChars, targetIdx)) {
 					charTimesRef.current[targetIdx + 1] = null;
 					targetIdx--;
 				}
 
 				// 현재 위치부터 targetIdx+1까지의 타임 null 처리
-				for (let i = targetIdx + 1; i <= keyboardCharIndexRef.current; i++) {
+				for (let i = Math.max(targetIdx + 1, lockIndex + 1); i <= keyboardCharIndexRef.current; i++) {
 					charTimesRef.current[i] = null;
 				}
 
-				keyboardCharIndexRef.current = targetIdx;
+				keyboardCharIndexRef.current = Math.max(targetIdx, lockIndex);
 				setRecordingProgressIndex(keyboardCharIndexRef.current, { commitState: false });
 				window.__ivLyricsDebugLog?.('[SyncDataCreator] Word reverted to char:', keyboardCharIndexRef.current);
 
 				// 모든 글자 취소시 싱크 상태 초기화
-				if (keyboardCharIndexRef.current < 0) {
+				if (keyboardCharIndexRef.current <= lockIndex) {
 					isKeyboardSyncingRef.current = false;
 					setDragStartTime(null);
 					window.__ivLyricsDebugLog?.('[SyncDataCreator] All chars reverted by word, sync reset');
@@ -4549,6 +4726,8 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			if (shortcutAction === 'charBack') {
 				consumeKeyboardEvent();
 				if (isKeyboardSyncingRef.current && keyboardCharIndexRef.current >= 0) {
+					const lockIndex = getActiveRecordingLockIndex();
+					if (keyboardCharIndexRef.current <= lockIndex) return;
 					pendingWordSyncRef.current = null;
 					pendingSyllableSyncRef.current = null;
 					charTimesRef.current[keyboardCharIndexRef.current] = null;
@@ -4556,7 +4735,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 					setRecordingProgressIndex(keyboardCharIndexRef.current, { commitState: false });
 					window.__ivLyricsDebugLog?.('[SyncDataCreator] Reverted to char:', keyboardCharIndexRef.current);
 					// 모든 글자 취소시 싱크 상태 초기화
-					if (keyboardCharIndexRef.current < 0) {
+					if (keyboardCharIndexRef.current <= lockIndex) {
 						isKeyboardSyncingRef.current = false;
 						setDragStartTime(null);
 						window.__ivLyricsDebugLog?.('[SyncDataCreator] All chars reverted, sync reset');
@@ -4591,14 +4770,25 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				}
 
 				if (!isKeyboardSyncingRef.current) {
+					const lockIndex = getActiveRecordingLockIndex();
+					if (lockIndex >= currentLineChars.length - 1) {
+						Toast.error(I18n.t('syncCreator.syncLockNoEditableChars') || 'Right-click an earlier character so there is something left to re-sync.');
+						return;
+					}
 					isKeyboardSyncingRef.current = true;
-					charTimesRef.current = new Array(currentLineChars.length).fill(null);
+					charTimesRef.current = buildLockedCharTimes(lockIndex);
 					pendingSyllableSyncRef.current = null;
 					setDragStartTime(currentTime);
 					pendingWordSyncRef.current = null;
 
-					const firstSegment = currentLineEffectiveSyllableSegments[0];
-					for (let i = firstSegment.start; i <= firstSegment.end; i++) {
+					const firstSegment = currentLineEffectiveSyllableSegments.find(segment => segment.end > lockIndex);
+					if (!firstSegment) {
+						isKeyboardSyncingRef.current = false;
+						keyboardCharIndexRef.current = lockIndex;
+						return;
+					}
+					const segmentStart = Math.max(firstSegment.start, lockIndex + 1);
+					for (let i = segmentStart; i <= firstSegment.end; i++) {
 						charTimesRef.current[i] = currentTime;
 					}
 
@@ -4607,15 +4797,15 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 					window.__ivLyricsDebugLog?.('[SyncDataCreator] Syllable sync started, segment:', firstSegment.start, '-', firstSegment.end);
 
 					if (firstSegment.end >= currentLineChars.length - 1) {
-						const duration = estimateSegmentDuration(firstSegment.start, firstSegment.end, 0.05, 0.22);
-						applyInterpolatedRangeToCharTimes(charTimesRef.current, firstSegment.start, firstSegment.end, currentTime, currentTime + duration);
+						const duration = estimateSegmentDuration(segmentStart, firstSegment.end, 0.05, 0.22);
+						applyInterpolatedRangeToCharTimes(charTimesRef.current, segmentStart, firstSegment.end, currentTime, currentTime + duration);
 						finishKeyboardSync();
 						window.__ivLyricsDebugLog?.('[SyncDataCreator] Line completed by syllable');
 						return;
 					}
 
 					pendingSyllableSyncRef.current = {
-						startIdx: firstSegment.start,
+						startIdx: segmentStart,
 						endIdx: firstSegment.end,
 						startTime: currentTime
 					};
@@ -4634,7 +4824,9 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				}
 
 				applyInterpolationToPendingSyllable(currentTime);
-				for (let i = nextSegment.start; i <= nextSegment.end; i++) {
+				const lockIndex = getActiveRecordingLockIndex();
+				const segmentStart = Math.max(nextSegment.start, lockIndex + 1);
+				for (let i = segmentStart; i <= nextSegment.end; i++) {
 					charTimesRef.current[i] = currentTime;
 				}
 
@@ -4643,8 +4835,8 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				window.__ivLyricsDebugLog?.('[SyncDataCreator] Syllable advanced to segment:', nextSegment.start, '-', nextSegment.end);
 
 				if (nextSegment.end >= currentLineChars.length - 1) {
-					const duration = estimateSegmentDuration(nextSegment.start, nextSegment.end, 0.05, 0.22);
-					applyInterpolatedRangeToCharTimes(charTimesRef.current, nextSegment.start, nextSegment.end, currentTime, currentTime + duration);
+					const duration = estimateSegmentDuration(segmentStart, nextSegment.end, 0.05, 0.22);
+					applyInterpolatedRangeToCharTimes(charTimesRef.current, segmentStart, nextSegment.end, currentTime, currentTime + duration);
 					pendingSyllableSyncRef.current = null;
 					finishKeyboardSync();
 					window.__ivLyricsDebugLog?.('[SyncDataCreator] Line completed by syllable');
@@ -4652,7 +4844,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				}
 
 				pendingSyllableSyncRef.current = {
-					startIdx: nextSegment.start,
+					startIdx: segmentStart,
 					endIdx: nextSegment.end,
 					startTime: currentTime
 				};
@@ -4729,6 +4921,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 					charTimesRef.current = [];
 					pendingWordSyncRef.current = null;
 					pendingSyllableSyncRef.current = null;
+					clearRecordingLock();
 					setDragStartTime(null);
 					setRecordingProgressIndex(-1);
 
@@ -4820,10 +5013,11 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			document.removeEventListener('keypress', handleKeyPress, true);
 			document.removeEventListener('keyup', handleKeyUp, true);
 		};
-	}, [mode, currentLineIndex, activeParallelTargetId, lyricsLines.length, currentLineChars, currentLineEffectiveSyllableSegments, lineCharOffsets, commitCurrentLineSync, advanceAfterCompletedTarget, isCurrentSyncTargetMetaComplete, showMissingMetaToast, setRecordingProgressIndex]);
+	}, [mode, currentLineIndex, activeParallelTargetId, lyricsLines.length, currentLineChars, currentLineEffectiveSyllableSegments, lineCharOffsets, commitCurrentLineSync, advanceAfterCompletedTarget, isCurrentSyncTargetMetaComplete, showMissingMetaToast, setRecordingProgressIndex, getActiveRecordingLockIndex, buildLockedCharTimes, clearRecordingLock]);
 
 	const handleContainerMouseDown = useCallback((e) => {
 		if (mode !== 'record' || currentLineIndex >= lyricsLines.length) return;
+		if (e.button === 2) return;
 		if (!isCurrentSyncTargetMetaComplete) {
 			showMissingMetaToast();
 			return;
@@ -4869,7 +5063,8 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			const newLines = prev.lines.filter(l => l.start !== lineStart);
 			return newLines.length > 0 ? { ...prev, lines: newLines } : null;
 		});
-	}, [syncData, lineCharOffsets, currentLineIndex]);
+		clearRecordingLock();
+	}, [syncData, lineCharOffsets, currentLineIndex, clearRecordingLock]);
 
 	const updateParallelPartMeta = useCallback((partId, field, value) => {
 		const safeValue = field === 'speaker'
@@ -5049,9 +5244,10 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		});
 		setMode(prev => prev === 'record' ? prev : 'idle');
 		setRecordingProgressIndex(-1);
+		clearRecordingLock();
 		charTimesRef.current = [];
 		if (lyricsScrollRef.current) lyricsScrollRef.current.scrollLeft = 0;
-	}, [lineCharOffsets, currentLineIndex, setRecordingProgressIndex]);
+	}, [lineCharOffsets, currentLineIndex, setRecordingProgressIndex, clearRecordingLock]);
 	const unmergeCurrentLine = useCallback(() => {
 		if (!currentLineMergedWithNext || currentMergedLineIndexes.length <= 1) return;
 		const lineStart = lineCharOffsets[currentLineIndex];
@@ -5116,6 +5312,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		setActiveParallelPartId('full');
 		setMode(prev => prev === 'record' ? prev : 'idle');
 		setRecordingProgressIndex(-1);
+		clearRecordingLock();
 		charTimesRef.current = [];
 		if (lyricsScrollRef.current) lyricsScrollRef.current.scrollLeft = 0;
 	}, [
@@ -5125,7 +5322,8 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		getLineEndAtIndex,
 		lineCharOffsets,
 		lyricsLines,
-		setRecordingProgressIndex
+		setRecordingProgressIndex,
+		clearRecordingLock
 	]);
 	const toggleManualParallelSplitPoint = useCallback((splitPoint) => {
 		if (!multiVocalMode || currentFullLineChars.length < 2) return;
@@ -5160,6 +5358,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		});
 		setMode(prev => prev === 'record' ? prev : 'idle');
 		setRecordingProgressIndex(-1);
+		clearRecordingLock();
 		charTimesRef.current = [];
 		if (lyricsScrollRef.current) lyricsScrollRef.current.scrollLeft = 0;
 	}, [
@@ -5169,7 +5368,8 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		unmergeCurrentLine,
 		lineCharOffsets,
 		currentLineIndex,
-		setRecordingProgressIndex
+		setRecordingProgressIndex,
+		clearRecordingLock
 	]);
 	const resolveParentheticalLayoutDecision = useCallback((layoutMode) => {
 		const decision = pendingParentheticalLayoutDecision;
@@ -5184,17 +5384,19 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		setPendingParentheticalLayoutDecision(null);
 		setMode(prev => prev === 'record' ? prev : 'idle');
 		setRecordingProgressIndex(-1);
+		clearRecordingLock();
 		charTimesRef.current = [];
 		if (lyricsScrollRef.current) lyricsScrollRef.current.scrollLeft = 0;
-	}, [pendingParentheticalLayoutDecision, setRecordingProgressIndex]);
+	}, [pendingParentheticalLayoutDecision, setRecordingProgressIndex, clearRecordingLock]);
 	const enableManualMultiVocalMode = useCallback(() => {
 		setMultiVocalMode(true);
 		setActiveParallelPartId('');
 		setMode(prev => prev === 'record' ? prev : 'idle');
 		setRecordingProgressIndex(-1);
+		clearRecordingLock();
 		charTimesRef.current = [];
 		if (lyricsScrollRef.current) lyricsScrollRef.current.scrollLeft = 0;
-	}, [setRecordingProgressIndex]);
+	}, [setRecordingProgressIndex, clearRecordingLock]);
 
 	const toggleMode = useCallback((newMode) => {
 		if (mode === newMode) {
@@ -6442,6 +6644,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		charSynced: { background: 'rgba(49, 130, 246, 0.20)' },
 		charPlayed: { background: TOSS_BLUE, color: '#fff' },
 		charRecording: { background: 'rgba(255, 152, 0, 0.6)' },
+		charLocked: { boxShadow: `inset 0 -3px 0 ${TOSS_BLUE}` },
 		charTime: { position: 'absolute', bottom: usePrimaryCharacterPronunciation ? '-18px' : (hasCurrentLineCharacterPronunciation ? '-16px' : '-20px'), left: '50%', transform: 'translateX(-50%)', fontSize: '9px', color: 'var(--spice-subtext)', whiteSpace: 'nowrap' },
 		nextLineBox: { textAlign: 'center', padding: '10px 8px', opacity: 0.55 },
 		nextLineLabel: { fontSize: '10px', color: 'var(--spice-subtext)', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: '700' },
@@ -6716,6 +6919,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 	const renderCharacterSpan = (char, i, options = {}) => {
 		const isSynced = isCharSynced(currentLineIndex, i);
 		const isRec = mode === 'record' && currentRecordingCharIndex >= 0 && i <= currentRecordingCharIndex;
+		const isLocked = mode === 'record' && recordingLockIndex >= 0 && i <= recordingLockIndex;
 		const previewIdx = currentLinePreviewIndex;
 		const previewNumericIndex = Number(previewIdx);
 		const previewCompletedIndex = Number.isFinite(previewNumericIndex) ? Math.floor(previewNumericIndex) : -1;
@@ -6746,6 +6950,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		if (!options.wordSpacer) {
 			if (isRec) style = { ...style, ...s.charRecording };
 			else if (isSynced) style = isPlayed ? { ...style, ...s.charPlayed } : { ...style, ...s.charSynced };
+			if (isLocked) style = { ...style, ...s.charLocked };
 		}
 
 		const pronunciationStyle = usePrimaryLayout
@@ -6767,7 +6972,9 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			'data-char-index': i,
 			'data-iv-sync-creator-synced': !options.wordSpacer && isSynced ? '1' : '0',
 			'data-iv-sync-creator-base-background': baseBackground,
-			'data-iv-sync-creator-base-color': baseColor
+			'data-iv-sync-creator-base-color': baseColor,
+			onContextMenu: options.wordSpacer ? undefined : (e) => handleCharacterContextMenu(i, e),
+			title: options.wordSpacer || mode !== 'record' ? undefined : (I18n.t('syncCreator.syncLockTooltip') || 'Right-click to lock timing up to this character')
 		},
 			usePrimaryLayout
 				? react.createElement('span', { style: s.charOriginalSmall }, originalContent)
@@ -6814,7 +7021,11 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				ref: rtlTextRunRef,
 				style: rtlTextRunStyle,
 				dir: currentLineDirection,
-				'data-rtl-text-run': 'true'
+				'data-rtl-text-run': 'true',
+				onContextMenu: (e) => {
+					const charIndex = getCharIndexFromPoint(e.clientX, e.clientY);
+					if (charIndex >= 0) handleCharacterContextMenu(charIndex, e);
+				}
 			}, displayItems ? displayItems.map(item => item.text || item.char || '').join('') : currentLineText);
 		}
 
@@ -7263,6 +7474,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				[getSyncCreatorShortcutDisplay('wordBack'), I18n.t('syncCreator.shortcuts.wordBack') || '한 단어 취소'],
 				[getSyncCreatorShortcutDisplay('syllable'), I18n.t('syncCreator.shortcuts.syllable') || '음절'],
 				[getSyncCreatorShortcutDisplay('drag'), I18n.t('syncCreator.shortcuts.drag') || '누르면 드래그'],
+				[I18n.t('syncCreator.shortcuts.rightClick') || 'Right click', I18n.t('syncCreator.shortcuts.lockToCharacter') || '해당 글자까지 잠금'],
 				['Enter', I18n.t('syncCreator.shortcuts.finish') || '라인 완료'],
 				['Backspace', I18n.t('syncCreator.shortcuts.cancel') || '취소'],
 				['Space', I18n.t('syncCreator.shortcuts.playPause') || '재생/일시정지'],
@@ -8005,6 +8217,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 							onClick: () => {
 								setActiveParallelPartId(part.id);
 								setRecordingProgressIndex(-1);
+								clearRecordingLock();
 								charTimesRef.current = [];
 								if (lyricsScrollRef.current) lyricsScrollRef.current.scrollLeft = 0;
 							}
@@ -8032,6 +8245,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 						onClick: () => {
 							setActiveParallelPartId(part.id);
 							setRecordingProgressIndex(-1);
+							clearRecordingLock();
 							charTimesRef.current = [];
 							if (lyricsScrollRef.current) lyricsScrollRef.current.scrollLeft = 0;
 							}
@@ -8137,6 +8351,10 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 					react.createElement('div', { style: s.shortcutItem },
 						react.createElement('span', { style: s.shortcutKey }, getSyncCreatorShortcutDisplay('drag')),
 						react.createElement('span', { style: s.shortcutDesc }, I18n.t('syncCreator.shortcuts.drag') || '누르고 있으면 드래그')
+					),
+					react.createElement('div', { style: s.shortcutItem },
+						react.createElement('span', { style: s.shortcutKey }, I18n.t('syncCreator.shortcuts.rightClick') || '우클릭'),
+						react.createElement('span', { style: s.shortcutDesc }, I18n.t('syncCreator.shortcuts.lockToCharacter') || '해당 글자까지 잠금')
 					),
 					// 완료/취소
 					react.createElement('div', { style: s.shortcutItem },

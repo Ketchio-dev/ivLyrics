@@ -383,6 +383,11 @@ window.LANG_ZH_CN = {
     },
     "solidBackgroundInUse": "ℹ️ 正在使用纯色背景",
     "fontPlaceholder": "输入字体名称 (例如: Arial, Microsoft YaHei)",
+    "syncLockTooltip": "右键可锁定到这个字的时间",
+    "syncLockSet": "已锁定到所选字的时间。",
+    "syncLockCleared": "已清除同步锁定。",
+    "syncLockRequiresTiming": "请先同步这一行一次，再锁定其中一部分。",
+    "syncLockNoEditableChars": "请右键更前面的字，以保留可重新同步的部分。",
     "shortcuts": {
       "primary": "主键",
       "secondary": "副键"
@@ -2241,6 +2246,8 @@ window.LANG_ZH_CN = {
       "wordForward": "1词",
       "wordBack": "撤销1词",
       "drag": "按住拖动",
+      "rightClick": "右键",
+      "lockToCharacter": "锁定到此字",
       "finish": "完成行",
       "cancel": "取消",
       "playPause": "播放/暂停",

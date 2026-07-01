@@ -383,6 +383,11 @@ window.LANG_TH = {
     },
     "solidBackgroundInUse": "ℹ️ กำลังใช้งานพื้นหลังสีทึบ",
     "fontPlaceholder": "ชื่อฟอนต์ (เช่น Arial, Cordia New)",
+    "syncLockTooltip": "คลิกขวาเพื่อล็อกเวลาถึงอักขระนี้",
+    "syncLockSet": "ล็อกเวลาถึงอักขระที่เลือกแล้ว",
+    "syncLockCleared": "ล้างการล็อกซิงก์แล้ว",
+    "syncLockRequiresTiming": "ซิงก์บรรทัดนี้หนึ่งครั้งก่อนล็อกบางส่วน",
+    "syncLockNoEditableChars": "คลิกขวาที่อักขระก่อนหน้าเพื่อให้ยังมีส่วนที่ซิงก์ใหม่ได้",
     "shortcuts": {
       "primary": "หลัก",
       "secondary": "รอง"
@@ -2241,6 +2246,8 @@ window.LANG_TH = {
       "wordForward": "1 คำ",
       "wordBack": "ยกเลิก 1 คำ",
       "drag": "กดค้างเพื่อลาก",
+      "rightClick": "คลิกขวา",
+      "lockToCharacter": "ล็อกถึงอักขระนี้",
       "finish": "เสร็จสิ้นบรรทัด",
       "cancel": "ยกเลิก",
       "playPause": "เล่น/หยุด",

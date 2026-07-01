@@ -383,6 +383,11 @@ window.LANG_HI = {
     },
     "solidBackgroundInUse": "ℹ️ ठोस बैकग्राउंड उपयोग में है",
     "fontPlaceholder": "फ़ॉन्ट का नाम दर्ज करें (उदा: Arial, Mangal)",
+    "syncLockTooltip": "इस अक्षर तक टाइमिंग लॉक करने के लिए राइट क्लिक करें",
+    "syncLockSet": "चुने गए अक्षर तक टाइमिंग लॉक हो गई।",
+    "syncLockCleared": "सिंक लॉक हटाया गया।",
+    "syncLockRequiresTiming": "किसी हिस्से को लॉक करने से पहले इस लाइन को एक बार सिंक करें।",
+    "syncLockNoEditableChars": "दोबारा सिंक करने के लिए कुछ बचाने हेतु पहले के अक्षर पर राइट क्लिक करें।",
     "shortcuts": {
       "primary": "प्राथमिक",
       "secondary": "द्वितीयक"
@@ -2240,6 +2245,8 @@ window.LANG_HI = {
       "wordForward": "1 शब्द",
       "wordBack": "1 शब्द वापस",
       "drag": "खींचने के लिए दबाएं",
+      "rightClick": "राइट क्लिक",
+      "lockToCharacter": "इस अक्षर तक लॉक",
       "finish": "लाइन पूर्ण",
       "cancel": "रद्द करें",
       "playPause": "चलाएं/रोकें",
