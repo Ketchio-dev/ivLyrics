@@ -635,7 +635,8 @@ window.LANG_SV = {
       "nowPlaying": "Spelar nu",
       "upNext": "Upp Nästa",
       "empty": "Kön är tom",
-      "noRecent": "Ingen senaste uppspelningshistorik"
+      "noRecent": "Ingen senaste uppspelningshistorik",
+      "recommended": "Rekommenderade låtar"
     },
     "contextType": {
       "playlist": "Spellista",

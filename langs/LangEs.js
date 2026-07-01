@@ -635,7 +635,8 @@ window.LANG_ES = {
       "nowPlaying": "Reproduciendo ahora",
       "upNext": "A continuación",
       "empty": "La cola está vacía",
-      "noRecent": "No hay historial de reproducción reciente"
+      "noRecent": "No hay historial de reproducción reciente",
+      "recommended": "Canciones recomendadas"
     },
     "contextType": {
       "playlist": "Playlist",

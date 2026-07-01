@@ -635,7 +635,8 @@ window.LANG_PT = {
       "nowPlaying": "Tocando Agora",
       "upNext": "A Seguir",
       "empty": "A fila está vazia",
-      "noRecent": "Nenhum histórico recente"
+      "noRecent": "Nenhum histórico recente",
+      "recommended": "Músicas recomendadas"
     },
     "contextType": {
       "playlist": "Playlist",

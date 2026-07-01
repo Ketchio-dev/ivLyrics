@@ -635,7 +635,8 @@ window.LANG_IT = {
       "nowPlaying": "In riproduzione",
       "upNext": "In coda",
       "empty": "La coda è vuota",
-      "noRecent": "Nessuna cronologia recente"
+      "noRecent": "Nessuna cronologia recente",
+      "recommended": "Brani consigliati"
     },
     "contextType": {
       "playlist": "Playlist",

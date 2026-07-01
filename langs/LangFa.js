@@ -635,7 +635,8 @@ window.LANG_FA = {
       "nowPlaying": "در حال پخش",
       "upNext": "آهنگ‌های بعدی",
       "empty": "صف پخش خالی است",
-      "noRecent": "تاریخچه پخش خالی است"
+      "noRecent": "تاریخچه پخش خالی است",
+      "recommended": "آهنگ‌های پیشنهادی"
     },
     "contextType": {
       "playlist": "لیست پخش",

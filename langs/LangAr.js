@@ -635,7 +635,8 @@ window.LANG_AR = {
       "nowPlaying": "يشتغل الآن",
       "upNext": "التالي في القائمة",
       "empty": "قائمة الانتظار فارغة",
-      "noRecent": "لا يوجد سجل تشغيل حديث"
+      "noRecent": "لا يوجد سجل تشغيل حديث",
+      "recommended": "الأغاني المقترحة"
     },
     "contextType": {
       "playlist": "قائمة تشغيل",

@@ -635,7 +635,8 @@ window.LANG_ZH_CN = {
       "nowPlaying": "正在播放",
       "upNext": "接下来播放",
       "empty": "队列为空",
-      "noRecent": "没有最近播放记录"
+      "noRecent": "没有最近播放记录",
+      "recommended": "推荐歌曲"
     },
     "contextType": {
       "playlist": "歌单",

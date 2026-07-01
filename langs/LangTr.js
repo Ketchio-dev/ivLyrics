@@ -635,7 +635,8 @@ window.LANG_TR = {
       "nowPlaying": "Şu An Çalınan",
       "upNext": "Sıradaki",
       "empty": "Sıra boş",
-      "noRecent": "Son çalma geçmişi yok"
+      "noRecent": "Son çalma geçmişi yok",
+      "recommended": "Önerilen şarkılar"
     },
     "contextType": {
       "playlist": "Çalma Listesi",

@@ -635,7 +635,8 @@ window.LANG_TH = {
       "nowPlaying": "กำลังเล่น",
       "upNext": "รายการถัดไป",
       "empty": "คิวว่างเปล่า",
-      "noRecent": "ไม่มีประวัติการเล่นล่าสุด"
+      "noRecent": "ไม่มีประวัติการเล่นล่าสุด",
+      "recommended": "เพลงแนะนำ"
     },
     "contextType": {
       "playlist": "เพลย์ลิสต์",

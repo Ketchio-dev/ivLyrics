@@ -635,7 +635,8 @@ window.LANG_FR = {
       "nowPlaying": "Lecture en cours",
       "upNext": "À suivre",
       "empty": "La file d'attente est vide",
-      "noRecent": "Aucun historique récent"
+      "noRecent": "Aucun historique récent",
+      "recommended": "Morceaux recommandés"
     },
     "contextType": {
       "playlist": "Playlist",

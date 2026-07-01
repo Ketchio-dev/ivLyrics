@@ -86,6 +86,12 @@ const FullscreenOverlay = (() => {
         };
     };
 
+    const isRecommendedQueueTrack = (track) => Boolean(
+        track &&
+        track.queueSource !== "queued" &&
+        !track.canPlayInContext
+    );
+
     const areTrackInfoEqual = (prev, next) => {
         if (prev === next) return true;
         if (!prev || !next) return false;
@@ -1624,6 +1630,7 @@ const FullscreenOverlay = (() => {
             if (!track?.uri) return;
             try {
                 const selectedIndex = nextTracks.findIndex((t) =>
+                    (track.key && t.key === track.key) ||
                     (track.uid && t.uid === track.uid) || t.uri === track.uri
                 );
                 if (selectedIndex >= 0) {
@@ -1665,6 +1672,15 @@ const FullscreenOverlay = (() => {
                 console.warn('[FullscreenOverlay] Failed to play track:', e);
             }
         }, [nextTracks, commitNextTracks]);
+
+        const upNextTracks = useMemo(
+            () => nextTracks.filter((track) => !isRecommendedQueueTrack(track)),
+            [nextTracks]
+        );
+        const recommendedTracks = useMemo(
+            () => nextTracks.filter(isRecommendedQueueTrack),
+            [nextTracks]
+        );
 
         if (!show || !isFullscreen) return null;
 
@@ -1709,14 +1725,39 @@ const FullscreenOverlay = (() => {
                         ),
 
                         // 다음 재생 곡들
-                        nextTracks.length > 0 && react.createElement("div", { className: "fullscreen-queue-section" },
+                        upNextTracks.length > 0 && react.createElement("div", { className: "fullscreen-queue-section" },
                             react.createElement("div", { className: "fullscreen-queue-section-title" },
                                 I18n.t("fullscreen.queue.upNext")
                             ),
                             react.createElement("div", { className: "fullscreen-queue-list" },
-                                nextTracks.map((track, idx) =>
+                                upNextTracks.map((track, idx) =>
                                     react.createElement("div", {
                                         key: track.key || `next-${track.uid || track.uri || idx}`,
+                                        className: "fullscreen-queue-item",
+                                        onClick: () => handleTrackClick(track)
+                                    },
+                                        track.image && react.createElement("img", {
+                                            src: track.image,
+                                            className: "fullscreen-queue-item-image"
+                                        }),
+                                        react.createElement("div", { className: "fullscreen-queue-item-info" },
+                                            react.createElement("div", { className: "fullscreen-queue-item-title" }, track.title),
+                                            react.createElement("div", { className: "fullscreen-queue-item-artist" }, track.artist)
+                                        )
+                                    )
+                                )
+                            )
+                        ),
+
+                        // 추천곡
+                        recommendedTracks.length > 0 && react.createElement("div", { className: "fullscreen-queue-section" },
+                            react.createElement("div", { className: "fullscreen-queue-section-title" },
+                                I18n.t("fullscreen.queue.recommended")
+                            ),
+                            react.createElement("div", { className: "fullscreen-queue-list" },
+                                recommendedTracks.map((track, idx) =>
+                                    react.createElement("div", {
+                                        key: track.key || `recommended-${track.uid || track.uri || idx}`,
                                         className: "fullscreen-queue-item",
                                         onClick: () => handleTrackClick(track)
                                     },

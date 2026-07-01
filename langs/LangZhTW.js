@@ -635,7 +635,8 @@ window.LANG_ZH_TW = {
       "nowPlaying": "正在播放",
       "upNext": "待播清單",
       "empty": "佇列是空的",
-      "noRecent": "無最近播放紀錄"
+      "noRecent": "無最近播放紀錄",
+      "recommended": "推薦歌曲"
     },
     "contextType": {
       "playlist": "播放清單",

@@ -635,7 +635,8 @@ window.LANG_HI = {
       "nowPlaying": "अभी चल रहा है",
       "upNext": "अगला",
       "empty": "कतार खाली है",
-      "noRecent": "कोई हालिया प्लेबैक इतिहास नहीं"
+      "noRecent": "कोई हालिया प्लेबैक इतिहास नहीं",
+      "recommended": "सुझाए गए गाने"
     },
     "contextType": {
       "playlist": "प्लेलिस्ट",

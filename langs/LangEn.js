@@ -635,7 +635,8 @@ window.LANG_EN = {
       "nowPlaying": "Now Playing",
       "upNext": "Up Next",
       "empty": "Queue is empty",
-      "noRecent": "No recent playback history"
+      "noRecent": "No recent playback history",
+      "recommended": "Recommended Songs"
     },
     "contextType": {
       "playlist": "Playlist",

@@ -635,7 +635,8 @@ window.LANG_KO = {
       "nowPlaying": "지금 재생 중",
       "upNext": "다음 재생 목록",
       "empty": "대기열이 비어 있습니다",
-      "noRecent": "최근 재생 기록이 없습니다"
+      "noRecent": "최근 재생 기록이 없습니다",
+      "recommended": "추천곡"
     },
     "contextType": {
       "playlist": "플레이리스트",

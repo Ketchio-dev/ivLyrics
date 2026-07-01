@@ -635,7 +635,8 @@ window.LANG_ID = {
       "nowPlaying": "Sedang Diputar",
       "upNext": "Berikutnya",
       "empty": "Antrean kosong",
-      "noRecent": "Tidak ada riwayat pemutaran baru-baru ini"
+      "noRecent": "Tidak ada riwayat pemutaran baru-baru ini",
+      "recommended": "Lagu rekomendasi"
     },
     "contextType": {
       "playlist": "Playlist",

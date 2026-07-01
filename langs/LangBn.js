@@ -635,7 +635,8 @@ window.LANG_BN = {
       "nowPlaying": "এখন বাজছে",
       "upNext": "পরবর্তী তালিকা",
       "empty": "কিউ (Queue) খালি আছে",
-      "noRecent": "সম্প্রতি বাজানো কোনো গান নেই"
+      "noRecent": "সম্প্রতি বাজানো কোনো গান নেই",
+      "recommended": "প্রস্তাবিত গান"
     },
     "contextType": {
       "playlist": "প্লেলিস্ট",

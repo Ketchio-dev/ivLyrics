@@ -635,7 +635,8 @@ window.LANG_VI = {
       "nowPlaying": "Đang phát",
       "upNext": "Tiếp theo",
       "empty": "Hàng chờ trống",
-      "noRecent": "Không có lịch sử phát gần đây"
+      "noRecent": "Không có lịch sử phát gần đây",
+      "recommended": "Bài hát đề xuất"
     },
     "contextType": {
       "playlist": "Danh sách phát",

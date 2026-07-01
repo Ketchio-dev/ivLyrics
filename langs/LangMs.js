@@ -635,7 +635,8 @@ window.LANG_MS = {
       "nowPlaying": "Sedang Dimainkan",
       "upNext": "Seterusnya Dalam Giliran",
       "empty": "Giliran kosong",
-      "noRecent": "Tiada rekod main balik baru-baru ini"
+      "noRecent": "Tiada rekod main balik baru-baru ini",
+      "recommended": "Lagu disyorkan"
     },
     "contextType": {
       "playlist": "Senarai Main",

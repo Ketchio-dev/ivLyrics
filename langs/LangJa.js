@@ -635,7 +635,8 @@ window.LANG_JA = {
       "nowPlaying": "再生中",
       "upNext": "次に再生",
       "empty": "キューが空です",
-      "noRecent": "最近の再生履歴がありません"
+      "noRecent": "最近の再生履歴がありません",
+      "recommended": "おすすめ曲"
     },
     "contextType": {
       "playlist": "プレイリスト",

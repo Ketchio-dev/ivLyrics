@@ -635,7 +635,8 @@ window.LANG_DE = {
       "nowPlaying": "Wird abgespielt",
       "upNext": "Als nächstes",
       "empty": "Die Warteschlange ist leer",
-      "noRecent": "Kein Wiedergabeverlauf vorhanden"
+      "noRecent": "Kein Wiedergabeverlauf vorhanden",
+      "recommended": "Empfohlene Songs"
     },
     "contextType": {
       "playlist": "Playlist",
