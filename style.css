@@ -1168,6 +1168,10 @@ div.lyrics-tabBar-headerItemLink {
   margin-top: 0.12em;
 }
 
+.lyrics-karaoke-part .lyrics-karaoke-part-subline {
+  color: var(--lyrics-color-active);
+}
+
 .lyrics-lyricsContainer-LyricsLine-active .lyrics-karaoke-part-subline {
   transform: none;
 }

@@ -856,6 +856,47 @@ body.${PANEL_ACTIVE_BODY_CLASS} [data-testid="lyrics-npv-section"] {
   margin-top: 0.12em !important;
 }
 
+.ivlyrics-panel-line-karaoke-part.speaker-a { --ivlyrics-panel-vocal-color: #ffffff; }
+.ivlyrics-panel-line-karaoke-part.speaker-b { --ivlyrics-panel-vocal-color: #9fd8ff; }
+.ivlyrics-panel-line-karaoke-part.speaker-c { --ivlyrics-panel-vocal-color: #ffd166; }
+.ivlyrics-panel-line-karaoke-part.speaker-d { --ivlyrics-panel-vocal-color: #c4a7ff; }
+.ivlyrics-panel-line-karaoke-part.speaker-sfx { --ivlyrics-panel-vocal-color: #f4a6c8; }
+.ivlyrics-panel-line-karaoke-part.speaker-male-1 { --ivlyrics-panel-vocal-color: var(--ivlyrics-multi-vocal-speaker-color-male-1, #e6f2ff); }
+.ivlyrics-panel-line-karaoke-part.speaker-male-2 { --ivlyrics-panel-vocal-color: var(--ivlyrics-multi-vocal-speaker-color-male-2, #d7ecff); }
+.ivlyrics-panel-line-karaoke-part.speaker-male-3 { --ivlyrics-panel-vocal-color: var(--ivlyrics-multi-vocal-speaker-color-male-3, #edf7ff); }
+.ivlyrics-panel-line-karaoke-part.speaker-male-4 { --ivlyrics-panel-vocal-color: var(--ivlyrics-multi-vocal-speaker-color-male-4, #dbe7ff); }
+.ivlyrics-panel-line-karaoke-part.speaker-male-5 { --ivlyrics-panel-vocal-color: var(--ivlyrics-multi-vocal-speaker-color-male-5, #e2f8ff); }
+.ivlyrics-panel-line-karaoke-part.speaker-female-1 { --ivlyrics-panel-vocal-color: var(--ivlyrics-multi-vocal-speaker-color-female-1, #ffe7ef); }
+.ivlyrics-panel-line-karaoke-part.speaker-female-2 { --ivlyrics-panel-vocal-color: var(--ivlyrics-multi-vocal-speaker-color-female-2, #ffe0e8); }
+.ivlyrics-panel-line-karaoke-part.speaker-female-3 { --ivlyrics-panel-vocal-color: var(--ivlyrics-multi-vocal-speaker-color-female-3, #fff0f5); }
+.ivlyrics-panel-line-karaoke-part.speaker-female-4 { --ivlyrics-panel-vocal-color: var(--ivlyrics-multi-vocal-speaker-color-female-4, #ffdfe0); }
+.ivlyrics-panel-line-karaoke-part.speaker-female-5 { --ivlyrics-panel-vocal-color: var(--ivlyrics-multi-vocal-speaker-color-female-5, #fbe5ff); }
+.ivlyrics-panel-line-karaoke-part.speaker-duet-1 { --ivlyrics-panel-vocal-color: var(--ivlyrics-multi-vocal-speaker-color-duet-1, #eadfff); }
+.ivlyrics-panel-line-karaoke-part.speaker-duet-2 { --ivlyrics-panel-vocal-color: var(--ivlyrics-multi-vocal-speaker-color-duet-2, #e2d2ff); }
+.ivlyrics-panel-line-karaoke-part.speaker-duet-3 { --ivlyrics-panel-vocal-color: var(--ivlyrics-multi-vocal-speaker-color-duet-3, #f0e8ff); }
+.ivlyrics-panel-line-karaoke-part.speaker-duet-4 { --ivlyrics-panel-vocal-color: var(--ivlyrics-multi-vocal-speaker-color-duet-4, #dec9ff); }
+.ivlyrics-panel-line-karaoke-part.speaker-duet-5 { --ivlyrics-panel-vocal-color: var(--ivlyrics-multi-vocal-speaker-color-duet-5, #e9dcff); }
+
+.ivlyrics-panel-line-karaoke-part .ivlyrics-panel-line-phonetic {
+  color: var(--ivlyrics-panel-vocal-color, rgba(255, 255, 255, 0.75)) !important;
+  opacity: 0.72 !important;
+}
+
+.ivlyrics-panel-line-karaoke-part .ivlyrics-panel-line-translation {
+  color: var(--ivlyrics-panel-vocal-color, rgba(255, 255, 255, 0.75)) !important;
+  opacity: 0.68 !important;
+}
+
+.ivlyrics-panel-current-line .ivlyrics-panel-line-karaoke-part .ivlyrics-panel-line-phonetic,
+.ivlyrics-panel-line.active .ivlyrics-panel-line-karaoke-part .ivlyrics-panel-line-phonetic {
+  opacity: 0.84 !important;
+}
+
+.ivlyrics-panel-current-line .ivlyrics-panel-line-karaoke-part .ivlyrics-panel-line-translation,
+.ivlyrics-panel-line.active .ivlyrics-panel-line-karaoke-part .ivlyrics-panel-line-translation {
+  opacity: 0.8 !important;
+}
+
 .ivlyrics-panel-line-karaoke-part.background {
   font-size: 0.92em !important;
   opacity: 0.9 !important;
