@@ -1968,44 +1968,69 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
         return { startTime, endTime };
     };
 
-    const getActiveVocalRowIndex = (vocalRows, currentTime) => {
+    const getVocalAnchorPosition = (vocalRows, currentTime) => {
         if (!Array.isArray(vocalRows) || vocalRows.length === 0 || !Number.isFinite(currentTime)) {
             return -1;
         }
 
-        let activeRowIndex = -1;
-        let nearestRowIndex = 0;
-        let nearestDistance = Infinity;
-        let latestStartedRowIndex = -1;
-        let latestStartedTime = -Infinity;
+        let firstActiveRowIndex = -1;
+        let lastActiveRowIndex = -1;
 
         for (let rowIndex = 0; rowIndex < vocalRows.length; rowIndex++) {
             const { startTime, endTime } = getVocalRowTimeBounds(vocalRows[rowIndex]);
 
             if (currentTime >= startTime && currentTime <= endTime) {
-                activeRowIndex = rowIndex;
-                continue;
-            }
-
-            if (currentTime >= startTime && startTime > latestStartedTime) {
-                latestStartedRowIndex = rowIndex;
-                latestStartedTime = startTime;
-            }
-
-            const distance = currentTime < startTime
-                ? startTime - currentTime
-                : currentTime - endTime;
-            if (distance >= 0 && distance < nearestDistance) {
-                nearestRowIndex = rowIndex;
-                nearestDistance = distance;
+                if (firstActiveRowIndex < 0) {
+                    firstActiveRowIndex = rowIndex;
+                }
+                lastActiveRowIndex = rowIndex;
             }
         }
 
-        if (activeRowIndex >= 0) {
-            return activeRowIndex;
+        if (firstActiveRowIndex >= 0 && lastActiveRowIndex >= 0) {
+            return Math.ceil((firstActiveRowIndex + lastActiveRowIndex) / 2);
         }
 
-        return latestStartedRowIndex >= 0 ? latestStartedRowIndex : nearestRowIndex;
+        return -1;
+    };
+
+    const getPanelVocalAnchorKey = (vocalRows) => (
+        Array.isArray(vocalRows)
+            ? vocalRows.map((row) => {
+                const { startTime, endTime } = getVocalRowTimeBounds(row);
+                return `${startTime}:${endTime}:${row?.text || ""}`;
+            }).join("|")
+            : ""
+    );
+
+    const getStableVocalAnchorPosition = (stateRef, vocalRows, currentTime, nextAnchorPosition) => {
+        if (!stateRef?.current) {
+            return nextAnchorPosition;
+        }
+
+        const key = getPanelVocalAnchorKey(vocalRows);
+        const state = stateRef.current;
+        const positionWentBack = Number.isFinite(state.lastPlaybackPosition)
+            && Number.isFinite(currentTime)
+            && currentTime < state.lastPlaybackPosition - 250;
+
+        if (state.key !== key || positionWentBack) {
+            state.key = key;
+            state.anchorPosition = nextAnchorPosition;
+            state.lastPlaybackPosition = currentTime;
+            return nextAnchorPosition;
+        }
+
+        state.lastPlaybackPosition = currentTime;
+        if (!Number.isFinite(nextAnchorPosition) || nextAnchorPosition < 0) {
+            return Number.isFinite(state.anchorPosition) ? state.anchorPosition : -1;
+        }
+
+        state.anchorPosition = Math.max(
+            Number.isFinite(state.anchorPosition) ? state.anchorPosition : nextAnchorPosition,
+            nextAnchorPosition
+        );
+        return state.anchorPosition;
     };
 
     const splitLineByParallelShape = (text, rowCount) => {
@@ -2484,6 +2509,7 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
         const isVocalStack = Array.isArray(vocalRows) && vocalRows.length > 1;
         const shouldUseVocalRowAnchor = isActive && isVocalStack && vocalRows.length >= VOCAL_STACK_CENTER_THRESHOLD;
         const vocalStackRef = useRef(null);
+        const vocalAnchorStateRef = useRef({ key: "", anchorPosition: -1, lastPlaybackPosition: NaN });
         const rowPhonetics = isVocalStack ? splitLineByVocalRowShape(phonetic, vocalRows) : [];
         const rowTranslations = isVocalStack ? splitLineByVocalRowShape(translation, vocalRows) : [];
         const hasRowPhoneticSubline = isVocalStack && vocalRows.some((row, rowIndex) => row.phonetic || rowPhonetics[rowIndex]);
@@ -2496,9 +2522,21 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
             if (!stackElement) return undefined;
 
             const updateAnchorRow = () => {
-                const activeRowIndex = shouldUseVocalRowAnchor
-                    ? getActiveVocalRowIndex(vocalRows, window._ivLyricsPanelCurrentTime || 0)
+                const currentTime = window._ivLyricsPanelCurrentTime || 0;
+                const nextAnchorPosition = shouldUseVocalRowAnchor
+                    ? getVocalAnchorPosition(vocalRows, currentTime)
                     : -1;
+                const activeAnchorPosition = shouldUseVocalRowAnchor
+                    ? getStableVocalAnchorPosition(vocalAnchorStateRef, vocalRows, currentTime, nextAnchorPosition)
+                    : -1;
+                const activeRowIndex = Number.isFinite(activeAnchorPosition) && activeAnchorPosition >= 0
+                    ? Math.round(activeAnchorPosition)
+                    : -1;
+                if (activeAnchorPosition >= 0) {
+                    stackElement.setAttribute('data-panel-vocal-anchor-position', String(activeAnchorPosition));
+                } else {
+                    stackElement.removeAttribute('data-panel-vocal-anchor-position');
+                }
                 stackElement.querySelectorAll('[data-panel-vocal-row-index]').forEach((rowElement) => {
                     rowElement.classList.toggle(
                         'ivlyrics-panel-current-anchor',
@@ -2512,6 +2550,7 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
 
             if (!shouldUseVocalRowAnchor) {
                 return () => {
+                    stackElement.removeAttribute('data-panel-vocal-anchor-position');
                     stackElement.querySelectorAll('.ivlyrics-panel-current-anchor').forEach((rowElement) => {
                         rowElement.classList.remove('ivlyrics-panel-current-anchor');
                     });
@@ -2521,6 +2560,7 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
             window.addEventListener('ivlyrics-panel-time-update', updateAnchorRow);
             return () => {
                 window.removeEventListener('ivlyrics-panel-time-update', updateAnchorRow);
+                stackElement.removeAttribute('data-panel-vocal-anchor-position');
                 stackElement.querySelectorAll('.ivlyrics-panel-current-anchor').forEach((rowElement) => {
                     rowElement.classList.remove('ivlyrics-panel-current-anchor');
                 });
@@ -3822,10 +3862,37 @@ body.ivlyrics-starrynight-theme .Root__now-playing-bar {
                 if (!stack || !currentCell) return;
 
                 const wrapperCenter = wrapper.clientHeight / 2;
-                const currentAnchor = currentCell.querySelector('.ivlyrics-panel-current-anchor');
-                const currentCenter = currentAnchor
-                    ? currentCell.offsetTop + currentAnchor.offsetTop + (currentAnchor.offsetHeight / 2)
-                    : currentCell.offsetTop + (currentCell.offsetHeight / 2);
+                const anchorStack = currentCell.querySelector('[data-panel-vocal-anchor-position]');
+                const anchorPosition = Number(anchorStack?.getAttribute('data-panel-vocal-anchor-position'));
+                const anchorRowCount = Number(anchorStack?.getAttribute('data-panel-vocal-row-count'));
+                let currentCenter = currentCell.offsetTop + (currentCell.offsetHeight / 2);
+                if (anchorStack && Number.isFinite(anchorPosition) && Number.isFinite(anchorRowCount) && anchorRowCount > 0) {
+                    const rows = Array.from(anchorStack.querySelectorAll('[data-panel-vocal-row-index]'));
+                    const rowByIndex = new Map(rows.map((row) => [
+                        Number(row.getAttribute('data-panel-vocal-row-index')),
+                        row
+                    ]));
+                    const lowerIndex = Math.max(0, Math.min(anchorRowCount - 1, Math.floor(anchorPosition)));
+                    const upperIndex = Math.max(0, Math.min(anchorRowCount - 1, Math.ceil(anchorPosition)));
+                    const lowerRow = rowByIndex.get(lowerIndex);
+                    const upperRow = rowByIndex.get(upperIndex) || lowerRow;
+                    if (lowerRow && upperRow) {
+                        const cellRect = currentCell.getBoundingClientRect();
+                        const rowCenter = (row) => {
+                            const rect = row.getBoundingClientRect();
+                            return rect.top - cellRect.top + rect.height / 2;
+                        };
+                        const lowerCenter = rowCenter(lowerRow);
+                        const upperCenter = rowCenter(upperRow);
+                        const progress = Math.max(0, Math.min(1, anchorPosition - lowerIndex));
+                        currentCenter = currentCell.offsetTop + lowerCenter + (upperCenter - lowerCenter) * progress;
+                    }
+                } else {
+                    const currentAnchor = currentCell.querySelector('.ivlyrics-panel-current-anchor');
+                    if (currentAnchor) {
+                        currentCenter = currentCell.offsetTop + currentAnchor.offsetTop + (currentAnchor.offsetHeight / 2);
+                    }
+                }
                 const translateY = Math.round(wrapperCenter - currentCenter);
                 stack.style.setProperty('--ivlyrics-panel-stack-y', `${translateY}px`);
             };
