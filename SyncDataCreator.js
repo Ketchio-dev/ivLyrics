@@ -1699,6 +1699,20 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 	const recordingVisualFrameTimeRef = useRef(0);
 	const lastPaintedPlaybackIndexRef = useRef(-1);
 	const preventNextTrackRef = useRef(false);
+	const providerRef = useRef(provider);
+	const selectedLrclibSourceRef = useRef(selectedLrclibSource);
+
+	const setProviderValue = useCallback((nextProvider = '') => {
+		const normalizedProvider = nextProvider || '';
+		providerRef.current = normalizedProvider;
+		setProvider(normalizedProvider);
+	}, []);
+
+	const setSelectedLrclibSourceValue = useCallback((nextSource = null) => {
+		const normalizedSource = nextSource || null;
+		selectedLrclibSourceRef.current = normalizedSource;
+		setSelectedLrclibSource(normalizedSource);
+	}, []);
 
 	const setRecordingLockIndexValue = useCallback((index) => {
 		const safeIndex = Number.isInteger(index) && index >= 0 ? index : -1;
@@ -1863,10 +1877,10 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 	const clearLrclibCandidateState = useCallback(() => {
 		setLrclibCandidates([]);
 		setSelectedLrclibCandidateKey('');
-		setSelectedLrclibSource(null);
+		setSelectedLrclibSourceValue(null);
 		setPreviewLrclibCandidateKey('');
 		setLrclibSearchMeta(null);
-	}, []);
+	}, [setSelectedLrclibSourceValue]);
 
 	const applyLoadedLyricsResult = useCallback(async (result, usedProvider) => {
 		let finalProvider = result.provider || usedProvider;
@@ -1880,12 +1894,10 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			finalProvider = `spotify-${result.spotifyLyricsProvider}`;
 		}
 
-		setProvider(finalProvider);
+		setProviderValue(finalProvider);
 		setAddonId(usedProvider);
 		setLyrics(result);
-		if (finalProvider === 'lrclib' && result?.lrclibSource) {
-			setSelectedLrclibSource(result.lrclibSource);
-		}
+		setSelectedLrclibSourceValue(finalProvider === 'lrclib' ? (result?.lrclibSource || null) : null);
 
 		if (window.SyncDataService && trackId) {
 			try {
@@ -1941,7 +1953,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			setMultiVocalMode(false);
 			setError(I18n.t('syncCreator.noLyrics'));
 		}
-	}, [extractLyricsText, trackId, trackIsrc, trackName, artistName, albumName]);
+	}, [extractLyricsText, trackId, trackIsrc, trackName, artistName, albumName, setProviderValue, setSelectedLrclibSourceValue]);
 
 	const resolveMultiVocalDecision = useCallback((useMultiVocalMode) => {
 		if (!pendingMultiVocalDecision) return;
@@ -1987,7 +1999,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			const syntheticResult = buildSyntheticLrclibResult(candidate);
 			await applyLoadedLyricsResult(syntheticResult, 'lrclib');
 			setSelectedLrclibCandidateKey(candidate.candidateKey);
-			setSelectedLrclibSource(syntheticResult.lrclibSource || buildLrclibSyncSource(candidate));
+			setSelectedLrclibSourceValue(syntheticResult.lrclibSource || buildLrclibSyncSource(candidate));
 			setPreviewLrclibCandidateKey(candidate.candidateKey);
 		} catch (e) {
 			console.error('[SyncDataCreator] Failed to apply LRCLIB candidate:', e);
@@ -1995,7 +2007,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		}
 
 		setIsLoading(false);
-	}, [applyLoadedLyricsResult, buildLrclibSyncSource, buildSyntheticLrclibResult, lrclibCandidates]);
+	}, [applyLoadedLyricsResult, buildLrclibSyncSource, buildSyntheticLrclibResult, lrclibCandidates, setSelectedLrclibSourceValue]);
 
 	const buildLrclibIdCandidate = useCallback((candidate, requestedId) => {
 		if (!candidate) return null;
@@ -2094,7 +2106,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 
 			const syntheticResult = buildSyntheticLrclibResult(decoratedCandidate);
 			setAddonId('lrclib');
-			setProvider('lrclib');
+			setProviderValue('lrclib');
 			setLrclibCandidates([decoratedCandidate]);
 			setSelectedLrclibCandidateKey(decoratedCandidate.candidateKey);
 			setPreviewLrclibCandidateKey(decoratedCandidate.candidateKey);
@@ -2108,7 +2120,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			});
 			setShowLrclibCandidates(true);
 			await applyLoadedLyricsResult(syntheticResult, 'lrclib');
-			setSelectedLrclibSource(syntheticResult.lrclibSource || buildLrclibSyncSource(decoratedCandidate));
+			setSelectedLrclibSourceValue(syntheticResult.lrclibSource || buildLrclibSyncSource(decoratedCandidate));
 			Toast.success(I18n.t('syncCreator.lrclibIdLoadSuccess') || 'Loaded lyrics from LRCLIB ID.');
 		} catch (e) {
 			console.error('[SyncDataCreator] Failed to load LRCLIB ID:', e);
@@ -2125,7 +2137,9 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		buildSyntheticLrclibResult,
 		clearLrclibCandidateState,
 		getLrclibCandidateText,
-		lrclibIdInput
+		lrclibIdInput,
+		setProviderValue,
+		setSelectedLrclibSourceValue
 	]);
 
 	const searchLrclibByQuery = useCallback(async () => {
@@ -3098,7 +3112,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			} else {
 				// 만약 수동 선택했는데 실패했으면 provider는 그 선택한걸로 유지해서 UI에 보여줌? 
 				// 아니면 실패 메시지 띄우고 provider는 유지
-				if (preferredProvider) setProvider(preferredProvider);
+				if (preferredProvider) setProviderValue(preferredProvider);
 				setError(I18n.t('syncCreator.noLyrics'));
 			}
 		} catch (e) {
@@ -3107,7 +3121,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 		}
 
 		setIsLoading(false);
-	}, [trackInfo, trackName, artistName, albumName, applyLoadedLyricsResult, buildSyntheticLrclibResult, clearLrclibCandidateState]);
+	}, [trackInfo, trackName, artistName, albumName, applyLoadedLyricsResult, buildSyntheticLrclibResult, clearLrclibCandidateState, setProviderValue]);
 
 
 
@@ -3140,7 +3154,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 					lyricsSource = inputLyrics.synced || inputLyrics.unsynced;
 				}
 
-				setProvider(finalProvider);
+				setProviderValue(finalProvider);
 
 				let text = '';
 
@@ -5557,17 +5571,27 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 
 	const attachSelectedLrclibSource = useCallback((data) => {
 		const sanitized = sanitizeSyncCreatorSyncData(data, lyricsFullTextChars);
-		if (!sanitized || provider !== 'lrclib' || !selectedLrclibSource) {
+		if (!sanitized) {
+			return sanitized;
+		}
+
+		const currentProvider = providerRef.current;
+		const currentLrclibSource = selectedLrclibSourceRef.current;
+		if (currentProvider !== 'lrclib' || !currentLrclibSource) {
+			if (Object.prototype.hasOwnProperty.call(sanitized, 'source')) {
+				const { source, ...withoutSource } = sanitized;
+				return withoutSource;
+			}
 			return sanitized;
 		}
 		return {
 			...sanitized,
 			source: {
-				...selectedLrclibSource,
+				...currentLrclibSource,
 				provider: 'lrclib'
 			}
 		};
-	}, [lyricsFullTextChars, provider, selectedLrclibSource]);
+	}, [lyricsFullTextChars]);
 
 	const clearLyricsCachesAfterSyncSubmit = useCallback(async (resolvedIsrc = '') => {
 		const cacheIsrc = normalizeSyncCreatorIsrc(resolvedIsrc) || trackIsrc;
@@ -5806,9 +5830,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 				// 싱크 데이터 적용
 				const sanitizedData = sanitizeSyncCreatorSyncData(importedData, lyricsFullTextChars);
 				setSyncData(sanitizedData);
-				if (sanitizedData?.source?.provider === 'lrclib') {
-					setSelectedLrclibSource(sanitizedData.source);
-				}
+				setSelectedLrclibSourceValue(sanitizedData?.source?.provider === 'lrclib' ? sanitizedData.source : null);
 
 				Toast.success(I18n.t('syncCreator.importSuccess') || 'Imported sync data');
 			} catch (err) {
@@ -5817,7 +5839,7 @@ const SyncDataCreator = ({ trackInfo, initialData, onClose }) => {
 			}
 		};
 		input.click();
-	}, [lyricsFullTextChars]);
+	}, [lyricsFullTextChars, setSelectedLrclibSourceValue]);
 
 	// 가사 전체 복사
 	const copyAllLyrics = useCallback(async () => {
