@@ -1593,7 +1593,7 @@
         const OPENDB_BASE_URL = 'https://ivlis.kr/ivLyrics/opendb/';
         const OPENDB_MANIFEST_URL = `${OPENDB_BASE_URL}data/manifest.json`;
         const OPENDB_STORAGE_KEY = 'ivLyrics:sync-data-opendb:v1';
-        const OPENDB_FRESH_MS = 24 * 60 * 60 * 1000;
+        const OPENDB_FRESH_MS = 60 * 1000;
         const OPENDB_UNAVAILABLE_RETRY_MS = 5 * 60 * 1000;
         let _serverCacheBypassAllUntil = 0;
         let _syncDataCacheGeneration = 0;
@@ -2204,6 +2204,18 @@
             }
         }
 
+        function clearOpenDbStorage() {
+            _openDbState = null;
+            _openDbLoadPromise = null;
+            try {
+                const storage = getOpenDbStorage();
+                if (storage) {
+                    storage.removeItem(OPENDB_STORAGE_KEY);
+                }
+            } catch (e) {
+            }
+        }
+
         function isOpenDbStateFresh(state) {
             if (!state || !Number.isFinite(Number(state.fetchedAt))) {
                 return false;
@@ -2702,6 +2714,9 @@
 
         function clearCache(identityValue, metadata = {}) {
             const identityKey = normalizeSyncDataCacheIdentityKey(identityValue, metadata) || identityValue;
+            if (metadata?.preserveOpenDb !== true) {
+                clearOpenDbStorage();
+            }
             if (identityKey) {
                 bumpCacheGeneration(identityKey);
                 clearInflightRequests(identityKey);
@@ -2899,7 +2914,7 @@
                 });
             }
             rememberOpenDbSyncDataEntry(resolvedResultIsrc || identity.isrc, provider);
-            clearCache(resolvedResultIsrc || identity.isrc);
+            clearCache(resolvedResultIsrc || identity.isrc, { preserveOpenDb: true });
             return result;
         }
 
