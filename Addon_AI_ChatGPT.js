@@ -48,7 +48,11 @@
     async function fetchAvailableModels(apiKey, baseUrl) {
         if (!apiKey) return [];
 
-        const normalizedBaseUrl = (baseUrl || 'https://api.openai.com/v1').replace(/\/$/, '');
+        let trimmedBaseUrl = (baseUrl || 'https://api.openai.com/v1').trim();
+        if (trimmedBaseUrl && !/^https?:\/\//i.test(trimmedBaseUrl)) {
+            trimmedBaseUrl = 'http://' + trimmedBaseUrl;
+        }
+        const normalizedBaseUrl = trimmedBaseUrl.replace(/\/$/, '');
         const isOpenAIBaseUrl = normalizedBaseUrl === 'https://api.openai.com/v1';
 
         // 제외할 모델 패턴 (이미지 생성, 음성, 임베딩 등)
@@ -245,7 +249,12 @@
     }
 
     function getBaseUrl() {
-        return getSetting('base-url', 'https://api.openai.com/v1') || 'https://api.openai.com/v1';
+        let baseUrl = getSetting('base-url', 'https://api.openai.com/v1') || 'https://api.openai.com/v1';
+        baseUrl = baseUrl.trim();
+        if (baseUrl && !/^https?:\/\//i.test(baseUrl)) {
+            baseUrl = 'http://' + baseUrl;
+        }
+        return baseUrl;
     }
 
     function getSelectedModel() {
